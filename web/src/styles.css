@@ -1,0 +1,41 @@
+:root {
+  color: #e7ece8;
+  background: #0b1210;
+  font-family: Inter, "Segoe UI", "Microsoft YaHei", sans-serif;
+  font-synthesis: none;
+}
+
+* { box-sizing: border-box; }
+
+body { margin: 0; min-width: 320px; min-height: 100vh; }
+
+.shell {
+  min-height: 100vh;
+  padding: clamp(32px, 7vw, 96px);
+  background:
+    radial-gradient(circle at 78% 18%, rgba(73, 199, 145, 0.16), transparent 32%),
+    linear-gradient(135deg, #0b1210 0%, #101a17 60%, #0b1210 100%);
+}
+
+.hero { max-width: 820px; }
+.eyebrow { color: #68d6a4; letter-spacing: 0.18em; font-size: 12px; font-weight: 700; }
+h1 { margin: 18px 0; font-size: clamp(48px, 9vw, 108px); line-height: 0.92; letter-spacing: -0.06em; }
+.intro { max-width: 680px; color: #aebbb4; font-size: clamp(18px, 2.5vw, 25px); line-height: 1.65; }
+
+.status { display: inline-flex; gap: 10px; align-items: center; margin-top: 22px; padding: 10px 15px; border: 1px solid #31443b; border-radius: 999px; color: #bac8c1; }
+.status__dot { width: 8px; height: 8px; border-radius: 50%; background: #e8b55b; }
+.status--online .status__dot { background: #62d69d; box-shadow: 0 0 14px #62d69d; }
+.status--offline .status__dot { background: #e06b67; }
+
+.roadmap { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: clamp(64px, 12vw, 160px); }
+.roadmap article { min-height: 190px; padding: 24px; border: 1px solid #263a31; border-radius: 18px; background: rgba(20, 33, 28, 0.7); }
+.roadmap span { color: #68d6a4; font-family: ui-monospace, monospace; }
+.roadmap h2 { margin: 48px 0 8px; font-size: 24px; }
+.roadmap p { margin: 0; color: #91a098; line-height: 1.6; }
+
+@media (max-width: 720px) {
+  .roadmap { grid-template-columns: 1fr; }
+  .roadmap article { min-height: auto; }
+  .roadmap h2 { margin-top: 24px; }
+}
+
