@@ -9,7 +9,7 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:-local-development-only}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-local-root-development-only}
     ports:
-      - "${MYSQL_PORT:-13306}:3306"
+      - "${MYSQL_PORT:-23306}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:

@@ -1,6 +1,17 @@
 spring:
   application:
     name: agent-studio-backend
+  datasource:
+    url: ${MYSQL_URL:jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:23306}/${MYSQL_DATABASE:agent_studio}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai}
+    username: ${MYSQL_USER:agent_studio}
+    password: ${MYSQL_PASSWORD:local-development-only}
+    hikari:
+      connection-timeout: 5000
+      maximum-pool-size: 8
+  flyway:
+    enabled: true
+    clean-disabled: true
+    locations: classpath:db/migration
 
 server:
   port: ${SERVER_PORT:8080}
@@ -16,3 +27,6 @@ management:
       probes:
         enabled: true
 
+agent-studio:
+  chat:
+    timeout: 120s

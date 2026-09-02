@@ -1,18 +1,20 @@
 # Agent Studio Desktop
 
-一个单机优先、配置驱动的智能体搭建工具。当前仓库处于阶段 0：建立独立、可启动、可验证的工程基线。
+一个单机优先、配置驱动的智能体搭建工具。当前已跑通第一条产品主链：模型配置、Agent 草稿、不可变版本发布和流式对话。
 
 ## 当前已具备
 
-- Spring Boot 模块化单体骨架；
-- React + TypeScript + Vite 本地管理台骨架；
+- Spring Boot 模块化单体和 React + TypeScript + Vite 本地管理台；
 - MySQL 与 PostgreSQL + pgvector 的 Docker Compose 定义；
-- 后端健康状态接口与前端状态展示；
+- Flyway 管理的模型、Agent 版本、会话和消息表；
+- OpenAI Chat Completions 兼容接口及 SSE 流式返回；
+- 模型配置、Agent 创建/发布和对话测试页面；
+- 密钥仅通过环境变量读取，数据库只保存环境变量名；
 - 来源项目、设计边界和验证结果的文档目录。
 
 ## 尚未实现
 
-模型配置、Agent 发布、SSE 流式对话、RAG、ReAct、工具执行、安全审批、SSH 和 Coding 扩展均尚未实现，不应将目录或占位说明视为已完成能力。
+RAG、显式 ReAct 工具循环、工具执行、安全审批、SSH 和 Coding 扩展尚未实现。当前对话主链只调用 OpenAI 兼容模型，不应描述为已经具备工具型 Agent 能力。
 
 ## 本地启动
 
@@ -21,6 +23,9 @@
 ```powershell
 # 中间件
 docker compose -f docker/compose.yml up -d
+
+# 在当前 PowerShell 会话设置模型密钥（名称需与管理台配置一致）
+$env:OPENAI_API_KEY="your-key"
 
 # 后端（默认端口 8080）
 cd backend
@@ -36,10 +41,10 @@ npm run dev
 
 为避免与电脑上已有的数据库冲突，容器默认使用以下宿主机端口：
 
-- MySQL：`localhost:13306`（容器内仍为 `3306`）；
+- MySQL：`localhost:23306`（容器内仍为 `3306`）；
 - PostgreSQL + pgvector：`localhost:15432`（容器内仍为 `5432`）。
 
-如需改用其他端口，请复制 `.env.example` 为 `.env`，修改 `MYSQL_PORT` 或 `POSTGRES_PORT` 后重新执行 Compose 启动命令。
+如需改用其他端口，请复制 `.env.example` 为 `.env`，修改 `MYSQL_PORT` 或 `POSTGRES_PORT` 后重新执行 Compose 启动命令。后端默认连接 `23306`；自定义端口时也要在启动后端的环境中设置同名 `MYSQL_PORT`。
 
 如果之前因 `3306` 冲突而创建过容器，修改后的配置可直接修复并重建：
 
