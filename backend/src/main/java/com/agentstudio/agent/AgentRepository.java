@@ -11,6 +11,7 @@ import java.util.Optional;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -20,7 +21,7 @@ public class AgentRepository {
     private static final RowMapper<AgentVersion> VERSION_MAPPER = AgentRepository::mapVersion;
     private final NamedParameterJdbcTemplate jdbc;
 
-    public AgentRepository(NamedParameterJdbcTemplate jdbc) {
+    public AgentRepository(@Qualifier("primaryNamedParameterJdbcTemplate") NamedParameterJdbcTemplate jdbc) {
         this.jdbc = jdbc;
     }
 
@@ -43,10 +44,10 @@ public class AgentRepository {
     public void insert(AgentDefinition definition) {
         jdbc.update("""
                 INSERT INTO agent_definition
-                    (id, name, description, draft_model_profile_id, draft_system_prompt,
+                    (id, name, description, draft_model_profile_id, draft_knowledge_base_id, draft_system_prompt,
                      latest_version_number, created_at, updated_at)
                 VALUES
-                    (:id, :name, :description, :modelProfileId, :systemPrompt,
+                    (:id, :name, :description, :modelProfileId, :knowledgeBaseId, :systemPrompt,
                      :latestVersionNumber, :createdAt, :updatedAt)
                 """, definitionParameters(definition));
     }
@@ -56,6 +57,7 @@ public class AgentRepository {
                 UPDATE agent_definition SET
                     name = :name, description = :description,
                     draft_model_profile_id = :modelProfileId,
+                    draft_knowledge_base_id = :knowledgeBaseId,
                     draft_system_prompt = :systemPrompt, updated_at = :updatedAt
                 WHERE id = :id
                 """, definitionParameters(definition));
@@ -64,15 +66,16 @@ public class AgentRepository {
     public void insertVersionAndAdvance(AgentVersion version, Instant updatedAt) {
         jdbc.update("""
                 INSERT INTO agent_version
-                    (id, agent_definition_id, version_number, model_profile_id, model_profile_name,
+                    (id, agent_definition_id, version_number, knowledge_base_id, model_profile_id, model_profile_name,
                      provider, base_url, model_name, api_key_env, temperature, system_prompt, published_at)
                 VALUES
-                    (:id, :agentDefinitionId, :versionNumber, :modelProfileId, :modelProfileName,
+                    (:id, :agentDefinitionId, :versionNumber, :knowledgeBaseId, :modelProfileId, :modelProfileName,
                      :provider, :baseUrl, :modelName, :apiKeyEnv, :temperature, :systemPrompt, :publishedAt)
                 """, new MapSqlParameterSource()
                 .addValue("id", version.id())
                 .addValue("agentDefinitionId", version.agentDefinitionId())
                 .addValue("versionNumber", version.versionNumber())
+                .addValue("knowledgeBaseId", version.knowledgeBaseId())
                 .addValue("modelProfileId", version.modelProfileId())
                 .addValue("modelProfileName", version.modelProfileName())
                 .addValue("provider", version.provider())
@@ -112,6 +115,7 @@ public class AgentRepository {
                 .addValue("name", definition.name())
                 .addValue("description", definition.description())
                 .addValue("modelProfileId", definition.draftModelProfileId())
+                .addValue("knowledgeBaseId", definition.draftKnowledgeBaseId())
                 .addValue("systemPrompt", definition.draftSystemPrompt())
                 .addValue("latestVersionNumber", definition.latestVersionNumber())
                 .addValue("createdAt", Timestamp.from(definition.createdAt()))
@@ -121,13 +125,15 @@ public class AgentRepository {
     private static AgentDefinition mapDefinition(ResultSet rs, int rowNumber) throws SQLException {
         return new AgentDefinition(
                 rs.getString("id"), rs.getString("name"), rs.getString("description"),
-                rs.getString("draft_model_profile_id"), rs.getString("draft_system_prompt"),
+                rs.getString("draft_model_profile_id"), rs.getString("draft_knowledge_base_id"),
+                rs.getString("draft_system_prompt"),
                 rs.getInt("latest_version_number"), instant(rs, "created_at"), instant(rs, "updated_at"));
     }
 
     private static AgentVersion mapVersion(ResultSet rs, int rowNumber) throws SQLException {
         return new AgentVersion(
                 rs.getString("id"), rs.getString("agent_definition_id"), rs.getInt("version_number"),
+                rs.getString("knowledge_base_id"),
                 rs.getString("model_profile_id"), rs.getString("model_profile_name"),
                 rs.getString("provider"), rs.getString("base_url"), rs.getString("model_name"),
                 rs.getString("api_key_env"), rs.getBigDecimal("temperature"),
@@ -138,4 +144,3 @@ public class AgentRepository {
         return rs.getTimestamp(column).toInstant();
     }
 }
-

@@ -7,6 +7,8 @@ import java.util.Map;
 import com.agentstudio.agent.AgentService;
 import com.agentstudio.model.ModelMessage;
 import com.agentstudio.model.StreamingModelGateway;
+import com.agentstudio.knowledge.KnowledgeRetriever;
+import com.agentstudio.knowledge.RagSource;
 import com.agentstudio.system.ApiException;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.task.TaskExecutor;
@@ -20,14 +22,16 @@ public class ChatService {
     private final AgentService agents;
     private final ConversationRepository conversations;
     private final StreamingModelGateway modelGateway;
+    private final KnowledgeRetriever knowledgeRetriever;
     private final TaskExecutor taskExecutor;
 
     public ChatService(AgentService agents, ConversationRepository conversations,
-                       StreamingModelGateway modelGateway,
+                       StreamingModelGateway modelGateway, KnowledgeRetriever knowledgeRetriever,
                        @Qualifier("chatTaskExecutor") TaskExecutor taskExecutor) {
         this.agents = agents;
         this.conversations = conversations;
         this.modelGateway = modelGateway;
+        this.knowledgeRetriever = knowledgeRetriever;
         this.taskExecutor = taskExecutor;
     }
 
@@ -63,6 +67,12 @@ public class ChatService {
                     "versionNumber", version.versionNumber()));
             var modelMessages = new ArrayList<ModelMessage>();
             modelMessages.add(new ModelMessage("system", version.systemPrompt()));
+            var sources = knowledgeRetriever.retrieve(version.knowledgeBaseId(),
+                    conversations.messages(conversationId).getLast().content());
+            if (!sources.isEmpty()) {
+                send(emitter, "sources", Map.of("items", sources));
+                modelMessages.add(new ModelMessage("system", knowledgeContext(sources)));
+            }
             modelMessages.addAll(conversations.messages(conversationId));
             modelGateway.stream(version, modelMessages, delta -> {
                 answer.append(delta);
@@ -97,5 +107,14 @@ public class ChatService {
         var message = exception.getMessage();
         return message == null || message.isBlank() ? "模型调用失败" : message;
     }
-}
 
+    private String knowledgeContext(java.util.List<RagSource> sources) {
+        var context = new StringBuilder("以下是本次问题检索到的知识库片段。优先依据片段回答；若证据不足请明确说明。\n\n");
+        for (var source : sources) {
+            context.append("[来源：").append(source.fileName()).append("，chunk ")
+                    .append(source.chunkIndex()).append("]\n")
+                    .append(source.content()).append("\n\n");
+        }
+        return context.toString();
+    }
+}

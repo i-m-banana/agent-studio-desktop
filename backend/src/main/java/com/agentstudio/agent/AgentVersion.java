@@ -7,6 +7,7 @@ public record AgentVersion(
         String id,
         String agentDefinitionId,
         int versionNumber,
+        String knowledgeBaseId,
         String modelProfileId,
         String modelProfileName,
         String provider,
@@ -17,4 +18,3 @@ public record AgentVersion(
         String systemPrompt,
         Instant publishedAt) {
 }
-

@@ -9,6 +9,7 @@ import java.util.UUID;
 
 import com.agentstudio.model.ModelMessage;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -16,7 +17,7 @@ public class ConversationRepository {
 
     private final NamedParameterJdbcTemplate jdbc;
 
-    public ConversationRepository(NamedParameterJdbcTemplate jdbc) {
+    public ConversationRepository(@Qualifier("primaryNamedParameterJdbcTemplate") NamedParameterJdbcTemplate jdbc) {
         this.jdbc = jdbc;
     }
 
@@ -53,4 +54,3 @@ public class ConversationRepository {
                 (rs, rowNumber) -> new ModelMessage(rs.getString("role"), rs.getString("content")));
     }
 }
-

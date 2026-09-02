@@ -50,8 +50,33 @@
 
 - SSE 集成测试最初受 Windows 测试响应字符集影响，中文断言显示为问号；事件结构无误，改用与字符集无关的 ASCII 增量断言后全部通过。
 
-尚未验证或实现：
+后续已经完成真实 MySQL、DeepSeek 和 RAG 验证，见阶段 2、3。工具调用、ReAct、运行步骤、审批和审计仍未实现。
 
-- 用户环境中的 MySQL `23306` 容器健康状态及对真实 MySQL 的启动迁移，等待重新执行 Compose 后确认；
-- 未提供真实模型密钥，因此尚未保存外部模型响应证据；
-- RAG、工具调用、ReAct、运行步骤、审批和审计尚未实现。
+## 阶段 2：真实模型与数据库（2026-09-02）
+
+- 用户确认 MySQL `23306` 与 pgvector `15432` 两个容器均为 healthy；
+- Spring Boot 真实连接 MySQL 8.4，Flyway V1、V2 校验及迁移通过；
+- 使用用户配置的 DeepSeek OpenAI 兼容端点完成真实 SSE 调用，收到中文 `delta` 并以 `done` 正常结束；
+- 模型密钥仍仅从启动后端的 `DEEPSEEK_API_KEY` 环境变量读取，未写入数据库。
+
+## 阶段 3：知识库与检索增强（2026-09-02）
+
+已验证：
+
+- 文档上传、Tika 解析、切块和 pgvector 写入完成，示例 Markdown 状态为 `READY`；
+- Agent 发布版本正确快照知识库标识，草稿 API 的 `status` 字段正常返回；
+- SSE 顺序实测为 `run → sources → error`：`sources` 返回文件名、chunk 编号、内容和相似度；独立 8081 验收进程未设置 DeepSeek 密钥，因此模型阶段按设计返回明确 `error`；
+- 删除文档后 MySQL 文档列表为空、本地文件不存在，重复检索不再返回 `sources`，随后重新上传恢复为 `READY`；
+- 后端 `mvn test`：6 个测试通过，0 失败、0 错误；
+- 前端 `npm run build`：TypeScript 检查与 Vite 生产构建通过。
+- 浏览器冒烟检查：四个导航入口及新增知识库创建、文档上传控件均正常渲染；由于 5173 当时仍连接旧的 8080 后端进程，完整新接口交互改由独立 8081 实例完成。重启日常后端后前端即可使用新接口。
+
+真实异常与修复：
+
+- 引入 pgvector 数据源后，Flyway 和业务 JDBC 曾自动选择 PostgreSQL，导致 MySQL 表查询落到错误数据库；现已显式声明 primary MySQL DataSource/JdbcTemplate，并给四个业务仓储加限定绑定，向量仓储只使用 PostgreSQL。
+
+当前限制：
+
+- 内置 384 维向量为词法哈希基线，不是语义 embedding；
+- 暂无跨存储分布式事务和失败补偿任务；
+- 尚未实现工具调用、ReAct、审批、SSH 和 Coding 扩展。

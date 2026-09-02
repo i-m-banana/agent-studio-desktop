@@ -27,7 +27,7 @@ class AgentBuilderIntegrationTests {
                 "model-" + suffix, "OPENAI_COMPATIBLE", "https://example.com/v1",
                 "model-a", "TEST_MODEL_KEY", new BigDecimal("0.4")));
         var agent = agents.create(new AgentDefinitionRequest(
-                "agent-" + suffix, "test", model.id(), "prompt-v1"));
+                "agent-" + suffix, "test", model.id(), null, "prompt-v1"));
 
         var versionOne = agents.publish(agent.id());
 
@@ -35,7 +35,7 @@ class AgentBuilderIntegrationTests {
                 model.name(), model.provider(), model.baseUrl(), "model-b",
                 model.apiKeyEnv(), new BigDecimal("0.8")));
         agents.update(agent.id(), new AgentDefinitionRequest(
-                agent.name(), agent.description(), model.id(), "prompt-v2"));
+                agent.name(), agent.description(), model.id(), null, "prompt-v2"));
         var versionTwo = agents.publish(agent.id());
 
         assertThat(versionOne.versionNumber()).isEqualTo(1);
@@ -48,4 +48,3 @@ class AgentBuilderIntegrationTests {
                 .containsExactly(2, 1);
     }
 }
-

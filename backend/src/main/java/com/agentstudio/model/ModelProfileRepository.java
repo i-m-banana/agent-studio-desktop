@@ -11,6 +11,7 @@ import java.util.Optional;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -19,7 +20,7 @@ public class ModelProfileRepository {
     private static final RowMapper<ModelProfile> ROW_MAPPER = ModelProfileRepository::map;
     private final NamedParameterJdbcTemplate jdbc;
 
-    public ModelProfileRepository(NamedParameterJdbcTemplate jdbc) {
+    public ModelProfileRepository(@Qualifier("primaryNamedParameterJdbcTemplate") NamedParameterJdbcTemplate jdbc) {
         this.jdbc = jdbc;
     }
 
@@ -75,4 +76,3 @@ public class ModelProfileRepository {
         return rs.getTimestamp(column).toInstant();
     }
 }
-

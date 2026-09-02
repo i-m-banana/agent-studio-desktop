@@ -7,6 +7,6 @@ public record AgentDefinitionRequest(
         @NotBlank @Size(max = 120) String name,
         @Size(max = 500) String description,
         @NotBlank String modelProfileId,
+        String knowledgeBaseId,
         @NotBlank @Size(max = 20000) String systemPrompt) {
 }
-
