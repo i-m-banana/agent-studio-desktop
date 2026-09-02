@@ -70,3 +70,5 @@ npm run build
 ```
 
 架构和来源边界见 [`docs`](docs/README.md)。
+
+用于手工上传和 RAG/面试复盘的完整项目知识包见 [`examples/project-knowledge-pack`](examples/project-knowledge-pack/00-入库说明与事实口径.md)。建议先上传 00–10，保留第 11 份题库在知识库外做盲测。
