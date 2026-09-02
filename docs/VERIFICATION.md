@@ -9,7 +9,8 @@
 - `GET /api/system/status`：通过，返回 `application=agent-studio-backend`、`status=UP`；
 - 前端 `npm run build`：通过，TypeScript 检查与 Vite 生产构建完成；
 - `docker compose -f docker/compose.yml config`：通过；
-- MySQL 与 pgvector 容器实启：未验证，原因见环境事实。
+- MySQL 与 pgvector 镜像拉取、网络、数据卷和容器创建：用户环境已验证；
+- 容器首次实启：MySQL 因宿主机 `3306` 已被占用而失败。现已将默认宿主机端口调整为 `13306` 和 `15432`，修复后的实启仍待复验。
 
 环境事实：
 
@@ -22,5 +23,6 @@
 
 - 初次后端构建因依赖尚未下载且沙箱禁止联网而失败；授权下载后测试与启动均通过；
 - 初次前端构建因 `tsconfig.node.json` 的 `allowImportingTsExtensions` 缺少 `noEmit` 而失败；补充 `noEmit: true` 后构建通过。
+- 初次 Compose 实启因本机已有服务占用 `3306` 而失败；默认映射调整为 MySQL `13306`、pgvector `15432`，并允许通过 `.env` 覆盖。
 
 本阶段所有业务骨架均为本次新增，未迁移来源项目业务代码。

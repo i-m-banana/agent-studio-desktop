@@ -34,6 +34,20 @@ npm run dev
 
 打开 `http://localhost:5173`。前端开发服务器将 `/api` 转发到 `http://localhost:8080`。
 
+为避免与电脑上已有的数据库冲突，容器默认使用以下宿主机端口：
+
+- MySQL：`localhost:13306`（容器内仍为 `3306`）；
+- PostgreSQL + pgvector：`localhost:15432`（容器内仍为 `5432`）。
+
+如需改用其他端口，请复制 `.env.example` 为 `.env`，修改 `MYSQL_PORT` 或 `POSTGRES_PORT` 后重新执行 Compose 启动命令。
+
+如果之前因 `3306` 冲突而创建过容器，修改后的配置可直接修复并重建：
+
+```powershell
+docker compose -f docker/compose.yml up -d
+docker compose -f docker/compose.yml ps
+```
+
 ## 验证
 
 ```powershell
@@ -45,4 +59,3 @@ npm run build
 ```
 
 架构和来源边界见 [`docs`](docs/README.md)。
-

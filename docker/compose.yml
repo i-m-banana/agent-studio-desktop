@@ -9,7 +9,7 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:-local-development-only}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-local-root-development-only}
     ports:
-      - "3306:3306"
+      - "${MYSQL_PORT:-13306}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
@@ -27,7 +27,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-agent_studio}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local-development-only}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-15432}:5432"
     volumes:
       - pgvector_data:/var/lib/postgresql/data
     healthcheck:
@@ -41,4 +41,3 @@ services:
 volumes:
   mysql_data:
   pgvector_data:
-
