@@ -55,5 +55,9 @@ public class KnowledgeController {
     void deleteDocument(@PathVariable String id, @PathVariable String documentId) {
         service.deleteDocument(id, documentId);
     }
-}
 
+    @PostMapping("/{id}/reindex")
+    ReindexResult reindex(@PathVariable String id) {
+        return service.reindex(id);
+    }
+}

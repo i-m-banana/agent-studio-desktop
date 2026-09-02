@@ -40,3 +40,14 @@ agent-studio:
     url: ${POSTGRES_URL:jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:15432}/${POSTGRES_DB:agent_studio_vector}}
     username: ${POSTGRES_USER:agent_studio}
     password: ${POSTGRES_PASSWORD:local-development-only}
+  embedding:
+    provider: ${EMBEDDING_PROVIDER:ollama}
+    model: ${EMBEDDING_MODEL:qwen3-embedding:0.6b}
+    dimensions: ${EMBEDDING_DIMENSIONS:1024}
+    index-version: ${EMBEDDING_INDEX_VERSION:qwen3-0.6b-v1}
+    query-instruction: ${EMBEDDING_QUERY_INSTRUCTION:}
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+  retrieval:
+    top-k: ${RAG_TOP_K:5}
+    score-threshold: ${RAG_SCORE_THRESHOLD:0.05}

@@ -80,3 +80,29 @@
 - 内置 384 维向量为词法哈希基线，不是语义 embedding；
 - 暂无跨存储分布式事务和失败补偿任务；
 - 尚未实现工具调用、ReAct、审批、SSH 和 Coding 扩展。
+
+## 阶段 4：Qwen 语义向量生产升级（2026-09-02）
+
+已实现：
+
+- 新增 `EmbeddingGateway`，默认实现为 Ollama `qwen3-embedding:0.6b`，1024 维；LocalHash 作为环境变量可切换的回退；
+- 新增版本化 `knowledge_chunk_v2`，保存模型和 `qwen3-0.6b-v1` 索引版本，旧 384 维表未删除；
+- 新增知识库重建 API 和前端“使用当前模型重建索引”入口；
+- Qwen 索引采用按知识库和版本过滤的精确 cosine 搜索，暂不使用 HNSW；
+- 删除文档会同时清理旧、新两套向量表，重建失败只清理当前索引版本。
+
+验证结果：
+
+- 后端 `mvn test`：8 个测试通过，包括 Ollama 批量文档 embedding、查询前缀隔离和维度校验；
+- 前端 `npm run build`：通过；
+- 最终冻结语料（11 份文档、23 个 chunk，SHA-256 `898ea1904e54c2342786eaa47bc334176e4bea1c1c05f89b83afecd4a3207f03`）：Qwen Recall@5 100%、MRR 0.8000、改写题 MRR 0.7250、p95 244.667 ms；同语料 LocalHash 分别为 83.33%、0.6424、0.5486 和 0.341 ms；
+- 真实 MySQL、pgvector 和 Ollama：知识库重建成功，`knowledge_chunk_v2` 实际保存 `qwen3-embedding:0.6b`、1024 维、`qwen3-0.6b-v1`；
+- 真实 SSE：改写问题命中正确来源，最终无查询前缀配置下 score 约 0.40；独立 8081 进程未设置 DeepSeek 密钥，随后按预期返回模型环境变量错误。
+
+消融与限制：
+
+- 在知识包扩充前的同语料消融中，加入统一中文 query instruction 后 MRR 从 0.8160 降到 0.6917，因此默认关闭、保留可配置；
+- 知识包内容变化会改变 chunk 数和指标，扩充后已同时重跑 LocalHash 与 Qwen，生产报告不混用历史语料结果；
+- Qwen 的 Recall 和延迟达到约定目标；MRR 达到 0.8000 边界但未严格超过 `> 0.80`，因此保留 rerank 优化项；
+- 无答案误召回率仍为 100%，固定阈值无法在当前题集上同时维持高召回和可靠拒答；
+- 尚未进行结构感知切块、混合检索或 rerank，这些留作独立评测，不与 embedding 收益混在同一次改造中。

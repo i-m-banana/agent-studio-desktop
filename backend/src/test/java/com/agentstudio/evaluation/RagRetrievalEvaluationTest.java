@@ -64,7 +64,7 @@ class RagRetrievalEvaluationTest {
 
         int warmupRounds = embedding.remote() ? 1 : WARMUP_ROUNDS;
         if (embedding.remote()) {
-            embedding.embed("RAG evaluation warmup");
+            embedding.embedQuery("RAG evaluation warmup");
         } else {
             for (int round = 0; round < warmupRounds; round++) {
                 for (var testCase : dataset.cases()) search(corpus.chunks(), testCase.question(), embedding);
@@ -202,7 +202,7 @@ class RagRetrievalEvaluationTest {
     }
 
     private List<SearchHit> search(List<IndexedChunk> corpus, String question, EmbeddingProvider embedding) throws Exception {
-        var queryVector = embedding.embed(question);
+        var queryVector = embedding.embedQuery(question);
         assertThat(queryVector).hasSize(embedding.dimensions());
         return corpus.stream()
                 .map(chunk -> new SearchHit(chunk.fileName(), chunk.chunkIndex(),
@@ -413,7 +413,7 @@ class RagRetrievalEvaluationTest {
         String fidelity();
         List<float[]> embedAll(List<String> inputs) throws Exception;
 
-        default float[] embed(String input) throws Exception {
+        default float[] embedQuery(String input) throws Exception {
             return embedAll(List.of(input)).getFirst();
         }
     }
@@ -443,17 +443,17 @@ class RagRetrievalEvaluationTest {
             this.dimensions = dimensions;
         }
 
-        @Override public String mode() { return "offline-ollama-candidate"; }
+        @Override public String mode() { return "offline-ollama-evaluation"; }
         @Override public String model() { return model; }
         @Override public int dimensions() { return dimensions; }
         @Override public boolean remote() { return true; }
         @Override public String fidelity() {
             return "Tika + production TextChunker + Ollama /api/embed (" + model
-                    + "); exact in-memory cosine ranking. This is an embedding-only candidate; production index is unchanged.";
+                    + "); exact in-memory cosine ranking. The evaluation run does not write or modify the production index.";
         }
 
         @Override public List<float[]> embedAll(List<String> inputs) throws Exception {
-            var payload = json.writeValueAsString(new OllamaEmbedRequest(model, inputs));
+            var payload = json.writeValueAsString(new OllamaEmbedRequest(model, inputs, dimensions, true));
             var request = HttpRequest.newBuilder(endpoint)
                     .timeout(Duration.ofSeconds(120))
                     .header("Content-Type", "application/json")
@@ -480,6 +480,11 @@ class RagRetrievalEvaluationTest {
                 for (int index = 0; index < vector.size(); index++) result[index] = vector.get(index);
                 return result;
             }).toList();
+        }
+
+        @Override public float[] embedQuery(String input) throws Exception {
+            var instruction = System.getProperty("rag.eval.queryInstruction", "").trim();
+            return embedAll(List.of(instruction.isBlank() ? input : instruction + "\n" + input)).getFirst();
         }
     }
 
@@ -530,7 +535,7 @@ class RagRetrievalEvaluationTest {
                       boolean falsePositive, double latencyMs, List<String> returnedSources,
                       List<HitView> hits) {}
     record HitView(int rank, String fileName, int chunkIndex, double score, String contentPreview) {}
-    record OllamaEmbedRequest(String model, List<String> input) {}
+    record OllamaEmbedRequest(String model, List<String> input, int dimensions, boolean truncate) {}
     @com.fasterxml.jackson.annotation.JsonIgnoreProperties(ignoreUnknown = true)
     record OllamaEmbedResponse(List<List<Float>> embeddings, String error) {}
 }

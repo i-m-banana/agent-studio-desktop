@@ -9,5 +9,7 @@ spring:
     locations: classpath:db/migration
 
 agent-studio:
+  embedding:
+    provider: local-hash
   vector:
     enabled: false

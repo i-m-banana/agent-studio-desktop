@@ -96,6 +96,24 @@ public class KnowledgeService {
         }
     }
 
+    public ReindexResult reindex(String knowledgeBaseId) {
+        getBase(knowledgeBaseId);
+        var indexed = new java.util.ArrayList<KnowledgeDocument>();
+        for (var document : metadata.findDocuments(knowledgeBaseId)) {
+            try {
+                var bytes = Files.readAllBytes(checkedPath(Path.of(document.storedPath())));
+                metadata.updateDocumentStatus(document.id(), "PROCESSING", 0, null);
+                indexed.add(ingest(document, bytes));
+            } catch (IOException exception) {
+                metadata.updateDocumentStatus(document.id(), "FAILED", 0, "读取本地文件失败");
+                throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
+                        "重建文档失败：" + document.fileName() + " 的本地文件不可读");
+            }
+        }
+        return new ReindexResult(knowledgeBaseId, vectorStore().embeddingDescription(), indexed.size(),
+                indexed.stream().mapToInt(KnowledgeDocument::chunkCount).sum(), List.copyOf(indexed));
+    }
+
     private KnowledgeDocument ingest(KnowledgeDocument document, byte[] bytes) {
         try (var input = new ByteArrayInputStream(bytes)) {
             var text = extractor.extract(input, document.fileName());
@@ -110,7 +128,7 @@ public class KnowledgeService {
             metadata.updateDocumentStatus(document.id(), "READY", chunks.size(), null);
             return metadata.findDocument(document.id()).orElseThrow();
         } catch (Exception exception) {
-            vectors.ifAvailable(store -> store.deleteDocument(document.id()));
+            vectors.ifAvailable(store -> store.deleteCurrentIndex(document.id()));
             var message = safeError(exception);
             metadata.updateDocumentStatus(document.id(), "FAILED", 0, message);
             throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "文档解析失败：" + message);
@@ -155,4 +173,3 @@ public class KnowledgeService {
         return message.length() <= 900 ? message : message.substring(0, 900);
     }
 }
-

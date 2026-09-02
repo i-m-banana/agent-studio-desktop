@@ -6,9 +6,12 @@ import java.util.List;
 import java.util.Locale;
 
 import org.springframework.stereotype.Component;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 
 @Component
-public class LocalHashEmbedding {
+@ConditionalOnProperty(prefix = "agent-studio.embedding", name = "provider", havingValue = "local-hash",
+        matchIfMissing = true)
+public class LocalHashEmbedding implements EmbeddingGateway {
 
     public static final int DIMENSIONS = 384;
 
@@ -23,13 +26,29 @@ public class LocalHashEmbedding {
         return vector;
     }
 
-    String asPgVector(float[] vector) {
-        var builder = new StringBuilder(vector.length * 10).append('[');
-        for (int index = 0; index < vector.length; index++) {
-            if (index > 0) builder.append(',');
-            builder.append(vector[index]);
-        }
-        return builder.append(']').toString();
+    @Override
+    public int dimensions() {
+        return DIMENSIONS;
+    }
+
+    @Override
+    public String modelName() {
+        return "local-hash";
+    }
+
+    @Override
+    public String indexVersion() {
+        return "local-hash-v1";
+    }
+
+    @Override
+    public List<float[]> embedDocuments(List<String> texts) {
+        return texts.stream().map(this::embed).toList();
+    }
+
+    @Override
+    public float[] embedQuery(String query) {
+        return embed(query);
     }
 
     private List<String> features(String source) {
@@ -54,4 +73,3 @@ public class LocalHashEmbedding {
         for (int index = 0; index < vector.length; index++) vector[index] /= (float) norm;
     }
 }
-

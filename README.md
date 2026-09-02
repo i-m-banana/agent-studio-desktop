@@ -16,15 +16,18 @@
 
 ## 当前边界
 
-当前向量化使用内置的 384 维词法哈希基线，不需要额外的 embedding API，适合先验证完整 RAG 流程；它不是语义向量模型，跨表述召回能力有限。显式 ReAct 工具循环、工具执行、安全审批、SSH 和 Coding 扩展尚未实现，不应描述为已经具备工具型 Agent 能力。
+当前默认通过本机 Ollama 的 `qwen3-embedding:0.6b` 生成 1024 维语义向量，并保留 384 维词法哈希作为可配置回退。显式 ReAct 工具循环、工具执行、安全审批、SSH 和 Coding 扩展尚未实现，不应描述为已经具备工具型 Agent 能力。无答案拒答仍是已知限制，不能只靠固定相似度阈值解决。
 
 ## 本地启动
 
-要求：JDK 21、Maven 3.9+、Node.js 22+、Docker Desktop。
+要求：JDK 21、Maven 3.9+、Node.js 22+、Docker Desktop、Ollama。
 
 ```powershell
 # 中间件
 docker compose -f docker/compose.yml up -d
+
+# 默认 RAG embedding 模型（首次需要下载）
+ollama pull qwen3-embedding:0.6b
 
 # 在启动后端的 PowerShell 会话设置模型密钥（名称需与管理台配置一致）
 $env:OPENAI_API_KEY="your-key"
@@ -44,6 +47,8 @@ npm run dev
 打开 `http://localhost:5173`。前端开发服务器将 `/api` 转发到 `http://localhost:8080`。
 
 进入“知识库”创建资料库并上传文档，再在 Agent Builder 中绑定该知识库并发布版本。知识库文件保存在本机 `data/knowledge`，元数据位于 MySQL，检索向量位于 PostgreSQL + pgvector。删除文档会同步清理这三处数据。
+
+已有知识库从旧 384 维索引升级时，在知识库页面点击“使用当前模型重建索引”。新索引使用 `qwen3-0.6b-v1` 版本，与旧表隔离。需要离线回退时，可在启动后端前设置 `$env:EMBEDDING_PROVIDER="local-hash"`，并重新构建对应知识库索引。
 
 为避免与电脑上已有的数据库冲突，容器默认使用以下宿主机端口：
 

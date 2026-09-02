@@ -5,6 +5,7 @@ type View = 'models' | 'knowledge' | 'agents' | 'chat'
 type ModelProfile = { id: string; name: string; provider: string; baseUrl: string; modelName: string; apiKeyEnv: string; temperature: number }
 type KnowledgeBase = { id: string; name: string; description: string }
 type KnowledgeDocument = { id: string; fileName: string; fileSize: number; status: string; chunkCount: number; errorMessage?: string }
+type ReindexResult = { knowledgeBaseId: string; embedding: string; documentCount: number; chunkCount: number }
 type RagSource = { documentId: string; fileName: string; chunkIndex: number; content: string; score: number }
 type AgentDefinition = { id: string; name: string; description: string; draftModelProfileId: string; draftKnowledgeBaseId?: string; draftSystemPrompt: string; latestVersionNumber: number; status: 'DRAFT' | 'PUBLISHED' }
 type AgentVersion = { id: string; agentDefinitionId: string; versionNumber: number; modelProfileName: string; modelName: string; systemPrompt: string }
@@ -112,6 +113,15 @@ function App() {
     })
   }
 
+  async function reindexKnowledgeBase() {
+    if (!selectedKnowledgeBase || !window.confirm('确认使用当前 embedding 配置重新解析并索引此知识库？原文件不会删除。')) return
+    await perform(async () => {
+      const result = await api<ReindexResult>(`/api/knowledge-bases/${selectedKnowledgeBase}/reindex`, { method: 'POST' })
+      await chooseKnowledgeBase(selectedKnowledgeBase)
+      setNotice(`索引重建完成：${result.embedding}，${result.documentCount} 份文档，${result.chunkCount} 个 chunks。`)
+    })
+  }
+
   async function submitAgent(event: FormEvent) {
     event.preventDefault()
     await perform(async () => {
@@ -190,6 +200,7 @@ function App() {
             <p className="hint">支持 TXT、Markdown、PDF、DOCX 等常见文档，单文件最大 20 MB。</p>
             <input name="file" type="file" required />
             <button className="secondary" disabled={busy || !selectedKnowledgeBase}>上传并解析</button>
+            <button className="ghost" type="button" disabled={busy || !selectedKnowledgeBase || documents.length === 0} onClick={() => void reindexKnowledgeBase()}>使用当前模型重建索引</button>
           </form>
         </div>
         <div className="panel list-panel"><h2>文档 <small>{documents.length}</small></h2>{documents.length === 0 ? <Empty text="选择知识库并上传第一份文档" /> : documents.map((document) => <article className="document-card" key={document.id}><div><div><strong>{document.fileName}</strong><p>{formatBytes(document.fileSize)} · {document.chunkCount} chunks</p></div><span className={`badge badge--${document.status.toLowerCase()}`}>{document.status}</span></div>{document.errorMessage && <p className="error-text">{document.errorMessage}</p>}<button className="danger" onClick={() => void deleteDocument(document.id)}>删除</button></article>)}</div>
