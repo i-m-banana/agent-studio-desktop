@@ -1,0 +1,373 @@
+{
+  "schemaVersion": "1.0",
+  "name": "Agent Studio Desktop RAG blind evaluation",
+  "description": "00-10 are the only corpus files. Cases 01-12 preserve the original blind questions from file 11; cases 13-24 are meaning-preserving paraphrases; cases 25-30 are deliberately unanswerable from the corpus.",
+  "corpus": {
+    "directory": "examples/project-knowledge-pack",
+    "includeFilePattern": "^(0[0-9]|10)-.*\\.md$",
+    "excludedFiles": [
+      "11-RAG测试题与标准答案.md",
+      "12-推荐Agent系统提示词-不要入库.md"
+    ]
+  },
+  "cases": [
+    {
+      "id": "rag-001",
+      "category": "basic_fact",
+      "variant": "canonical",
+      "question": "Agent Studio Desktop 当前使用哪些端口？",
+      "referenceAnswer": "前端 5173，后端 8080，MySQL 宿主机 23306、容器内 3306，pgvector 宿主机 15432、容器内 5432。",
+      "answerable": true,
+      "expectedSources": ["02-架构设计与技术选型.md", "06-开发过程与提交时间线.md"],
+      "keyFacts": [
+        {"id": "frontend", "anyOf": ["前端 5173", "前端默认使用 5173"]},
+        {"id": "backend", "anyOf": ["后端 8080", "后端使用 8080"]},
+        {"id": "mysql-host", "anyOf": ["MySQL 宿主机 23306", "MySQL宿主机端口最终定为23306"]},
+        {"id": "mysql-container", "anyOf": ["容器内 3306", "容器仍监听 3306"]},
+        {"id": "pg-host", "anyOf": ["pgvector 宿主机 15432", "pgvector使用15432"]},
+        {"id": "pg-container", "anyOf": ["容器内 5432"]}
+      ]
+    },
+    {
+      "id": "rag-002",
+      "category": "basic_fact",
+      "variant": "canonical",
+      "question": "当前 RAG 的 chunk 参数是什么？",
+      "referenceAnswer": "目标 900 字符、最大 1100 字符、重叠 120 字符，优先在换行和中英文句子边界切分。",
+      "answerable": true,
+      "expectedSources": ["05-RAG全链路与检索算法.md"],
+      "keyFacts": [
+        {"id": "target", "anyOf": ["目标 900 字符", "目标长度900字符"]},
+        {"id": "maximum", "anyOf": ["最大 1100 字符", "最大1100字符"]},
+        {"id": "overlap", "anyOf": ["重叠 120 字符", "重叠120字符"]},
+        {"id": "boundary", "anyOf": ["换行", "句子边界"]}
+      ]
+    },
+    {
+      "id": "rag-003",
+      "category": "basic_fact",
+      "variant": "canonical",
+      "question": "项目是否已经支持 SSH 和 ReAct？",
+      "referenceAnswer": "没有。SSH、显式 ReAct、工具网关和审批属于规划，当前实现的是模型配置、不可变版本、普通 SSE 对话和 RAG。",
+      "answerable": true,
+      "expectedSources": ["00-入库说明与事实口径.md", "01-项目总览与业务目标.md", "09-安全边界局限与路线图.md"],
+      "keyFacts": [
+        {"id": "not-supported", "anyOf": ["没有", "未实现", "不支持"]},
+        {"id": "ssh", "anyOf": ["SSH"]},
+        {"id": "react", "anyOf": ["ReAct"]},
+        {"id": "current", "anyOf": ["模型配置", "RAG"]}
+      ]
+    },
+    {
+      "id": "rag-004",
+      "category": "principle",
+      "variant": "canonical",
+      "question": "为什么更新 ModelProfile 不会改变已经发布的 AgentVersion？",
+      "referenceAnswer": "发布时把模型名称、API 地址、模型名、密钥环境变量名、温度、提示词和知识库标识复制进版本快照；会话绑定版本，所以后续草稿或模型配置修改不影响历史版本。",
+      "answerable": true,
+      "expectedSources": ["03-数据模型与不可变版本.md"],
+      "keyFacts": [
+        {"id": "snapshot", "anyOf": ["发布快照", "复制模型"]},
+        {"id": "immutable-history", "anyOf": ["历史版本稳定", "不影响历史版本", "不可修改"]},
+        {"id": "conversation-version", "anyOf": ["会话", "Conversation"]}
+      ]
+    },
+    {
+      "id": "rag-005",
+      "category": "principle",
+      "variant": "canonical",
+      "question": "为什么 sources 已经返回但最后仍然 error？",
+      "referenceAnswer": "检索和模型调用是两个阶段。服务先检索并发送 sources，再调用外部模型。独立验收进程没设置 DEEPSEEK_API_KEY 时，会出现 run → sources → error，说明 RAG 成功而模型鉴权失败。",
+      "answerable": true,
+      "expectedSources": ["04-模型调用与SSE流式对话.md", "07-真实故障与排查复盘.md"],
+      "keyFacts": [
+        {"id": "two-stages", "anyOf": ["检索和模型调用是两个阶段", "检索已经完成"]},
+        {"id": "event-order", "anyOf": ["run → sources → error", "run→sources→error"]},
+        {"id": "missing-key", "anyOf": ["DEEPSEEK_API_KEY", "密钥环境变量未设置"]}
+      ]
+    },
+    {
+      "id": "rag-006",
+      "category": "principle",
+      "variant": "canonical",
+      "question": "本地词法哈希向量有哪些优缺点？",
+      "referenceAnswer": "优点是离线、确定性、零成本、不需要 embedding API；缺点是依赖词法重合，不具备真正语义理解，同义改写和跨语言召回有限。",
+      "answerable": true,
+      "expectedSources": ["05-RAG全链路与检索算法.md", "01-项目总览与业务目标.md", "10-面试讲述与追问准备.md"],
+      "keyFacts": [
+        {"id": "offline", "anyOf": ["离线", "零外部"]},
+        {"id": "deterministic", "anyOf": ["确定性"]},
+        {"id": "no-api", "anyOf": ["不需要 embedding API", "零成本"]},
+        {"id": "lexical-limit", "anyOf": ["词法重合", "同义改写", "不真正理解语义"]}
+      ]
+    },
+    {
+      "id": "rag-007",
+      "category": "diagnosis",
+      "variant": "canonical",
+      "question": "Docker 显示容器 Created，但 MySQL 没启动，报端口已分配，应怎么判断？",
+      "referenceAnswer": "这是宿主机端口绑定冲突，不一定是容器内 MySQL 失败。检查 docker compose ps 的 STATUS 和 PORTS，换宿主机端口并同步后端配置；项目最终选择 23306。",
+      "answerable": true,
+      "expectedSources": ["07-真实故障与排查复盘.md", "06-开发过程与提交时间线.md"],
+      "keyFacts": [
+        {"id": "host-conflict", "anyOf": ["宿主机端口", "端口绑定冲突"]},
+        {"id": "compose-ps", "anyOf": ["docker compose ps"]},
+        {"id": "ports-status", "anyOf": ["STATUS", "PORTS"]},
+        {"id": "final-port", "anyOf": ["23306"]}
+      ]
+    },
+    {
+      "id": "rag-008",
+      "category": "diagnosis",
+      "variant": "canonical",
+      "question": "为什么加了 pgvector 后，查询 model_profile 却报 PostgreSQL relation 不存在？",
+      "referenceAnswer": "多个 DataSource/JdbcTemplate 自动装配选错连接。需要把 MySQL 标为 primary 和 FlywayDataSource，显式建立 primary JDBC 模板，并在业务 Repository 使用 Qualifier；向量 Repository 单独限定 vectorJdbcTemplate。",
+      "answerable": true,
+      "expectedSources": ["07-真实故障与排查复盘.md", "10-面试讲述与追问准备.md"],
+      "keyFacts": [
+        {"id": "wrong-datasource", "anyOf": ["选错连接", "自动装配选错"]},
+        {"id": "mysql-primary", "anyOf": ["primary MySQL", "MySQL DataSource"]},
+        {"id": "qualifier", "anyOf": ["Qualifier", "限定"]},
+        {"id": "vector-template", "anyOf": ["vectorJdbcTemplate"]}
+      ]
+    },
+    {
+      "id": "rag-009",
+      "category": "design",
+      "variant": "canonical",
+      "question": "如果要把当前 RAG 升级成真正语义检索，不能只替换哪一行代码？",
+      "referenceAnswer": "不能只替换 embed 函数并复用旧索引。需要抽象 EmbeddingGateway，记录 embedding 模型、维度和索引版本，建立新向量表或新版本索引并重建全部 chunk；还应通过离线评测比较 Recall@K、MRR，再考虑 BM25 和 rerank。",
+      "answerable": true,
+      "expectedSources": ["05-RAG全链路与检索算法.md", "09-安全边界局限与路线图.md"],
+      "keyFacts": [
+        {"id": "gateway", "anyOf": ["EmbeddingGateway"]},
+        {"id": "model-dimension-version", "anyOf": ["embeddingModel", "模型、维度和索引版本", "索引版本"]},
+        {"id": "rebuild", "anyOf": ["重建", "不能把新旧向量混在同一索引"]},
+        {"id": "offline-eval", "anyOf": ["Recall@K", "MRR", "离线评测"]}
+      ]
+    },
+    {
+      "id": "rag-010",
+      "category": "design",
+      "variant": "canonical",
+      "question": "删除文档为什么是一个值得讨论的工程问题？",
+      "referenceAnswer": "同一逻辑文档同时存在于本地文件、MySQL 元数据和 pgvector chunk。当前顺序清理三处，但没有分布式事务，中途失败可能不一致，因此后续需要幂等删除、补偿任务和孤儿数据巡检。",
+      "answerable": true,
+      "expectedSources": ["02-架构设计与技术选型.md", "05-RAG全链路与检索算法.md", "09-安全边界局限与路线图.md", "10-面试讲述与追问准备.md"],
+      "keyFacts": [
+        {"id": "three-stores", "anyOf": ["三种存储", "本地文件、MySQL", "pgvector chunk"]},
+        {"id": "no-distributed-transaction", "anyOf": ["没有分布式事务"]},
+        {"id": "inconsistency", "anyOf": ["不一致"]},
+        {"id": "compensation", "anyOf": ["补偿任务", "幂等删除", "孤儿数据巡检"]}
+      ]
+    },
+    {
+      "id": "rag-011",
+      "category": "anti_hallucination",
+      "variant": "canonical",
+      "question": "这个项目是否是企业级高并发、多租户智能体平台？",
+      "referenceAnswer": "不是。它定位为 Windows 个人电脑上的单机开发与调试工具，没有多租户、RBAC、微服务、高可用或分布式任务。",
+      "answerable": true,
+      "expectedSources": ["01-项目总览与业务目标.md", "09-安全边界局限与路线图.md"],
+      "keyFacts": [
+        {"id": "not-enterprise", "anyOf": ["不是", "没有"]},
+        {"id": "local", "anyOf": ["个人电脑", "单机"]},
+        {"id": "no-multitenancy", "anyOf": ["没有多租户", "不是高并发多租户"]}
+      ]
+    },
+    {
+      "id": "rag-012",
+      "category": "anti_hallucination",
+      "variant": "canonical",
+      "question": "项目是否直接复制了 ai-rag、WaLiSSH 和 WaLiCode 的业务代码？",
+      "referenceAnswer": "没有。三个项目是只读参考来源，新项目在独立仓库中从骨架开始建设；当前强调的是重新做出的架构取舍、实现和验证，来源项目代码不计为个人原创。",
+      "answerable": true,
+      "expectedSources": ["00-入库说明与事实口径.md", "01-项目总览与业务目标.md"],
+      "keyFacts": [
+        {"id": "not-copied", "anyOf": ["没有", "没有把来源项目整包复制"]},
+        {"id": "reference", "anyOf": ["参考", "只读参考来源"]},
+        {"id": "independent", "anyOf": ["独立 Git 仓库", "独立仓库", "从骨架开始"]}
+      ]
+    },
+    {
+      "id": "rag-013",
+      "category": "basic_fact",
+      "variant": "paraphrase",
+      "question": "我想在本机放行防火墙，浏览器、Java 服务和两套数据库分别监听什么端口？",
+      "answerKeyCaseId": "rag-001",
+      "answerable": true,
+      "expectedSources": ["02-架构设计与技术选型.md", "06-开发过程与提交时间线.md"],
+      "keyFacts": []
+    },
+    {
+      "id": "rag-014",
+      "category": "basic_fact",
+      "variant": "paraphrase",
+      "question": "长文被拆成片段时，期望长度、硬上限、相邻片段重复范围和断句规则分别怎样？",
+      "answerKeyCaseId": "rag-002",
+      "answerable": true,
+      "expectedSources": ["05-RAG全链路与检索算法.md"],
+      "keyFacts": []
+    },
+    {
+      "id": "rag-015",
+      "category": "basic_fact",
+      "variant": "paraphrase",
+      "question": "现在能让模型循环调用远程终端工具，并在危险操作前等待批准吗？",
+      "answerKeyCaseId": "rag-003",
+      "answerable": true,
+      "expectedSources": ["00-入库说明与事实口径.md", "01-项目总览与业务目标.md", "09-安全边界局限与路线图.md"],
+      "keyFacts": []
+    },
+    {
+      "id": "rag-016",
+      "category": "principle",
+      "variant": "paraphrase",
+      "question": "管理员后来改了模型地址和温度，为何旧会话的运行含义仍能复现？",
+      "answerKeyCaseId": "rag-004",
+      "answerable": true,
+      "expectedSources": ["03-数据模型与不可变版本.md"],
+      "keyFacts": []
+    },
+    {
+      "id": "rag-017",
+      "category": "principle",
+      "variant": "paraphrase",
+      "question": "页面已经列出命中文档，随后对话却失败，这两个现象为什么不矛盾？",
+      "answerKeyCaseId": "rag-005",
+      "answerable": true,
+      "expectedSources": ["04-模型调用与SSE流式对话.md", "07-真实故障与排查复盘.md"],
+      "keyFacts": []
+    },
+    {
+      "id": "rag-018",
+      "category": "principle",
+      "variant": "paraphrase",
+      "question": "不联网也能生成检索表示的方案带来了什么便利，又牺牲了哪些跨措辞能力？",
+      "answerKeyCaseId": "rag-006",
+      "answerable": true,
+      "expectedSources": ["05-RAG全链路与检索算法.md", "01-项目总览与业务目标.md", "10-面试讲述与追问准备.md"],
+      "keyFacts": []
+    },
+    {
+      "id": "rag-019",
+      "category": "diagnosis",
+      "variant": "paraphrase",
+      "question": "数据库镜像已经创建却没有健康运行，而且 Windows 提示地址被占用，排查重点在哪里？",
+      "answerKeyCaseId": "rag-007",
+      "answerable": true,
+      "expectedSources": ["07-真实故障与排查复盘.md", "06-开发过程与提交时间线.md"],
+      "keyFacts": []
+    },
+    {
+      "id": "rag-020",
+      "category": "diagnosis",
+      "variant": "paraphrase",
+      "question": "业务表明明迁移成功，请求却落到了向量库，Spring 的注入边界应如何收紧？",
+      "answerKeyCaseId": "rag-008",
+      "answerable": true,
+      "expectedSources": ["07-真实故障与排查复盘.md", "10-面试讲述与追问准备.md"],
+      "keyFacts": []
+    },
+    {
+      "id": "rag-021",
+      "category": "design",
+      "variant": "paraphrase",
+      "question": "把词面指纹换成神经网络表征时，怎样避免旧数据与新数据悄悄混用？",
+      "answerKeyCaseId": "rag-009",
+      "answerable": true,
+      "expectedSources": ["05-RAG全链路与检索算法.md", "09-安全边界局限与路线图.md"],
+      "keyFacts": []
+    },
+    {
+      "id": "rag-022",
+      "category": "design",
+      "variant": "paraphrase",
+      "question": "一份资料横跨关系记录、磁盘原件和可重建索引，清理到一半失败会留下什么风险？",
+      "answerKeyCaseId": "rag-010",
+      "answerable": true,
+      "expectedSources": ["02-架构设计与技术选型.md", "05-RAG全链路与检索算法.md", "09-安全边界局限与路线图.md", "10-面试讲述与追问准备.md"],
+      "keyFacts": []
+    },
+    {
+      "id": "rag-023",
+      "category": "anti_hallucination",
+      "variant": "paraphrase",
+      "question": "它能否作为面向许多企业租户、具备弹性扩容和高可用承诺的线上服务？",
+      "answerKeyCaseId": "rag-011",
+      "answerable": true,
+      "expectedSources": ["01-项目总览与业务目标.md", "09-安全边界局限与路线图.md"],
+      "keyFacts": []
+    },
+    {
+      "id": "rag-024",
+      "category": "anti_hallucination",
+      "variant": "paraphrase",
+      "question": "三个前身工程在这里扮演的是代码母版，还是仅供取舍时参考的资料？",
+      "answerKeyCaseId": "rag-012",
+      "answerable": true,
+      "expectedSources": ["00-入库说明与事实口径.md", "01-项目总览与业务目标.md"],
+      "keyFacts": []
+    },
+    {
+      "id": "rag-025",
+      "category": "unanswerable",
+      "variant": "negative",
+      "question": "这个项目采用哪一种开源许可证，是否允许闭源商用？",
+      "referenceAnswer": "知识库未提供项目许可证或商用授权信息，应明确无法判断。",
+      "answerable": false,
+      "expectedSources": [],
+      "keyFacts": []
+    },
+    {
+      "id": "rag-026",
+      "category": "unanswerable",
+      "variant": "negative",
+      "question": "系统默认管理员用户名、初始登录密码和密码过期策略是什么？",
+      "referenceAnswer": "知识库未提供应用登录账号、初始密码或密码过期策略，应明确无法判断。",
+      "answerable": false,
+      "expectedSources": [],
+      "keyFacts": []
+    },
+    {
+      "id": "rag-027",
+      "category": "unanswerable",
+      "variant": "negative",
+      "question": "配套移动端 App 支持哪些 iOS 和 Android 版本？",
+      "referenceAnswer": "知识库未说明存在移动端 App，也未提供移动系统版本信息，应明确无法判断。",
+      "answerable": false,
+      "expectedSources": [],
+      "keyFacts": []
+    },
+    {
+      "id": "rag-028",
+      "category": "unanswerable",
+      "variant": "negative",
+      "question": "生产集群承诺的每秒并发请求数、可用性 SLA 和故障恢复时间是多少？",
+      "referenceAnswer": "知识库未提供吞吐、SLA 或恢复时间数据；现有定位还是单机本地工具，应明确无法给出这些数字。",
+      "answerable": false,
+      "expectedSources": [],
+      "keyFacts": []
+    },
+    {
+      "id": "rag-029",
+      "category": "unanswerable",
+      "variant": "negative",
+      "question": "Ollama 中 qwen3-embedding:0.6b 的下载体积和最低显存要求是多少？",
+      "referenceAnswer": "知识库未提供该 Ollama 模型的体积或硬件要求，应明确无法判断。",
+      "answerable": false,
+      "expectedSources": [],
+      "keyFacts": []
+    },
+    {
+      "id": "rag-030",
+      "category": "unanswerable",
+      "variant": "negative",
+      "question": "项目团队成员的姓名、职位和每个人的具体分工是什么？",
+      "referenceAnswer": "知识库未提供团队成员名单、职位或个人分工，应明确无法判断。",
+      "answerable": false,
+      "expectedSources": [],
+      "keyFacts": []
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Agent Studio RAG answer run",
+  "type": "object",
+  "required": ["systemUnderTest", "capturedAt", "responses"],
+  "properties": {
+    "systemUnderTest": {"type": "string"},
+    "capturedAt": {"type": "string", "format": "date-time"},
+    "responses": {
+      "type": "array",
+      "minItems": 30,
+      "maxItems": 30,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["caseId", "answer", "citedSources", "abstained", "latencyMs"],
+        "properties": {
+          "caseId": {"type": "string", "pattern": "^rag-[0-9]{3}$"},
+          "answer": {"type": "string"},
+          "citedSources": {
+            "type": "array",
+            "items": {"type": "string"},
+            "uniqueItems": true
+          },
+          "abstained": {"type": "boolean"},
+          "latencyMs": {"type": "number", "minimum": 0}
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}
