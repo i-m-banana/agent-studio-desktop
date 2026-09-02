@@ -1,7 +1,7 @@
 {
   "schemaVersion" : "1.0",
-  "generatedAt" : "2026-09-02T10:48:25.898397300Z",
-  "gitCommit" : "d43a10622852402fbaddd0a110e195772d375fdc",
+  "generatedAt" : "2026-09-02T11:21:47.321706300Z",
+  "gitCommit" : "98b33511f8eb77bb2aaffe079c622328eac69746",
   "evaluator" : {
     "mode" : "offline-production-components",
     "javaVersion" : "21.0.4",
@@ -77,7 +77,7 @@
       "extractedCharacters" : 1769,
       "chunkCount" : 2
     } ],
-    "indexingLatencyMs" : 1798.0349
+    "indexingLatencyMs" : 1803.5098
   },
   "metrics" : {
     "totalCases" : 30,
@@ -155,13 +155,49 @@
     "mrr" : 0.1875,
     "noAnswerFalsePositiveRate" : 0.0,
     "meanReturnedChunks" : 0.5
+  }, {
+    "threshold" : 0.45,
+    "recallAt5" : 0.125,
+    "mrr" : 0.10416666666666667,
+    "noAnswerFalsePositiveRate" : 0.0,
+    "meanReturnedChunks" : 0.23333333333333334
+  }, {
+    "threshold" : 0.5,
+    "recallAt5" : 0.0,
+    "mrr" : 0.0,
+    "noAnswerFalsePositiveRate" : 0.0,
+    "meanReturnedChunks" : 0.0
+  }, {
+    "threshold" : 0.55,
+    "recallAt5" : 0.0,
+    "mrr" : 0.0,
+    "noAnswerFalsePositiveRate" : 0.0,
+    "meanReturnedChunks" : 0.0
+  }, {
+    "threshold" : 0.6,
+    "recallAt5" : 0.0,
+    "mrr" : 0.0,
+    "noAnswerFalsePositiveRate" : 0.0,
+    "meanReturnedChunks" : 0.0
+  }, {
+    "threshold" : 0.65,
+    "recallAt5" : 0.0,
+    "mrr" : 0.0,
+    "noAnswerFalsePositiveRate" : 0.0,
+    "meanReturnedChunks" : 0.0
+  }, {
+    "threshold" : 0.7,
+    "recallAt5" : 0.0,
+    "mrr" : 0.0,
+    "noAnswerFalsePositiveRate" : 0.0,
+    "meanReturnedChunks" : 0.0
   } ],
   "latency" : {
     "measuredQueries" : 30,
     "warmupRounds" : 8,
-    "p50Ms" : 0.0956,
-    "p95Ms" : 0.2003,
-    "maximumMs" : 0.2513
+    "p50Ms" : 0.0756,
+    "p95Ms" : 0.124,
+    "maximumMs" : 0.2426
   },
   "answerMetrics" : {
     "status" : "not_measured",
@@ -185,7 +221,7 @@
     "firstRelevantRank" : 2,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.1234,
+    "latencyMs" : 0.1159,
     "returnedSources" : [ "00-入库说明与事实口径.md", "06-开发过程与提交时间线.md", "01-项目总览与业务目标.md", "08-测试策略与验收证据.md", "10-面试讲述与追问准备.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -228,7 +264,7 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.1513,
+    "latencyMs" : 0.2426,
     "returnedSources" : [ "05-RAG全链路与检索算法.md", "01-项目总览与业务目标.md", "09-安全边界局限与路线图.md", "06-开发过程与提交时间线.md", "08-测试策略与验收证据.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -271,7 +307,7 @@
     "firstRelevantRank" : 2,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.1365,
+    "latencyMs" : 0.0918,
     "returnedSources" : [ "06-开发过程与提交时间线.md", "09-安全边界局限与路线图.md", "01-项目总览与业务目标.md", "02-架构设计与技术选型.md", "00-入库说明与事实口径.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -314,7 +350,7 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.0703,
+    "latencyMs" : 0.0733,
     "returnedSources" : [ "03-数据模型与不可变版本.md", "04-模型调用与SSE流式对话.md", "06-开发过程与提交时间线.md", "09-安全边界局限与路线图.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -357,7 +393,7 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.1479,
+    "latencyMs" : 0.0738,
     "returnedSources" : [ "04-模型调用与SSE流式对话.md", "02-架构设计与技术选型.md", "08-测试策略与验收证据.md", "07-真实故障与排查复盘.md", "09-安全边界局限与路线图.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -400,7 +436,7 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.0985,
+    "latencyMs" : 0.0675,
     "returnedSources" : [ "10-面试讲述与追问准备.md", "09-安全边界局限与路线图.md", "08-测试策略与验收证据.md", "01-项目总览与业务目标.md", "00-入库说明与事实口径.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -443,7 +479,7 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.0783,
+    "latencyMs" : 0.0878,
     "returnedSources" : [ "07-真实故障与排查复盘.md", "10-面试讲述与追问准备.md", "08-测试策略与验收证据.md", "06-开发过程与提交时间线.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -486,7 +522,7 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.1261,
+    "latencyMs" : 0.0867,
     "returnedSources" : [ "10-面试讲述与追问准备.md", "07-真实故障与排查复盘.md", "02-架构设计与技术选型.md", "06-开发过程与提交时间线.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -529,7 +565,7 @@
     "firstRelevantRank" : 2,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.0715,
+    "latencyMs" : 0.0876,
     "returnedSources" : [ "00-入库说明与事实口径.md", "09-安全边界局限与路线图.md", "04-模型调用与SSE流式对话.md", "01-项目总览与业务目标.md", "03-数据模型与不可变版本.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -572,7 +608,7 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.0661,
+    "latencyMs" : 0.0667,
     "returnedSources" : [ "05-RAG全链路与检索算法.md", "08-测试策略与验收证据.md", "01-项目总览与业务目标.md", "02-架构设计与技术选型.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -615,7 +651,7 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.0951,
+    "latencyMs" : 0.0713,
     "returnedSources" : [ "01-项目总览与业务目标.md", "06-开发过程与提交时间线.md", "05-RAG全链路与检索算法.md", "00-入库说明与事实口径.md", "09-安全边界局限与路线图.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -658,7 +694,7 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.1109,
+    "latencyMs" : 0.0774,
     "returnedSources" : [ "00-入库说明与事实口径.md", "01-项目总览与业务目标.md", "06-开发过程与提交时间线.md", "10-面试讲述与追问准备.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -701,7 +737,7 @@
     "firstRelevantRank" : 3,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.144,
+    "latencyMs" : 0.1182,
     "returnedSources" : [ "07-真实故障与排查复盘.md", "09-安全边界局限与路线图.md", "02-架构设计与技术选型.md", "10-面试讲述与追问准备.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -744,7 +780,7 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.1199,
+    "latencyMs" : 0.1131,
     "returnedSources" : [ "05-RAG全链路与检索算法.md", "09-安全边界局限与路线图.md", "01-项目总览与业务目标.md", "02-架构设计与技术选型.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -787,7 +823,7 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.2513,
+    "latencyMs" : 0.124,
     "returnedSources" : [ "09-安全边界局限与路线图.md", "04-模型调用与SSE流式对话.md", "00-入库说明与事实口径.md", "05-RAG全链路与检索算法.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -830,7 +866,7 @@
     "firstRelevantRank" : 0,
     "hitAt5" : false,
     "falsePositive" : false,
-    "latencyMs" : 0.2003,
+    "latencyMs" : 0.0964,
     "returnedSources" : [ "01-项目总览与业务目标.md", "08-测试策略与验收证据.md", "02-架构设计与技术选型.md", "06-开发过程与提交时间线.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -873,7 +909,7 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.0832,
+    "latencyMs" : 0.0939,
     "returnedSources" : [ "04-模型调用与SSE流式对话.md", "06-开发过程与提交时间线.md", "05-RAG全链路与检索算法.md", "09-安全边界局限与路线图.md", "01-项目总览与业务目标.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -916,7 +952,7 @@
     "firstRelevantRank" : 4,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.0629,
+    "latencyMs" : 0.0738,
     "returnedSources" : [ "07-真实故障与排查复盘.md", "06-开发过程与提交时间线.md", "02-架构设计与技术选型.md", "10-面试讲述与追问准备.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -959,7 +995,7 @@
     "firstRelevantRank" : 2,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.0629,
+    "latencyMs" : 0.0756,
     "returnedSources" : [ "01-项目总览与业务目标.md", "07-真实故障与排查复盘.md", "06-开发过程与提交时间线.md", "02-架构设计与技术选型.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -1002,7 +1038,7 @@
     "firstRelevantRank" : 2,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.0893,
+    "latencyMs" : 0.0694,
     "returnedSources" : [ "01-项目总览与业务目标.md", "07-真实故障与排查复盘.md", "02-架构设计与技术选型.md", "08-测试策略与验收证据.md", "10-面试讲述与追问准备.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -1045,7 +1081,7 @@
     "firstRelevantRank" : 5,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.0956,
+    "latencyMs" : 0.0702,
     "returnedSources" : [ "07-真实故障与排查复盘.md", "08-测试策略与验收证据.md", "00-入库说明与事实口径.md", "02-架构设计与技术选型.md", "05-RAG全链路与检索算法.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -1088,7 +1124,7 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.0869,
+    "latencyMs" : 0.0677,
     "returnedSources" : [ "09-安全边界局限与路线图.md", "05-RAG全链路与检索算法.md", "10-面试讲述与追问准备.md", "06-开发过程与提交时间线.md", "07-真实故障与排查复盘.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -1131,7 +1167,7 @@
     "firstRelevantRank" : 4,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.0616,
+    "latencyMs" : 0.0666,
     "returnedSources" : [ "02-架构设计与技术选型.md", "10-面试讲述与追问准备.md", "06-开发过程与提交时间线.md", "09-安全边界局限与路线图.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -1174,7 +1210,7 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.0913,
+    "latencyMs" : 0.0654,
     "returnedSources" : [ "00-入库说明与事实口径.md", "10-面试讲述与追问准备.md", "07-真实故障与排查复盘.md", "05-RAG全链路与检索算法.md", "06-开发过程与提交时间线.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -1217,7 +1253,7 @@
     "firstRelevantRank" : 0,
     "hitAt5" : false,
     "falsePositive" : true,
-    "latencyMs" : 0.0938,
+    "latencyMs" : 0.0723,
     "returnedSources" : [ "00-入库说明与事实口径.md", "01-项目总览与业务目标.md", "05-RAG全链路与检索算法.md", "09-安全边界局限与路线图.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -1260,7 +1296,7 @@
     "firstRelevantRank" : 0,
     "hitAt5" : false,
     "falsePositive" : true,
-    "latencyMs" : 0.0914,
+    "latencyMs" : 0.0757,
     "returnedSources" : [ "09-安全边界局限与路线图.md", "05-RAG全链路与检索算法.md", "00-入库说明与事实口径.md", "02-架构设计与技术选型.md", "07-真实故障与排查复盘.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -1303,7 +1339,7 @@
     "firstRelevantRank" : 0,
     "hitAt5" : false,
     "falsePositive" : true,
-    "latencyMs" : 0.0977,
+    "latencyMs" : 0.0791,
     "returnedSources" : [ "06-开发过程与提交时间线.md", "05-RAG全链路与检索算法.md", "08-测试策略与验收证据.md", "10-面试讲述与追问准备.md", "01-项目总览与业务目标.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -1346,7 +1382,7 @@
     "firstRelevantRank" : 0,
     "hitAt5" : false,
     "falsePositive" : true,
-    "latencyMs" : 0.1053,
+    "latencyMs" : 0.0688,
     "returnedSources" : [ "09-安全边界局限与路线图.md", "02-架构设计与技术选型.md", "03-数据模型与不可变版本.md", "01-项目总览与业务目标.md", "07-真实故障与排查复盘.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -1389,7 +1425,7 @@
     "firstRelevantRank" : 0,
     "hitAt5" : false,
     "falsePositive" : true,
-    "latencyMs" : 0.1229,
+    "latencyMs" : 0.0979,
     "returnedSources" : [ "01-项目总览与业务目标.md", "10-面试讲述与追问准备.md", "05-RAG全链路与检索算法.md", "07-真实故障与排查复盘.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -1432,7 +1468,7 @@
     "firstRelevantRank" : 0,
     "hitAt5" : false,
     "falsePositive" : true,
-    "latencyMs" : 0.0974,
+    "latencyMs" : 0.0674,
     "returnedSources" : [ "10-面试讲述与追问准备.md", "01-项目总览与业务目标.md", "05-RAG全链路与检索算法.md", "04-模型调用与SSE流式对话.md" ],
     "hits" : [ {
       "rank" : 1,

@@ -27,7 +27,17 @@ powershell -NoProfile -ExecutionPolicy Bypass -File evaluation/run-rag-baseline.
   -Output evaluation/results/local-hash-candidate.json
 ```
 
-评测直接复用生产代码中的 Apache Tika 解析、`TextChunker` 和 `LocalHashEmbedding`，按生产参数取前 5 条并过滤 `score <= 0.05`。区别是使用内存精确余弦排序，不经过 pgvector HNSW，因此检索质量可重复，但延迟只代表本机 JVM 小语料扫描，不能当作数据库或端到端延迟。
+运行已下载的 Ollama 候选模型（不写入数据库）：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File evaluation/run-rag-baseline.ps1 `
+  -Embedding ollama `
+  -OllamaModel qwen3-embedding:0.6b `
+  -OllamaDimensions 1024 `
+  -Output evaluation/results/qwen3-embedding-0.6b-candidate.json
+```
+
+本地基线直接复用生产代码中的 Apache Tika 解析、`TextChunker` 和 `LocalHashEmbedding`。Ollama 候选模式复用前两者，以 `/api/embed` 替换向量生成，确认维度后按同一余弦口径取前 5 条并过滤 `score <= 0.05`。两种模式都使用内存精确排序，不经过 pgvector HNSW；候选模式衡量 embedding 收益，不表示生产索引已经切换。
 
 ## 指标口径
 

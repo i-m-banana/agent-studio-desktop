@@ -3,9 +3,14 @@ package com.agentstudio.evaluation;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.ByteArrayInputStream;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -26,9 +31,9 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import org.junit.jupiter.api.Test;
 
 /**
- * Offline retrieval benchmark that reuses the production parser, chunker and embedding.
- * It deliberately replaces pgvector/HNSW with exact in-memory cosine ranking so it can
- * run without databases and without mutating production data.
+ * Offline retrieval benchmark that reuses the production parser and chunker with a
+ * configurable embedding provider. It deliberately replaces pgvector/HNSW with exact
+ * in-memory cosine ranking so it can run without databases or production-data mutations.
  */
 class RagRetrievalEvaluationTest {
 
@@ -39,7 +44,7 @@ class RagRetrievalEvaluationTest {
     private final ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
     private final DocumentTextExtractor extractor = new DocumentTextExtractor();
     private final TextChunker chunker = new TextChunker();
-    private final LocalHashEmbedding embedding = new LocalHashEmbedding();
+    private final LocalHashEmbedding localHashEmbedding = new LocalHashEmbedding();
 
     @Test
     void evaluateCurrentLocalHashBaseline() throws Exception {
@@ -51,20 +56,26 @@ class RagRetrievalEvaluationTest {
 
         var dataset = json.readValue(datasetPath.toFile(), Dataset.class);
         validateDataset(dataset, repositoryRoot);
+        var embedding = embeddingProvider();
 
         long indexingStarted = System.nanoTime();
-        var corpus = buildCorpus(repositoryRoot, dataset.corpus());
+        var corpus = buildCorpus(repositoryRoot, dataset.corpus(), embedding);
         double indexingMs = elapsedMs(indexingStarted);
 
-        for (int round = 0; round < WARMUP_ROUNDS; round++) {
-            for (var testCase : dataset.cases()) search(corpus.chunks(), testCase.question());
+        int warmupRounds = embedding.remote() ? 1 : WARMUP_ROUNDS;
+        if (embedding.remote()) {
+            embedding.embed("RAG evaluation warmup");
+        } else {
+            for (int round = 0; round < warmupRounds; round++) {
+                for (var testCase : dataset.cases()) search(corpus.chunks(), testCase.question(), embedding);
+            }
         }
 
         var results = new ArrayList<CaseResult>();
         var latencies = new ArrayList<Double>();
         for (var testCase : dataset.cases()) {
             long started = System.nanoTime();
-            var hits = search(corpus.chunks(), testCase.question());
+            var hits = search(corpus.chunks(), testCase.question(), embedding);
             double latencyMs = elapsedMs(started);
             latencies.add(latencyMs);
             results.add(resultFor(testCase, hits, latencyMs));
@@ -75,23 +86,18 @@ class RagRetrievalEvaluationTest {
                 dataset.schemaVersion(),
                 Instant.now().toString(),
                 System.getProperty("rag.eval.gitCommit", "unknown"),
-                new Evaluator("offline-production-components", System.getProperty("java.version"),
-                        "Tika + production TextChunker + production LocalHashEmbedding; exact in-memory cosine ranking"),
-                new RetrievalConfig("local-hash", LocalHashEmbedding.DIMENSIONS, "cosine", TOP_K,
+                new Evaluator(embedding.mode(), System.getProperty("java.version"), embedding.fidelity()),
+                new RetrievalConfig(embedding.model(), embedding.dimensions(), "cosine", TOP_K,
                         SCORE_THRESHOLD, 900, 1100, 120),
                 new CorpusSummary(corpus.documents().size(), corpus.chunks().size(),
                         corpus.sha256(), corpus.documents(), indexingMs),
                 metrics,
                 thresholdSweep(results),
-                latency(latencies),
+                latency(latencies, warmupRounds),
                 answerMetrics(dataset, repositoryRoot),
                 results,
-                List.of(
-                        "Recall@5 and MRR use the first returned chunk whose fileName is in expectedSources.",
-                        "No-answer false-positive rate counts any post-threshold returned chunk as a false positive.",
-                        "Latency is local JVM exact-scan latency on this small corpus; it is not pgvector/HNSW or end-to-end chat latency.",
-                        "Files 11 and 12 are excluded by an enforced corpus invariant."
-                ));
+                interpretationNotes(embedding)
+        );
 
         Files.createDirectories(outputPath.getParent());
         json.writeValue(outputPath.toFile(), report);
@@ -99,6 +105,30 @@ class RagRetrievalEvaluationTest {
                 "RAG_EVAL output=%s answerable=%d recall@5=%.4f mrr=%.4f no_answer_fpr=%.4f p50_ms=%.3f p95_ms=%.3f%n",
                 outputPath, metrics.answerableCases(), metrics.recallAt5(), metrics.mrr(),
                 metrics.noAnswerFalsePositiveRate(), report.latency().p50Ms(), report.latency().p95Ms());
+    }
+
+    private List<String> interpretationNotes(EmbeddingProvider embedding) {
+        var latencyScope = embedding.remote()
+                ? "Latency includes one local Ollama embedding HTTP request plus exact in-memory scan; it is not pgvector/HNSW or end-to-end chat latency."
+                : "Latency is local JVM exact-scan latency on this small corpus; it is not pgvector/HNSW or end-to-end chat latency.";
+        return List.of(
+                        "Recall@5 and MRR use the first returned chunk whose fileName is in expectedSources.",
+                        "No-answer false-positive rate counts any post-threshold returned chunk as a false positive.",
+                        latencyScope,
+                        "Files 11 and 12 are excluded by an enforced corpus invariant."
+        );
+    }
+
+    private EmbeddingProvider embeddingProvider() {
+        var configured = System.getProperty("rag.eval.embedding", "local-hash").trim().toLowerCase(Locale.ROOT);
+        return switch (configured) {
+            case "local-hash" -> new LocalHashEmbeddingProvider();
+            case "ollama" -> new OllamaEmbeddingProvider(
+                    System.getProperty("rag.eval.ollama.model", "qwen3-embedding:0.6b"),
+                    System.getProperty("rag.eval.ollama.url", "http://127.0.0.1:11434/api/embed"),
+                    Integer.parseInt(System.getProperty("rag.eval.ollama.dimensions", "1024")));
+            default -> throw new IllegalArgumentException("Unsupported rag.eval.embedding: " + configured);
+        };
     }
 
     private void validateDataset(Dataset dataset, Path repositoryRoot) {
@@ -124,7 +154,7 @@ class RagRetrievalEvaluationTest {
                 "11-RAG测试题与标准答案.md", "12-推荐Agent系统提示词-不要入库.md");
     }
 
-    private Corpus buildCorpus(Path repositoryRoot, CorpusConfig config) throws Exception {
+    private Corpus buildCorpus(Path repositoryRoot, CorpusConfig config, EmbeddingProvider embedding) throws Exception {
         var directory = repositoryRoot.resolve(config.directory()).normalize();
         var include = Pattern.compile(config.includeFilePattern());
         var excluded = Set.copyOf(config.excludedFiles());
@@ -138,7 +168,7 @@ class RagRetrievalEvaluationTest {
         assertThat(paths).noneMatch(path -> excluded.contains(path.getFileName().toString()));
 
         var documents = new ArrayList<DocumentSummary>();
-        var chunks = new ArrayList<IndexedChunk>();
+        var drafts = new ArrayList<ChunkDraft>();
         var corpusDigest = MessageDigest.getInstance("SHA-256");
         for (var path : paths) {
             String fileName = path.getFileName().toString();
@@ -156,14 +186,24 @@ class RagRetrievalEvaluationTest {
                     text.length(), documentChunks.size()));
             for (int index = 0; index < documentChunks.size(); index++) {
                 var content = documentChunks.get(index);
-                chunks.add(new IndexedChunk(fileName, index, content, embedding.embed(content)));
+                drafts.add(new ChunkDraft(fileName, index, content));
             }
+        }
+        var vectors = embedding.embedAll(drafts.stream().map(ChunkDraft::content).toList());
+        assertThat(vectors).hasSameSizeAs(drafts);
+        var chunks = new ArrayList<IndexedChunk>();
+        for (int index = 0; index < drafts.size(); index++) {
+            var draft = drafts.get(index);
+            var vector = vectors.get(index);
+            assertThat(vector).hasSize(embedding.dimensions());
+            chunks.add(new IndexedChunk(draft.fileName(), draft.chunkIndex(), draft.content(), vector));
         }
         return new Corpus(documents, chunks, HexFormat.of().formatHex(corpusDigest.digest()));
     }
 
-    private List<SearchHit> search(List<IndexedChunk> corpus, String question) {
+    private List<SearchHit> search(List<IndexedChunk> corpus, String question, EmbeddingProvider embedding) throws Exception {
         var queryVector = embedding.embed(question);
+        assertThat(queryVector).hasSize(embedding.dimensions());
         return corpus.stream()
                 .map(chunk -> new SearchHit(chunk.fileName(), chunk.chunkIndex(),
                         cosine(queryVector, chunk.vector()), chunk.content()))
@@ -230,7 +270,8 @@ class RagRetrievalEvaluationTest {
     }
 
     private List<ThresholdMetrics> thresholdSweep(List<CaseResult> results) {
-        return List.of(0.05, 0.10, 0.20, 0.25, 0.30, 0.35, 0.40).stream().map(threshold -> {
+        return List.of(0.05, 0.10, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50, 0.55, 0.60, 0.65, 0.70)
+                .stream().map(threshold -> {
             int answerable = (int) results.stream().filter(CaseResult::answerable).count();
             int noAnswer = results.size() - answerable;
             int hits = 0;
@@ -262,9 +303,9 @@ class RagRetrievalEvaluationTest {
         }).toList();
     }
 
-    private LatencySummary latency(List<Double> values) {
+    private LatencySummary latency(List<Double> values, int warmupRounds) {
         var sorted = values.stream().sorted().toList();
-        return new LatencySummary(values.size(), WARMUP_ROUNDS,
+        return new LatencySummary(values.size(), warmupRounds,
                 percentile(sorted, 0.50), percentile(sorted, 0.95), sorted.get(sorted.size() - 1));
     }
 
@@ -364,6 +405,84 @@ class RagRetrievalEvaluationTest {
         return denominator == 0 ? 0.0 : numerator / denominator;
     }
 
+    private interface EmbeddingProvider {
+        String mode();
+        String model();
+        int dimensions();
+        boolean remote();
+        String fidelity();
+        List<float[]> embedAll(List<String> inputs) throws Exception;
+
+        default float[] embed(String input) throws Exception {
+            return embedAll(List.of(input)).getFirst();
+        }
+    }
+
+    private final class LocalHashEmbeddingProvider implements EmbeddingProvider {
+        @Override public String mode() { return "offline-production-components"; }
+        @Override public String model() { return "local-hash"; }
+        @Override public int dimensions() { return LocalHashEmbedding.DIMENSIONS; }
+        @Override public boolean remote() { return false; }
+        @Override public String fidelity() {
+            return "Tika + production TextChunker + production LocalHashEmbedding; exact in-memory cosine ranking";
+        }
+        @Override public List<float[]> embedAll(List<String> inputs) {
+            return inputs.stream().map(localHashEmbedding::embed).toList();
+        }
+    }
+
+    private final class OllamaEmbeddingProvider implements EmbeddingProvider {
+        private final String model;
+        private final URI endpoint;
+        private final int dimensions;
+        private final HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(15)).build();
+
+        private OllamaEmbeddingProvider(String model, String endpoint, int dimensions) {
+            this.model = model;
+            this.endpoint = URI.create(endpoint);
+            this.dimensions = dimensions;
+        }
+
+        @Override public String mode() { return "offline-ollama-candidate"; }
+        @Override public String model() { return model; }
+        @Override public int dimensions() { return dimensions; }
+        @Override public boolean remote() { return true; }
+        @Override public String fidelity() {
+            return "Tika + production TextChunker + Ollama /api/embed (" + model
+                    + "); exact in-memory cosine ranking. This is an embedding-only candidate; production index is unchanged.";
+        }
+
+        @Override public List<float[]> embedAll(List<String> inputs) throws Exception {
+            var payload = json.writeValueAsString(new OllamaEmbedRequest(model, inputs));
+            var request = HttpRequest.newBuilder(endpoint)
+                    .timeout(Duration.ofSeconds(120))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(payload))
+                    .build();
+            var response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 200) {
+                throw new IllegalStateException("Ollama embedding request failed: HTTP " + response.statusCode()
+                        + " " + response.body());
+            }
+            var decoded = json.readValue(response.body(), OllamaEmbedResponse.class);
+            if (decoded.error() != null && !decoded.error().isBlank()) {
+                throw new IllegalStateException("Ollama embedding request failed: " + decoded.error());
+            }
+            if (decoded.embeddings() == null || decoded.embeddings().size() != inputs.size()) {
+                throw new IllegalStateException("Ollama returned an unexpected embedding count");
+            }
+            return decoded.embeddings().stream().map(vector -> {
+                if (vector.size() != dimensions) {
+                    throw new IllegalStateException("Expected " + dimensions + " dimensions from " + model
+                            + " but received " + vector.size());
+                }
+                var result = new float[vector.size()];
+                for (int index = 0; index < vector.size(); index++) result[index] = vector.get(index);
+                return result;
+            }).toList();
+        }
+    }
+
     record Dataset(String schemaVersion, String name, String description, CorpusConfig corpus,
                    List<EvalCase> cases) {}
     record CorpusConfig(String directory, String includeFilePattern, List<String> excludedFiles) {}
@@ -371,6 +490,7 @@ class RagRetrievalEvaluationTest {
                     String answerKeyCaseId, boolean answerable, List<String> expectedSources,
                     List<KeyFact> keyFacts) {}
     record KeyFact(String id, List<String> anyOf) {}
+    record ChunkDraft(String fileName, int chunkIndex, String content) {}
     record IndexedChunk(String fileName, int chunkIndex, String content, float[] vector) {}
     record SearchHit(String fileName, int chunkIndex, double score, String content) {}
     record Corpus(List<DocumentSummary> documents, List<IndexedChunk> chunks, String sha256) {}
@@ -410,4 +530,7 @@ class RagRetrievalEvaluationTest {
                       boolean falsePositive, double latencyMs, List<String> returnedSources,
                       List<HitView> hits) {}
     record HitView(int rank, String fileName, int chunkIndex, double score, String contentPreview) {}
+    record OllamaEmbedRequest(String model, List<String> input) {}
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties(ignoreUnknown = true)
+    record OllamaEmbedResponse(List<List<Float>> embeddings, String error) {}
 }

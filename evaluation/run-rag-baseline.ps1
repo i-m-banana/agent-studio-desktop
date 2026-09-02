@@ -1,6 +1,10 @@
 param(
     [string]$Output = "evaluation/results/local-hash-baseline.json",
-    [string]$Answers = ""
+    [string]$Answers = "",
+    [ValidateSet("local-hash", "ollama")]
+    [string]$Embedding = "local-hash",
+    [string]$OllamaModel = "qwen3-embedding:0.6b",
+    [int]$OllamaDimensions = 1024
 )
 
 $ErrorActionPreference = "Stop"
@@ -18,8 +22,13 @@ try {
         "-Dtest=RagRetrievalEvaluationTest",
         "-Drag.eval.root=$repositoryRoot",
         "-Drag.eval.output=$Output",
-        "-Drag.eval.gitCommit=$gitCommit"
+        "-Drag.eval.gitCommit=$gitCommit",
+        "-Drag.eval.embedding=$Embedding"
     )
+    if ($Embedding -eq "ollama") {
+        $mavenArguments += "-Drag.eval.ollama.model=$OllamaModel"
+        $mavenArguments += "-Drag.eval.ollama.dimensions=$OllamaDimensions"
+    }
     if ($Answers) {
         $mavenArguments += "-Drag.eval.answers=$Answers"
     }
