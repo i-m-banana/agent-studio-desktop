@@ -13,6 +13,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class OllamaEmbeddingGatewayTests {
 
@@ -56,5 +57,19 @@ class OllamaEmbeddingGatewayTests {
         assertThat(requestBodies.get(0)).contains("文档一", "文档二", "\"dimensions\":3");
         assertThat(requestBodies.get(0)).doesNotContain("检索项目技术片段");
         assertThat(requestBodies.get(1)).contains("检索项目技术片段", "为什么使用不可变版本");
+    }
+
+    @Test
+    void reportsActionableMessageWhenOllamaIsUnavailable() throws Exception {
+        int unusedPort;
+        try (var socket = new java.net.ServerSocket(0)) {
+            unusedPort = socket.getLocalPort();
+        }
+        var gateway = new OllamaEmbeddingGateway(HttpClient.newHttpClient(), new ObjectMapper(),
+                "http://127.0.0.1:" + unusedPort, "test-embedding", 3, "test-v1", "");
+
+        assertThatThrownBy(() -> gateway.embedQuery("测试"))
+                .hasMessageContaining("无法连接 Ollama embedding 服务")
+                .hasMessageContaining("test-embedding");
     }
 }

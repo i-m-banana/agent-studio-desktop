@@ -1,7 +1,7 @@
 {
   "schemaVersion" : "1.0",
-  "generatedAt" : "2026-09-02T12:16:48.853627700Z",
-  "gitCommit" : "15ec1cdd094be4060af76cc885d57c7d49deba27",
+  "generatedAt" : "2026-09-04T11:29:21.938540300Z",
+  "gitCommit" : "5eefc213de5654eaf62b1bc73a6d7a89288f4da7",
   "evaluator" : {
     "mode" : "offline-production-components",
     "javaVersion" : "21.0.4",
@@ -20,7 +20,7 @@
   "corpus" : {
     "documentCount" : 11,
     "chunkCount" : 23,
-    "corpusSha256" : "898ea1904e54c2342786eaa47bc334176e4bea1c1c05f89b83afecd4a3207f03",
+    "corpusSha256" : "9de7e241c68f44161bd9c20dae69df79134c5aa2120d6fc0f1795fa818a8a3d0",
     "documents" : [ {
       "fileName" : "00-入库说明与事实口径.md",
       "rawSha256" : "e51c07b66add30198d347f1873bd66de68ef10b367ae35f78b723824bf1d9047",
@@ -58,8 +58,8 @@
       "chunkCount" : 2
     }, {
       "fileName" : "07-真实故障与排查复盘.md",
-      "rawSha256" : "c2c6061c1eba40bfa5502b3edb102f1299c88b3d17b9a077a8e29b8fd9387df6",
-      "extractedCharacters" : 2205,
+      "rawSha256" : "775323a2b3fa54b73b074d1fa992ddb7a75c391077116572b2a4f37964f1b9bc",
+      "extractedCharacters" : 2698,
       "chunkCount" : 3
     }, {
       "fileName" : "08-测试策略与验收证据.md",
@@ -77,7 +77,7 @@
       "extractedCharacters" : 2174,
       "chunkCount" : 3
     } ],
-    "indexingLatencyMs" : 1841.1265
+    "indexingLatencyMs" : 1995.535
   },
   "metrics" : {
     "totalCases" : 30,
@@ -136,7 +136,7 @@
     "recallAt5" : 0.7083333333333334,
     "mrr" : 0.5659722222222222,
     "noAnswerFalsePositiveRate" : 0.8333333333333334,
-    "meanReturnedChunks" : 3.2666666666666666
+    "meanReturnedChunks" : 3.3
   }, {
     "threshold" : 0.3,
     "recallAt5" : 0.4166666666666667,
@@ -154,7 +154,7 @@
     "recallAt5" : 0.20833333333333334,
     "mrr" : 0.1875,
     "noAnswerFalsePositiveRate" : 0.16666666666666666,
-    "meanReturnedChunks" : 0.6
+    "meanReturnedChunks" : 0.6333333333333333
   }, {
     "threshold" : 0.45,
     "recallAt5" : 0.125,
@@ -195,9 +195,9 @@
   "latency" : {
     "measuredQueries" : 30,
     "warmupRounds" : 8,
-    "p50Ms" : 0.165,
-    "p95Ms" : 0.3414,
-    "maximumMs" : 1.3801
+    "p50Ms" : 0.13,
+    "p95Ms" : 0.2338,
+    "maximumMs" : 0.4014
   },
   "answerMetrics" : {
     "status" : "not_measured",
@@ -221,7 +221,7 @@
     "firstRelevantRank" : 2,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 1.3801,
+    "latencyMs" : 0.1178,
     "returnedSources" : [ "00-入库说明与事实口径.md", "06-开发过程与提交时间线.md", "01-项目总览与业务目标.md", "08-测试策略与验收证据.md", "10-面试讲述与追问准备.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -264,7 +264,7 @@
     "firstRelevantRank" : 0,
     "hitAt5" : false,
     "falsePositive" : false,
-    "latencyMs" : 0.3314,
+    "latencyMs" : 0.4014,
     "returnedSources" : [ "09-安全边界局限与路线图.md", "02-架构设计与技术选型.md", "01-项目总览与业务目标.md", "08-测试策略与验收证据.md", "06-开发过程与提交时间线.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -307,8 +307,8 @@
     "firstRelevantRank" : 2,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.1403,
-    "returnedSources" : [ "06-开发过程与提交时间线.md", "09-安全边界局限与路线图.md", "01-项目总览与业务目标.md", "10-面试讲述与追问准备.md" ],
+    "latencyMs" : 0.1905,
+    "returnedSources" : [ "06-开发过程与提交时间线.md", "09-安全边界局限与路线图.md", "01-项目总览与业务目标.md", "07-真实故障与排查复盘.md", "10-面试讲述与追问准备.md" ],
     "hits" : [ {
       "rank" : 1,
       "fileName" : "06-开发过程与提交时间线.md",
@@ -329,16 +329,16 @@
       "contentPreview" : "# Agent Studio Desktop：项目总览与业务目标 ## 一句话定位 Agent Studio Desktop 是一个运行在个人电脑上的智能体搭建与调试工具。用户不需要修改 Java 代码，就能配置 OpenAI 兼容模型、系统提示词和知识库，发布一个固定版本的 Agent，并在本地网页中流式对话、查看检索来源。 它不是公网 SaaS，也不是高并发多租户平台。产品的核心价值是让“模型连接、提示词、知识和版本”变成可配置资产，同时让本地开发环境简单、过程可观察、结…"
     }, {
       "rank" : 4,
+      "fileName" : "07-真实故障与排查复盘.md",
+      "chunkIndex" : 2,
+      "score" : 0.238175465330366,
+      "contentPreview" : "struction-aware 模型的常见建议，为每个问题添加统一中文任务说明。复测后 Recall 没变，但 MRR 降到 0.6917，相关文档更常排在后面。 这不是接口或维度错误，而是提示前缀改变了向量空间中的查询表达。修复是保留 queryInstruction 配置能力但默认置空，并重新运行同一冻结题集，MRR 恢复到 0.8160。知识包扩充后又在新语料上复测，仍采用无前缀方案。经验是 embedding 的 prompt 必须在本领域语料上做消融，而且语料变更后…"
+    }, {
+      "rank" : 5,
       "fileName" : "10-面试讲述与追问准备.md",
       "chunkIndex" : 0,
       "score" : 0.23673527098706226,
       "contentPreview" : "# Agent Studio Desktop：面试讲述与追问准备 ## 90 秒项目介绍 我主导做了一个单机优先的智能体搭建工具 Agent Studio Desktop，目标是让用户不改 Java 代码，就能配置 OpenAI 兼容模型、提示词和知识库，发布固定版本的 Agent，并在网页上做流式问答和查看引用来源。后端采用 Java 21 和 Spring Boot 模块化单体，前端是 React + TypeScript，MySQL 保存业务配置，PostgreSQL …"
-    }, {
-      "rank" : 5,
-      "fileName" : "10-面试讲述与追问准备.md",
-      "chunkIndex" : 1,
-      "score" : 0.23130579817314267,
-      "contentPreview" : "式定义 primary MySQL DataSource、JdbcTemplate 和 NamedParameterJdbcTemplate，并给四个业务 Repository 加 Qualifier；向量 Repository 固定使用 vectorJdbcTemplate。 结果：真实启动时 Flyway 正确连接 MySQL 8.4，VectorPool 单独连接 PostgreSQL，知识库创建、模型查询、向量写入和检索全部恢复。这个问题让我意识到多数据源不能只标一个…"
     } ]
   }, {
     "id" : "rag-004",
@@ -350,7 +350,7 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.1368,
+    "latencyMs" : 0.162,
     "returnedSources" : [ "03-数据模型与不可变版本.md", "04-模型调用与SSE流式对话.md", "06-开发过程与提交时间线.md", "09-安全边界局限与路线图.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -393,7 +393,7 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.3414,
+    "latencyMs" : 0.1246,
     "returnedSources" : [ "04-模型调用与SSE流式对话.md", "07-真实故障与排查复盘.md", "02-架构设计与技术选型.md", "09-安全边界局限与路线图.md", "08-测试策略与验收证据.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -436,7 +436,7 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.1719,
+    "latencyMs" : 0.1141,
     "returnedSources" : [ "10-面试讲述与追问准备.md", "09-安全边界局限与路线图.md", "08-测试策略与验收证据.md", "01-项目总览与业务目标.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -479,7 +479,7 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.165,
+    "latencyMs" : 0.1319,
     "returnedSources" : [ "07-真实故障与排查复盘.md", "10-面试讲述与追问准备.md", "02-架构设计与技术选型.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -522,7 +522,7 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.1691,
+    "latencyMs" : 0.1966,
     "returnedSources" : [ "07-真实故障与排查复盘.md", "10-面试讲述与追问准备.md", "06-开发过程与提交时间线.md", "09-安全边界局限与路线图.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -565,7 +565,7 @@
     "firstRelevantRank" : 3,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.1835,
+    "latencyMs" : 0.2338,
     "returnedSources" : [ "00-入库说明与事实口径.md", "08-测试策略与验收证据.md", "05-RAG全链路与检索算法.md", "09-安全边界局限与路线图.md", "04-模型调用与SSE流式对话.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -608,7 +608,7 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.1878,
+    "latencyMs" : 0.1484,
     "returnedSources" : [ "09-安全边界局限与路线图.md", "08-测试策略与验收证据.md", "01-项目总览与业务目标.md", "03-数据模型与不可变版本.md", "02-架构设计与技术选型.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -651,7 +651,7 @@
     "firstRelevantRank" : 2,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.1985,
+    "latencyMs" : 0.1204,
     "returnedSources" : [ "06-开发过程与提交时间线.md", "01-项目总览与业务目标.md", "03-数据模型与不可变版本.md", "05-RAG全链路与检索算法.md", "08-测试策略与验收证据.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -694,7 +694,7 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.1634,
+    "latencyMs" : 0.13,
     "returnedSources" : [ "00-入库说明与事实口径.md", "01-项目总览与业务目标.md", "06-开发过程与提交时间线.md", "10-面试讲述与追问准备.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -737,8 +737,8 @@
     "firstRelevantRank" : 0,
     "hitAt5" : false,
     "falsePositive" : false,
-    "latencyMs" : 0.1401,
-    "returnedSources" : [ "07-真实故障与排查复盘.md", "09-安全边界局限与路线图.md", "08-测试策略与验收证据.md", "10-面试讲述与追问准备.md" ],
+    "latencyMs" : 0.1368,
+    "returnedSources" : [ "07-真实故障与排查复盘.md", "09-安全边界局限与路线图.md", "08-测试策略与验收证据.md" ],
     "hits" : [ {
       "rank" : 1,
       "fileName" : "07-真实故障与排查复盘.md",
@@ -765,10 +765,10 @@
       "contentPreview" : "L，自动创建 vector extension、knowledge_chunk 和 HNSW 索引。 DeepSeek 真实调用验证了 OpenAI 兼容请求和中文 SSE 增量，最终收到 done。RAG 真实验证包括创建知识库、上传 Markdown、状态 READY、发布绑定知识库的 AgentVersion、sources 返回、删除后三处数据消失、重新上传恢复。 语义升级又验证了真实 Ollama、pgvector v2 和重建 API：数据库中向量确认为 1024…"
     }, {
       "rank" : 5,
-      "fileName" : "10-面试讲述与追问准备.md",
-      "chunkIndex" : 1,
-      "score" : 0.26180641201487787,
-      "contentPreview" : "式定义 primary MySQL DataSource、JdbcTemplate 和 NamedParameterJdbcTemplate，并给四个业务 Repository 加 Qualifier；向量 Repository 固定使用 vectorJdbcTemplate。 结果：真实启动时 Flyway 正确连接 MySQL 8.4，VectorPool 单独连接 PostgreSQL，知识库创建、模型查询、向量写入和检索全部恢复。这个问题让我意识到多数据源不能只标一个…"
+      "fileName" : "07-真实故障与排查复盘.md",
+      "chunkIndex" : 2,
+      "score" : 0.2626695868758272,
+      "contentPreview" : "struction-aware 模型的常见建议，为每个问题添加统一中文任务说明。复测后 Recall 没变，但 MRR 降到 0.6917，相关文档更常排在后面。 这不是接口或维度错误，而是提示前缀改变了向量空间中的查询表达。修复是保留 queryInstruction 配置能力但默认置空，并重新运行同一冻结题集，MRR 恢复到 0.8160。知识包扩充后又在新语料上复测，仍采用无前缀方案。经验是 embedding 的 prompt 必须在本领域语料上做消融，而且语料变更后…"
     } ]
   }, {
     "id" : "rag-014",
@@ -780,7 +780,7 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.2695,
+    "latencyMs" : 0.1571,
     "returnedSources" : [ "05-RAG全链路与检索算法.md", "09-安全边界局限与路线图.md", "02-架构设计与技术选型.md", "03-数据模型与不可变版本.md", "01-项目总览与业务目标.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -823,7 +823,7 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.2352,
+    "latencyMs" : 0.1736,
     "returnedSources" : [ "09-安全边界局限与路线图.md", "04-模型调用与SSE流式对话.md", "05-RAG全链路与检索算法.md", "00-入库说明与事实口径.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -866,8 +866,8 @@
     "firstRelevantRank" : 0,
     "hitAt5" : false,
     "falsePositive" : false,
-    "latencyMs" : 0.1691,
-    "returnedSources" : [ "06-开发过程与提交时间线.md", "01-项目总览与业务目标.md", "10-面试讲述与追问准备.md", "07-真实故障与排查复盘.md", "02-架构设计与技术选型.md" ],
+    "latencyMs" : 0.177,
+    "returnedSources" : [ "06-开发过程与提交时间线.md", "01-项目总览与业务目标.md", "10-面试讲述与追问准备.md", "02-架构设计与技术选型.md", "05-RAG全链路与检索算法.md" ],
     "hits" : [ {
       "rank" : 1,
       "fileName" : "06-开发过程与提交时间线.md",
@@ -888,16 +888,16 @@
       "contentPreview" : "式定义 primary MySQL DataSource、JdbcTemplate 和 NamedParameterJdbcTemplate，并给四个业务 Repository 加 Qualifier；向量 Repository 固定使用 vectorJdbcTemplate。 结果：真实启动时 Flyway 正确连接 MySQL 8.4，VectorPool 单独连接 PostgreSQL，知识库创建、模型查询、向量写入和检索全部恢复。这个问题让我意识到多数据源不能只标一个…"
     }, {
       "rank" : 4,
-      "fileName" : "07-真实故障与排查复盘.md",
-      "chunkIndex" : 2,
-      "score" : 0.23944256236289865,
-      "contentPreview" : "struction-aware 模型的常见建议，为每个问题添加统一中文任务说明。复测后 Recall 没变，但 MRR 降到 0.6917，相关文档更常排在后面。 这不是接口或维度错误，而是提示前缀改变了向量空间中的查询表达。修复是保留 queryInstruction 配置能力但默认置空，并重新运行同一冻结题集，MRR 恢复到 0.8160。知识包扩充后又在新语料上复测，仍采用无前缀方案。经验是 embedding 的 prompt 必须在本领域语料上做消融，而且语料变更后…"
-    }, {
-      "rank" : 5,
       "fileName" : "02-架构设计与技术选型.md",
       "chunkIndex" : 0,
       "score" : 0.2391225131959862,
       "contentPreview" : "# Agent Studio Desktop：架构设计与技术选型 ## 模块化单体 项目选择“Spring Boot 模块化单体 + 独立 React 前端 + 两个数据库容器”。后端只有一个 Maven 工程，通过 `agent`、`model`、`conversation`、`knowledge`、`system` 等 Java package 隔离职责。 这个选择针对的是单机开发工具场景。微服务会引入服务发现、网络调用、分布式事务、部署和日志聚合成本，而当前用户只有一个…"
+    }, {
+      "rank" : 5,
+      "fileName" : "05-RAG全链路与检索算法.md",
+      "chunkIndex" : 1,
+      "score" : 0.2376756147273799,
+      "contentPreview" : "1 - cosine distance`。新模型的 0.05 仅保留现有召回行为，不代表有效拒答阈值。 检索结果一方面通过 SSE `sources` 发送给前端，另一方面拼成系统上下文注入模型。这样用户能看到证据，模型也能据此作答。 ## 删除闭环 删除文档时先删除 pgvector 中对应 documentId 的 chunk，再删除 MySQL 文档元数据，最后删除本地文件。验收时确认删除后文档列表为空、本地文件不存在，并且再次提问不再出现 sources；随后重新上传…"
     } ]
   }, {
     "id" : "rag-017",
@@ -909,7 +909,7 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.1865,
+    "latencyMs" : 0.1589,
     "returnedSources" : [ "04-模型调用与SSE流式对话.md", "05-RAG全链路与检索算法.md", "06-开发过程与提交时间线.md", "03-数据模型与不可变版本.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -952,7 +952,7 @@
     "firstRelevantRank" : 4,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.1761,
+    "latencyMs" : 0.128,
     "returnedSources" : [ "07-真实故障与排查复盘.md", "06-开发过程与提交时间线.md", "02-架构设计与技术选型.md", "01-项目总览与业务目标.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -995,7 +995,7 @@
     "firstRelevantRank" : 2,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.163,
+    "latencyMs" : 0.1269,
     "returnedSources" : [ "10-面试讲述与追问准备.md", "07-真实故障与排查复盘.md", "01-项目总览与业务目标.md", "06-开发过程与提交时间线.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -1038,7 +1038,7 @@
     "firstRelevantRank" : 2,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.2404,
+    "latencyMs" : 0.1271,
     "returnedSources" : [ "01-项目总览与业务目标.md", "07-真实故障与排查复盘.md", "02-架构设计与技术选型.md", "10-面试讲述与追问准备.md", "08-测试策略与验收证据.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -1081,7 +1081,7 @@
     "firstRelevantRank" : 0,
     "hitAt5" : false,
     "falsePositive" : false,
-    "latencyMs" : 0.1611,
+    "latencyMs" : 0.1093,
     "returnedSources" : [ "07-真实故障与排查复盘.md", "06-开发过程与提交时间线.md", "08-测试策略与验收证据.md", "10-面试讲述与追问准备.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -1124,7 +1124,7 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.1717,
+    "latencyMs" : 0.1399,
     "returnedSources" : [ "09-安全边界局限与路线图.md", "06-开发过程与提交时间线.md", "05-RAG全链路与检索算法.md", "07-真实故障与排查复盘.md", "10-面试讲述与追问准备.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -1167,7 +1167,7 @@
     "firstRelevantRank" : 3,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.1543,
+    "latencyMs" : 0.1266,
     "returnedSources" : [ "06-开发过程与提交时间线.md", "10-面试讲述与追问准备.md", "09-安全边界局限与路线图.md", "01-项目总览与业务目标.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -1210,8 +1210,8 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.1348,
-    "returnedSources" : [ "00-入库说明与事实口径.md", "10-面试讲述与追问准备.md", "07-真实故障与排查复盘.md", "06-开发过程与提交时间线.md", "05-RAG全链路与检索算法.md" ],
+    "latencyMs" : 0.1249,
+    "returnedSources" : [ "00-入库说明与事实口径.md", "10-面试讲述与追问准备.md", "07-真实故障与排查复盘.md", "06-开发过程与提交时间线.md" ],
     "hits" : [ {
       "rank" : 1,
       "fileName" : "00-入库说明与事实口径.md",
@@ -1238,10 +1238,10 @@
       "contentPreview" : "# Agent Studio Desktop：开发过程与提交时间线 ## 阶段 0：独立工程基线 第一个提交是 `de8dd90 chore: establish agent studio desktop baseline`。这一阶段建立独立 Git 仓库、Spring Boot 单体、React + TypeScript + Vite 前端、Docker Compose、健康检查、README、架构决策和来源边界记录。 实际环境确认 Maven 使用 Java 21.0.4…"
     }, {
       "rank" : 5,
-      "fileName" : "05-RAG全链路与检索算法.md",
-      "chunkIndex" : 1,
-      "score" : 0.21336578351065197,
-      "contentPreview" : "1 - cosine distance`。新模型的 0.05 仅保留现有召回行为，不代表有效拒答阈值。 检索结果一方面通过 SSE `sources` 发送给前端，另一方面拼成系统上下文注入模型。这样用户能看到证据，模型也能据此作答。 ## 删除闭环 删除文档时先删除 pgvector 中对应 documentId 的 chunk，再删除 MySQL 文档元数据，最后删除本地文件。验收时确认删除后文档列表为空、本地文件不存在，并且再次提问不再出现 sources；随后重新上传…"
+      "fileName" : "07-真实故障与排查复盘.md",
+      "chunkIndex" : 2,
+      "score" : 0.21454948896338813,
+      "contentPreview" : "struction-aware 模型的常见建议，为每个问题添加统一中文任务说明。复测后 Recall 没变，但 MRR 降到 0.6917，相关文档更常排在后面。 这不是接口或维度错误，而是提示前缀改变了向量空间中的查询表达。修复是保留 queryInstruction 配置能力但默认置空，并重新运行同一冻结题集，MRR 恢复到 0.8160。知识包扩充后又在新语料上复测，仍采用无前缀方案。经验是 embedding 的 prompt 必须在本领域语料上做消融，而且语料变更后…"
     } ]
   }, {
     "id" : "rag-025",
@@ -1253,8 +1253,8 @@
     "firstRelevantRank" : 0,
     "hitAt5" : false,
     "falsePositive" : true,
-    "latencyMs" : 0.1173,
-    "returnedSources" : [ "00-入库说明与事实口径.md", "01-项目总览与业务目标.md", "07-真实故障与排查复盘.md", "06-开发过程与提交时间线.md", "05-RAG全链路与检索算法.md" ],
+    "latencyMs" : 0.1212,
+    "returnedSources" : [ "00-入库说明与事实口径.md", "01-项目总览与业务目标.md", "06-开发过程与提交时间线.md", "05-RAG全链路与检索算法.md", "09-安全边界局限与路线图.md" ],
     "hits" : [ {
       "rank" : 1,
       "fileName" : "00-入库说明与事实口径.md",
@@ -1269,22 +1269,22 @@
       "contentPreview" : "# Agent Studio Desktop：项目总览与业务目标 ## 一句话定位 Agent Studio Desktop 是一个运行在个人电脑上的智能体搭建与调试工具。用户不需要修改 Java 代码，就能配置 OpenAI 兼容模型、系统提示词和知识库，发布一个固定版本的 Agent，并在本地网页中流式对话、查看检索来源。 它不是公网 SaaS，也不是高并发多租户平台。产品的核心价值是让“模型连接、提示词、知识和版本”变成可配置资产，同时让本地开发环境简单、过程可观察、结…"
     }, {
       "rank" : 3,
-      "fileName" : "07-真实故障与排查复盘.md",
-      "chunkIndex" : 2,
-      "score" : 0.18620679796319958,
-      "contentPreview" : "struction-aware 模型的常见建议，为每个问题添加统一中文任务说明。复测后 Recall 没变，但 MRR 降到 0.6917，相关文档更常排在后面。 这不是接口或维度错误，而是提示前缀改变了向量空间中的查询表达。修复是保留 queryInstruction 配置能力但默认置空，并重新运行同一冻结题集，MRR 恢复到 0.8160。知识包扩充后又在新语料上复测，仍采用无前缀方案。经验是 embedding 的 prompt 必须在本领域语料上做消融，而且语料变更后…"
-    }, {
-      "rank" : 4,
       "fileName" : "06-开发过程与提交时间线.md",
       "chunkIndex" : 1,
       "score" : 0.18369446476869927,
       "contentPreview" : "al workflow`。新增 Flyway V2、知识库与文档元数据、Tika 解析、文本切分、本地 384 维词法向量、pgvector 表和 HNSW 索引、知识库绑定、sources SSE 事件，以及前端知识库页面和来源展示。 真实验收创建了“科研助手验收库”和“科研知识助手”。示例 Markdown 上传后状态 READY，对话返回来源文件、chunk 0 和相似度。删除测试确认 MySQL 元数据、本地文件和向量检索结果同时消失，重新上传后恢复。 ## 开发方法…"
     }, {
-      "rank" : 5,
+      "rank" : 4,
       "fileName" : "05-RAG全链路与检索算法.md",
       "chunkIndex" : 0,
       "score" : 0.18054063331272346,
       "contentPreview" : "# Agent Studio Desktop：RAG 全链路与检索算法 ## 上传和元数据 用户在前端选择知识库并上传文档，单文件上限 20 MB。后端先校验知识库和非空文件，清理文件名，读取字节，计算 SHA-256，然后把文件写入 `data/knowledge/{knowledgeBaseId}/{documentId}.{extension}`。所有路径都会归一化并检查必须位于 dataRoot 下，防止路径越界。 MySQL 文档记录最初是 PROCESSING。解…"
+    }, {
+      "rank" : 5,
+      "fileName" : "09-安全边界局限与路线图.md",
+      "chunkIndex" : 0,
+      "score" : 0.18016612596420054,
+      "contentPreview" : "# Agent Studio Desktop：安全边界、当前局限与路线图 ## 已有安全边界 模型密钥不进入数据库和 Git，ModelProfile 只保存环境变量名称。后端在模型调用时读取启动进程环境。文件保存路径经过绝对化、规范化和 dataRoot 前缀检查，避免通过文件名写出授权目录。上传大小限制为 20 MB，API 请求使用校验注解，外部模型错误文本会截断。 AgentVersion 不可变，会话固定绑定版本，减少运行中配置漂移。知识库检索按 knowledge…"
     } ]
   }, {
     "id" : "rag-026",
@@ -1296,7 +1296,7 @@
     "firstRelevantRank" : 0,
     "hitAt5" : false,
     "falsePositive" : true,
-    "latencyMs" : 0.1147,
+    "latencyMs" : 0.1197,
     "returnedSources" : [ "09-安全边界局限与路线图.md", "00-入库说明与事实口径.md", "05-RAG全链路与检索算法.md", "10-面试讲述与追问准备.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -1339,7 +1339,7 @@
     "firstRelevantRank" : 0,
     "hitAt5" : false,
     "falsePositive" : true,
-    "latencyMs" : 0.1401,
+    "latencyMs" : 0.1279,
     "returnedSources" : [ "10-面试讲述与追问准备.md", "05-RAG全链路与检索算法.md", "06-开发过程与提交时间线.md", "08-测试策略与验收证据.md", "02-架构设计与技术选型.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -1382,7 +1382,7 @@
     "firstRelevantRank" : 0,
     "hitAt5" : false,
     "falsePositive" : true,
-    "latencyMs" : 0.1292,
+    "latencyMs" : 0.1182,
     "returnedSources" : [ "09-安全边界局限与路线图.md", "02-架构设计与技术选型.md", "01-项目总览与业务目标.md", "06-开发过程与提交时间线.md", "03-数据模型与不可变版本.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -1425,8 +1425,8 @@
     "firstRelevantRank" : 0,
     "hitAt5" : false,
     "falsePositive" : true,
-    "latencyMs" : 0.1398,
-    "returnedSources" : [ "01-项目总览与业务目标.md", "05-RAG全链路与检索算法.md", "08-测试策略与验收证据.md", "02-架构设计与技术选型.md" ],
+    "latencyMs" : 0.1964,
+    "returnedSources" : [ "01-项目总览与业务目标.md", "07-真实故障与排查复盘.md", "05-RAG全链路与检索算法.md", "08-测试策略与验收证据.md" ],
     "hits" : [ {
       "rank" : 1,
       "fileName" : "01-项目总览与业务目标.md",
@@ -1435,28 +1435,28 @@
       "contentPreview" : "文档解析：Apache Tika 3.1.0； - 模型接口：OpenAI Chat Completions 兼容 SSE，已用 DeepSeek 实测； - Embedding：本机 Ollama `qwen3-embedding:0.6b`，1024 维； - 本地运行：Windows + Docker Desktop。 ## 当前边界 项目目前是 RAG 对话工具，而不是完整工具型 Agent 平台。没有工具调用、ReAct、审批和审计闭环。最初使用 384 维词法哈希…"
     }, {
       "rank" : 2,
+      "fileName" : "07-真实故障与排查复盘.md",
+      "chunkIndex" : 2,
+      "score" : 0.4319619344953517,
+      "contentPreview" : "struction-aware 模型的常见建议，为每个问题添加统一中文任务说明。复测后 Recall 没变，但 MRR 降到 0.6917，相关文档更常排在后面。 这不是接口或维度错误，而是提示前缀改变了向量空间中的查询表达。修复是保留 queryInstruction 配置能力但默认置空，并重新运行同一冻结题集，MRR 恢复到 0.8160。知识包扩充后又在新语料上复测，仍采用无前缀方案。经验是 embedding 的 prompt 必须在本领域语料上做消融，而且语料变更后…"
+    }, {
+      "rank" : 3,
       "fileName" : "05-RAG全链路与检索算法.md",
       "chunkIndex" : 0,
       "score" : 0.43176378896067796,
       "contentPreview" : "# Agent Studio Desktop：RAG 全链路与检索算法 ## 上传和元数据 用户在前端选择知识库并上传文档，单文件上限 20 MB。后端先校验知识库和非空文件，清理文件名，读取字节，计算 SHA-256，然后把文件写入 `data/knowledge/{knowledgeBaseId}/{documentId}.{extension}`。所有路径都会归一化并检查必须位于 dataRoot 下，防止路径越界。 MySQL 文档记录最初是 PROCESSING。解…"
     }, {
-      "rank" : 3,
+      "rank" : 4,
       "fileName" : "05-RAG全链路与检索算法.md",
       "chunkIndex" : 1,
       "score" : 0.4057982835844604,
       "contentPreview" : "1 - cosine distance`。新模型的 0.05 仅保留现有召回行为，不代表有效拒答阈值。 检索结果一方面通过 SSE `sources` 发送给前端，另一方面拼成系统上下文注入模型。这样用户能看到证据，模型也能据此作答。 ## 删除闭环 删除文档时先删除 pgvector 中对应 documentId 的 chunk，再删除 MySQL 文档元数据，最后删除本地文件。验收时确认删除后文档列表为空、本地文件不存在，并且再次提问不再出现 sources；随后重新上传…"
     }, {
-      "rank" : 4,
+      "rank" : 5,
       "fileName" : "08-测试策略与验收证据.md",
       "chunkIndex" : 1,
       "score" : 0.3835971481378209,
       "contentPreview" : "L，自动创建 vector extension、knowledge_chunk 和 HNSW 索引。 DeepSeek 真实调用验证了 OpenAI 兼容请求和中文 SSE 增量，最终收到 done。RAG 真实验证包括创建知识库、上传 Markdown、状态 READY、发布绑定知识库的 AgentVersion、sources 返回、删除后三处数据消失、重新上传恢复。 语义升级又验证了真实 Ollama、pgvector v2 和重建 API：数据库中向量确认为 1024…"
-    }, {
-      "rank" : 5,
-      "fileName" : "02-架构设计与技术选型.md",
-      "chunkIndex" : 0,
-      "score" : 0.36818161826731927,
-      "contentPreview" : "# Agent Studio Desktop：架构设计与技术选型 ## 模块化单体 项目选择“Spring Boot 模块化单体 + 独立 React 前端 + 两个数据库容器”。后端只有一个 Maven 工程，通过 `agent`、`model`、`conversation`、`knowledge`、`system` 等 Java package 隔离职责。 这个选择针对的是单机开发工具场景。微服务会引入服务发现、网络调用、分布式事务、部署和日志聚合成本，而当前用户只有一个…"
     } ]
   }, {
     "id" : "rag-030",
@@ -1468,38 +1468,38 @@
     "firstRelevantRank" : 0,
     "hitAt5" : false,
     "falsePositive" : true,
-    "latencyMs" : 0.1365,
-    "returnedSources" : [ "10-面试讲述与追问准备.md", "01-项目总览与业务目标.md", "09-安全边界局限与路线图.md", "02-架构设计与技术选型.md" ],
+    "latencyMs" : 0.148,
+    "returnedSources" : [ "07-真实故障与排查复盘.md", "10-面试讲述与追问准备.md", "01-项目总览与业务目标.md", "09-安全边界局限与路线图.md" ],
     "hits" : [ {
       "rank" : 1,
+      "fileName" : "07-真实故障与排查复盘.md",
+      "chunkIndex" : 2,
+      "score" : 0.2560154681387924,
+      "contentPreview" : "struction-aware 模型的常见建议，为每个问题添加统一中文任务说明。复测后 Recall 没变，但 MRR 降到 0.6917，相关文档更常排在后面。 这不是接口或维度错误，而是提示前缀改变了向量空间中的查询表达。修复是保留 queryInstruction 配置能力但默认置空，并重新运行同一冻结题集，MRR 恢复到 0.8160。知识包扩充后又在新语料上复测，仍采用无前缀方案。经验是 embedding 的 prompt 必须在本领域语料上做消融，而且语料变更后…"
+    }, {
+      "rank" : 2,
       "fileName" : "10-面试讲述与追问准备.md",
       "chunkIndex" : 1,
       "score" : 0.25381106388102176,
       "contentPreview" : "式定义 primary MySQL DataSource、JdbcTemplate 和 NamedParameterJdbcTemplate，并给四个业务 Repository 加 Qualifier；向量 Repository 固定使用 vectorJdbcTemplate。 结果：真实启动时 Flyway 正确连接 MySQL 8.4，VectorPool 单独连接 PostgreSQL，知识库创建、模型查询、向量写入和检索全部恢复。这个问题让我意识到多数据源不能只标一个…"
     }, {
-      "rank" : 2,
+      "rank" : 3,
       "fileName" : "01-项目总览与业务目标.md",
       "chunkIndex" : 0,
       "score" : 0.25246320927748916,
       "contentPreview" : "# Agent Studio Desktop：项目总览与业务目标 ## 一句话定位 Agent Studio Desktop 是一个运行在个人电脑上的智能体搭建与调试工具。用户不需要修改 Java 代码，就能配置 OpenAI 兼容模型、系统提示词和知识库，发布一个固定版本的 Agent，并在本地网页中流式对话、查看检索来源。 它不是公网 SaaS，也不是高并发多租户平台。产品的核心价值是让“模型连接、提示词、知识和版本”变成可配置资产，同时让本地开发环境简单、过程可观察、结…"
     }, {
-      "rank" : 3,
+      "rank" : 4,
       "fileName" : "01-项目总览与业务目标.md",
       "chunkIndex" : 1,
       "score" : 0.23992993474599397,
       "contentPreview" : "文档解析：Apache Tika 3.1.0； - 模型接口：OpenAI Chat Completions 兼容 SSE，已用 DeepSeek 实测； - Embedding：本机 Ollama `qwen3-embedding:0.6b`，1024 维； - 本地运行：Windows + Docker Desktop。 ## 当前边界 项目目前是 RAG 对话工具，而不是完整工具型 Agent 平台。没有工具调用、ReAct、审批和审计闭环。最初使用 384 维词法哈希…"
     }, {
-      "rank" : 4,
+      "rank" : 5,
       "fileName" : "09-安全边界局限与路线图.md",
       "chunkIndex" : 0,
       "score" : 0.23566331815473884,
       "contentPreview" : "# Agent Studio Desktop：安全边界、当前局限与路线图 ## 已有安全边界 模型密钥不进入数据库和 Git，ModelProfile 只保存环境变量名称。后端在模型调用时读取启动进程环境。文件保存路径经过绝对化、规范化和 dataRoot 前缀检查，避免通过文件名写出授权目录。上传大小限制为 20 MB，API 请求使用校验注解，外部模型错误文本会截断。 AgentVersion 不可变，会话固定绑定版本，减少运行中配置漂移。知识库检索按 knowledge…"
-    }, {
-      "rank" : 5,
-      "fileName" : "02-架构设计与技术选型.md",
-      "chunkIndex" : 0,
-      "score" : 0.2332545647995655,
-      "contentPreview" : "# Agent Studio Desktop：架构设计与技术选型 ## 模块化单体 项目选择“Spring Boot 模块化单体 + 独立 React 前端 + 两个数据库容器”。后端只有一个 Maven 工程，通过 `agent`、`model`、`conversation`、`knowledge`、`system` 等 Java package 隔离职责。 这个选择针对的是单机开发工具场景。微服务会引入服务发现、网络调用、分布式事务、部署和日志聚合成本，而当前用户只有一个…"
     } ]
   } ],
   "interpretationNotes" : [ "Recall@5 and MRR use the first returned chunk whose fileName is in expectedSources.", "No-answer false-positive rate counts any post-threshold returned chunk as a false positive.", "Latency is local JVM exact-scan latency on this small corpus; it is not pgvector/HNSW or end-to-end chat latency.", "Files 11 and 12 are excluded by an enforced corpus invariant." ]

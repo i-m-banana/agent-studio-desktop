@@ -1,12 +1,13 @@
 # Qwen 语义向量生产升级报告
 
+- 最后刷新：2026-09-04（加入 Ollama 模型目录故障复盘后重跑同语料评测）
 - 模型：本机 Ollama `qwen3-embedding:0.6b`
 - 维度：1024
 - 索引版本：`qwen3-0.6b-v1`
 - 生产表：`knowledge_chunk_v2`
 - Qwen 原始结果：`evaluation/results/qwen3-embedding-0.6b-production.json`
 - 同语料 LocalHash 结果：`evaluation/results/local-hash-after-qwen-docs.json`
-- 语料：00–10，共 11 份文档、23 个 chunk，SHA-256 `898ea1904e54c2342786eaa47bc334176e4bea1c1c05f89b83afecd4a3207f03`
+- 语料：00–10，共 11 份文档、23 个 chunk，SHA-256 `9de7e241c68f44161bd9c20dae69df79134c5aa2120d6fc0f1795fa818a8a3d0`
 
 ## 冻结题集结果
 
@@ -19,7 +20,7 @@
 | 改写题 Recall@5 | 75.00% | 100.00% | +25.00 个百分点 |
 | 改写题 MRR | 0.5486 | 0.7250 | +0.1764 |
 | 无答案误召回率 | 100.00% | 100.00% | 无改善 |
-| p95 查询延迟 | 0.341 ms | 244.667 ms | 增加约 244 ms |
+| p95 查询延迟 | 0.234 ms | 358.656 ms | 增加约 358 ms |
 
 延迟包含本机 Ollama HTTP query embedding 和 23 个 chunk 的内存精确排序，不是完整聊天延迟。知识包在生产实现完成后增加了升级过程与故障复盘，因此 LocalHash 和 Qwen 都在最终语料上重新运行，不能直接拿历史报告数值作当前对照。
 

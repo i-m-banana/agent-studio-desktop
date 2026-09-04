@@ -17,9 +17,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class KnowledgeService {
+
+    private static final Logger LOG = LoggerFactory.getLogger(KnowledgeService.class);
 
     private final KnowledgeMetadataRepository metadata;
     private final ObjectProvider<VectorChunkRepository> vectors;
@@ -128,6 +132,8 @@ public class KnowledgeService {
             metadata.updateDocumentStatus(document.id(), "READY", chunks.size(), null);
             return metadata.findDocument(document.id()).orElseThrow();
         } catch (Exception exception) {
+            LOG.warn("Failed to index knowledge document {} ({})",
+                    document.id(), document.fileName(), exception);
             vectors.ifAvailable(store -> store.deleteCurrentIndex(document.id()));
             var message = safeError(exception);
             metadata.updateDocumentStatus(document.id(), "FAILED", 0, message);
@@ -168,8 +174,16 @@ public class KnowledgeService {
     }
 
     private String safeError(Exception exception) {
-        var message = exception.getMessage();
-        if (message == null || message.isBlank()) return "未知解析错误";
+        Throwable current = exception;
+        String message = null;
+        while (current != null) {
+            if (current.getMessage() != null && !current.getMessage().isBlank()) {
+                message = current.getMessage();
+                break;
+            }
+            current = current.getCause();
+        }
+        if (message == null) return "解析或索引失败（" + exception.getClass().getSimpleName() + "）";
         return message.length() <= 900 ? message : message.substring(0, 900);
     }
 }

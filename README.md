@@ -50,6 +50,15 @@ npm run dev
 
 已有知识库从旧 384 维索引升级时，在知识库页面点击“使用当前模型重建索引”。新索引使用 `qwen3-0.6b-v1` 版本，与旧表隔离。需要离线回退时，可在启动后端前设置 `$env:EMBEDDING_PROVIDER="local-hash"`，并重新构建对应知识库索引。
 
+如果上传文档时提示无法连接 Ollama，先用 `ollama list` 确认服务和模型。若 `OLLAMA_MODELS` 指向了空目录，可在单独的 PowerShell 中用已有模型目录启动：
+
+```powershell
+$env:OLLAMA_MODELS="$env:USERPROFILE\.ollama\models"
+ollama serve
+```
+
+保持该窗口运行，然后在知识库页面点击重建索引；原始文件无需重新上传。
+
 为避免与电脑上已有的数据库冲突，容器默认使用以下宿主机端口：
 
 - MySQL：`localhost:23306`（容器内仍为 `3306`）；

@@ -83,7 +83,13 @@ public class OllamaEmbeddingGateway implements EmbeddingGateway {
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(body)))
                 .build();
-        var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response;
+        try {
+            response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        } catch (IOException exception) {
+            throw new IOException("无法连接 Ollama embedding 服务 " + endpoint
+                    + "，请确认 Ollama 已启动且模型 " + model + " 可用", exception);
+        }
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
             throw new IOException("Ollama embedding 返回 HTTP " + response.statusCode() + ": "
                     + abbreviate(response.body()));

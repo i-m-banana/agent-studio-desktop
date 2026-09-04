@@ -95,7 +95,7 @@
 
 - 后端 `mvn test`：8 个测试通过，包括 Ollama 批量文档 embedding、查询前缀隔离和维度校验；
 - 前端 `npm run build`：通过；
-- 最终冻结语料（11 份文档、23 个 chunk，SHA-256 `898ea1904e54c2342786eaa47bc334176e4bea1c1c05f89b83afecd4a3207f03`）：Qwen Recall@5 100%、MRR 0.8000、改写题 MRR 0.7250、p95 244.667 ms；同语料 LocalHash 分别为 83.33%、0.6424、0.5486 和 0.341 ms；
+- 最终冻结语料（11 份文档、23 个 chunk，SHA-256 `9de7e241c68f44161bd9c20dae69df79134c5aa2120d6fc0f1795fa818a8a3d0`）：Qwen Recall@5 100%、MRR 0.8000、改写题 MRR 0.7250、p95 358.656 ms；同语料 LocalHash 分别为 83.33%、0.6424、0.5486 和 0.234 ms；
 - 真实 MySQL、pgvector 和 Ollama：知识库重建成功，`knowledge_chunk_v2` 实际保存 `qwen3-embedding:0.6b`、1024 维、`qwen3-0.6b-v1`；
 - 真实 SSE：改写问题命中正确来源，最终无查询前缀配置下 score 约 0.40；独立 8081 进程未设置 DeepSeek 密钥，随后按预期返回模型环境变量错误。
 
@@ -104,5 +104,6 @@
 - 在知识包扩充前的同语料消融中，加入统一中文 query instruction 后 MRR 从 0.8160 降到 0.6917，因此默认关闭、保留可配置；
 - 知识包内容变化会改变 chunk 数和指标，扩充后已同时重跑 LocalHash 与 Qwen，生产报告不混用历史语料结果；
 - Qwen 的 Recall 和延迟达到约定目标；MRR 达到 0.8000 边界但未严格超过 `> 0.80`，因此保留 rerank 优化项；
+- 2026-09-04 复现并修复 Ollama 进程继承空 `D:\ollama-models` 导致的索引失败：用已有模型目录启动后，`/api/embed` 返回 1024 维向量，失败文档通过重建 API 恢复为 READY；后端新增可操作的连接错误和完整异常日志；
 - 无答案误召回率仍为 100%，固定阈值无法在当前题集上同时维持高召回和可靠拒答；
 - 尚未进行结构感知切块、混合检索或 rerank，这些留作独立评测，不与 embedding 收益混在同一次改造中。
