@@ -2,6 +2,7 @@ package com.agentstudio.agent;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 
 public record AgentVersion(
         String id,
@@ -16,5 +17,6 @@ public record AgentVersion(
         String apiKeyEnv,
         BigDecimal temperature,
         String systemPrompt,
+        List<String> toolNames,
         Instant publishedAt) {
 }

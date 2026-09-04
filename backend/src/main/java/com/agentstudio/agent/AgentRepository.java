@@ -109,6 +109,39 @@ public class AgentRepository {
                 .stream().findFirst();
     }
 
+    public void replaceDraftTools(String definitionId, List<String> toolNames) {
+        jdbc.update("DELETE FROM agent_tool_binding WHERE agent_definition_id = :id", Map.of("id", definitionId));
+        for (var toolName : toolNames) {
+            jdbc.update("""
+                    INSERT INTO agent_tool_binding (agent_definition_id, tool_name)
+                    VALUES (:definitionId, :toolName)
+                    """, Map.of("definitionId", definitionId, "toolName", toolName));
+        }
+    }
+
+    public List<String> findDraftTools(String definitionId) {
+        return jdbc.query("""
+                SELECT tool_name FROM agent_tool_binding
+                WHERE agent_definition_id = :definitionId ORDER BY tool_name
+                """, Map.of("definitionId", definitionId), (rs, row) -> rs.getString("tool_name"));
+    }
+
+    public void snapshotVersionTools(String versionId, List<String> toolNames) {
+        for (var toolName : toolNames) {
+            jdbc.update("""
+                    INSERT INTO agent_version_tool (agent_version_id, tool_name)
+                    VALUES (:versionId, :toolName)
+                    """, Map.of("versionId", versionId, "toolName", toolName));
+        }
+    }
+
+    public List<String> findVersionTools(String versionId) {
+        return jdbc.query("""
+                SELECT tool_name FROM agent_version_tool
+                WHERE agent_version_id = :versionId ORDER BY tool_name
+                """, Map.of("versionId", versionId), (rs, row) -> rs.getString("tool_name"));
+    }
+
     private static MapSqlParameterSource definitionParameters(AgentDefinition definition) {
         return new MapSqlParameterSource()
                 .addValue("id", definition.id())
@@ -127,6 +160,7 @@ public class AgentRepository {
                 rs.getString("id"), rs.getString("name"), rs.getString("description"),
                 rs.getString("draft_model_profile_id"), rs.getString("draft_knowledge_base_id"),
                 rs.getString("draft_system_prompt"),
+                List.of(),
                 rs.getInt("latest_version_number"), instant(rs, "created_at"), instant(rs, "updated_at"));
     }
 
@@ -137,7 +171,7 @@ public class AgentRepository {
                 rs.getString("model_profile_id"), rs.getString("model_profile_name"),
                 rs.getString("provider"), rs.getString("base_url"), rs.getString("model_name"),
                 rs.getString("api_key_env"), rs.getBigDecimal("temperature"),
-                rs.getString("system_prompt"), instant(rs, "published_at"));
+                rs.getString("system_prompt"), List.of(), instant(rs, "published_at"));
     }
 
     private static Instant instant(ResultSet rs, String column) throws SQLException {

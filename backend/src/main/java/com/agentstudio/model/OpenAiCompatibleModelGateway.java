@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 import com.agentstudio.agent.AgentVersion;
+import com.agentstudio.tool.ToolDescriptor;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
@@ -29,10 +30,7 @@ public class OpenAiCompatibleModelGateway implements StreamingModelGateway {
 
     @Override
     public void stream(AgentVersion version, List<ModelMessage> messages, Consumer<String> onDelta) throws Exception {
-        var apiKey = System.getenv(version.apiKeyEnv());
-        if (apiKey == null || apiKey.isBlank()) {
-            throw new IllegalStateException("环境变量 " + version.apiKeyEnv() + " 未设置");
-        }
+        var apiKey = apiKey(version);
 
         var body = new LinkedHashMap<String, Object>();
         body.put("model", version.modelName());
@@ -74,6 +72,67 @@ public class OpenAiCompatibleModelGateway implements StreamingModelGateway {
         }
     }
 
+    @Override
+    public ModelTurn complete(AgentVersion version, List<ReActMessage> messages,
+                              List<ToolDescriptor> tools) throws Exception {
+        var body = new LinkedHashMap<String, Object>();
+        body.put("model", version.modelName());
+        body.put("temperature", version.temperature());
+        body.put("stream", false);
+        body.put("messages", messages.stream().map(this::messageBody).toList());
+        if (!tools.isEmpty()) {
+            body.put("tools", tools.stream().map(tool -> Map.of(
+                    "type", "function",
+                    "function", Map.of(
+                            "name", tool.name(),
+                            "description", tool.description(),
+                            "parameters", tool.inputSchema()))).toList());
+            body.put("tool_choice", "auto");
+        }
+
+        var request = HttpRequest.newBuilder(chatCompletionsUri(version.baseUrl()))
+                .timeout(Duration.ofSeconds(120))
+                .header("Authorization", "Bearer " + apiKey(version))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(body)))
+                .build();
+        var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            throw new IOException("模型服务返回 HTTP " + response.statusCode() + ": "
+                    + abbreviate(response.body()));
+        }
+        var message = objectMapper.readTree(response.body()).path("choices").path(0).path("message");
+        if (message.isMissingNode()) throw new IOException("模型服务未返回 message");
+        var calls = new java.util.ArrayList<ModelToolCall>();
+        for (var call : message.path("tool_calls")) {
+            calls.add(new ModelToolCall(call.path("id").asText(),
+                    call.path("function").path("name").asText(),
+                    call.path("function").path("arguments").asText("{}")));
+        }
+        return new ModelTurn(message.path("content").asText(""), List.copyOf(calls));
+    }
+
+    private Map<String, Object> messageBody(ReActMessage message) {
+        var body = new LinkedHashMap<String, Object>();
+        body.put("role", message.role());
+        body.put("content", message.content() == null ? "" : message.content());
+        if (message.toolCallId() != null) body.put("tool_call_id", message.toolCallId());
+        if (!message.toolCalls().isEmpty()) {
+            body.put("tool_calls", message.toolCalls().stream().map(call -> Map.of(
+                    "id", call.id(), "type", "function",
+                    "function", Map.of("name", call.name(), "arguments", call.argumentsJson()))).toList());
+        }
+        return body;
+    }
+
+    private String apiKey(AgentVersion version) {
+        var apiKey = System.getenv(version.apiKeyEnv());
+        if (apiKey == null || apiKey.isBlank()) {
+            throw new IllegalStateException("环境变量 " + version.apiKeyEnv() + " 未设置");
+        }
+        return apiKey;
+    }
+
     private URI chatCompletionsUri(String baseUrl) {
         var normalized = baseUrl.replaceAll("/+$", "");
         if (normalized.endsWith("/chat/completions")) {
@@ -91,4 +150,3 @@ public class OpenAiCompatibleModelGateway implements StreamingModelGateway {
         return value.length() <= 500 ? value : value.substring(0, 500) + "…";
     }
 }
-

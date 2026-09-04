@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.math.BigDecimal;
 import java.util.UUID;
+import java.util.List;
 
 import com.agentstudio.model.ModelProfileRequest;
 import com.agentstudio.model.ModelProfileService;
@@ -27,7 +28,7 @@ class AgentBuilderIntegrationTests {
                 "model-" + suffix, "OPENAI_COMPATIBLE", "https://example.com/v1",
                 "model-a", "TEST_MODEL_KEY", new BigDecimal("0.4")));
         var agent = agents.create(new AgentDefinitionRequest(
-                "agent-" + suffix, "test", model.id(), null, "prompt-v1"));
+                "agent-" + suffix, "test", model.id(), null, "prompt-v1", List.of("current_time")));
 
         var versionOne = agents.publish(agent.id());
 
@@ -35,15 +36,17 @@ class AgentBuilderIntegrationTests {
                 model.name(), model.provider(), model.baseUrl(), "model-b",
                 model.apiKeyEnv(), new BigDecimal("0.8")));
         agents.update(agent.id(), new AgentDefinitionRequest(
-                agent.name(), agent.description(), model.id(), null, "prompt-v2"));
+                agent.name(), agent.description(), model.id(), null, "prompt-v2", List.of()));
         var versionTwo = agents.publish(agent.id());
 
         assertThat(versionOne.versionNumber()).isEqualTo(1);
         assertThat(versionOne.modelName()).isEqualTo("model-a");
         assertThat(versionOne.systemPrompt()).isEqualTo("prompt-v1");
+        assertThat(versionOne.toolNames()).containsExactly("current_time");
         assertThat(versionTwo.versionNumber()).isEqualTo(2);
         assertThat(versionTwo.modelName()).isEqualTo("model-b");
         assertThat(versionTwo.systemPrompt()).isEqualTo("prompt-v2");
+        assertThat(versionTwo.toolNames()).isEmpty();
         assertThat(agents.versions(agent.id())).extracting(AgentVersion::versionNumber)
                 .containsExactly(2, 1);
     }

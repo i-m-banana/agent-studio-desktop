@@ -6,11 +6,16 @@ import java.util.Map;
 
 import com.agentstudio.agent.AgentService;
 import com.agentstudio.model.ModelMessage;
+import com.agentstudio.model.ReActMessage;
 import com.agentstudio.model.StreamingModelGateway;
 import com.agentstudio.knowledge.KnowledgeRetriever;
 import com.agentstudio.knowledge.RagSource;
 import com.agentstudio.system.ApiException;
+import com.agentstudio.runtime.RunRepository;
+import com.agentstudio.runtime.RunStep;
+import com.agentstudio.tool.ToolRegistry;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -24,15 +29,26 @@ public class ChatService {
     private final StreamingModelGateway modelGateway;
     private final KnowledgeRetriever knowledgeRetriever;
     private final TaskExecutor taskExecutor;
+    private final RunRepository runs;
+    private final ToolRegistry tools;
+    private final int maxRounds;
+    private final int maxCallsPerRound;
 
     public ChatService(AgentService agents, ConversationRepository conversations,
                        StreamingModelGateway modelGateway, KnowledgeRetriever knowledgeRetriever,
-                       @Qualifier("chatTaskExecutor") TaskExecutor taskExecutor) {
+                       @Qualifier("chatTaskExecutor") TaskExecutor taskExecutor,
+                       RunRepository runs, ToolRegistry tools,
+                       @Value("${agent-studio.runtime.max-tool-rounds:4}") int maxRounds,
+                       @Value("${agent-studio.runtime.max-tool-calls-per-round:4}") int maxCallsPerRound) {
         this.agents = agents;
         this.conversations = conversations;
         this.modelGateway = modelGateway;
         this.knowledgeRetriever = knowledgeRetriever;
         this.taskExecutor = taskExecutor;
+        this.runs = runs;
+        this.tools = tools;
+        this.maxRounds = maxRounds;
+        this.maxCallsPerRound = maxCallsPerRound;
     }
 
     public SseEmitter stream(ChatStreamRequest request) {
@@ -60,8 +76,10 @@ public class ChatService {
     private void executeStream(SseEmitter emitter, String conversationId,
                                com.agentstudio.agent.AgentVersion version) {
         var answer = new StringBuilder();
+        var run = runs.start(conversationId, version.id());
         try {
             send(emitter, "run", Map.of(
+                    "runId", run.id(),
                     "conversationId", conversationId,
                     "agentVersionId", version.id(),
                     "versionNumber", version.versionNumber()));
@@ -74,14 +92,23 @@ public class ChatService {
                 modelMessages.add(new ModelMessage("system", knowledgeContext(sources)));
             }
             modelMessages.addAll(conversations.messages(conversationId));
-            modelGateway.stream(version, modelMessages, delta -> {
-                answer.append(delta);
-                sendUnchecked(emitter, "delta", Map.of("content", delta));
-            });
+            if (version.toolNames().isEmpty()) {
+                runs.updateStatus(run.id(), "THINKING");
+                modelGateway.stream(version, modelMessages, delta -> {
+                    answer.append(delta);
+                    sendUnchecked(emitter, "delta", Map.of("content", delta));
+                });
+                emitStep(emitter, runs.addStep(run.id(), "MODEL_CALL", "COMPLETED",
+                        null, null, null, truncate(answer.toString()), null));
+            } else {
+                executeReAct(emitter, run.id(), version, modelMessages, answer);
+            }
             conversations.addMessage(conversationId, "assistant", answer.toString());
+            runs.finish(run.id(), "COMPLETED", null);
             send(emitter, "done", Map.of("conversationId", conversationId));
             emitter.complete();
         } catch (Exception exception) {
+            runs.finish(run.id(), "FAILED", truncate(safeMessage(exception)));
             try {
                 send(emitter, "error", Map.of("message", safeMessage(exception)));
                 emitter.complete();
@@ -89,6 +116,61 @@ public class ChatService {
                 emitter.completeWithError(exception);
             }
         }
+    }
+
+    private void executeReAct(SseEmitter emitter, String runId,
+                              com.agentstudio.agent.AgentVersion version,
+                              java.util.List<ModelMessage> sourceMessages,
+                              StringBuilder answer) throws Exception {
+        var messages = new ArrayList<ReActMessage>();
+        sourceMessages.forEach(message -> messages.add(ReActMessage.text(message.role(), message.content())));
+        var descriptors = tools.descriptors(version.toolNames());
+        for (int round = 1; round <= maxRounds; round++) {
+            runs.updateStatus(runId, "THINKING");
+            var turn = modelGateway.complete(version, messages, descriptors);
+            emitStep(emitter, runs.addStep(runId, "MODEL_CALL",
+                    turn.toolCalls().isEmpty() ? "COMPLETED" : "TOOL_REQUESTED",
+                    null, null, null, truncate(turn.content()), null));
+            if (turn.toolCalls().isEmpty()) {
+                if (turn.content() == null || turn.content().isBlank()) {
+                    throw new IllegalStateException("模型未返回最终答案");
+                }
+                answer.append(turn.content());
+                send(emitter, "delta", Map.of("content", turn.content()));
+                return;
+            }
+            if (turn.toolCalls().size() > maxCallsPerRound) {
+                throw new IllegalStateException("单轮工具调用超过上限 " + maxCallsPerRound + "，运行已安全停止");
+            }
+            messages.add(ReActMessage.assistant(turn));
+            for (var call : turn.toolCalls()) {
+                if (!version.toolNames().contains(call.name())) {
+                    throw new IllegalStateException("模型请求了未绑定工具：" + call.name());
+                }
+                emitStep(emitter, runs.addStep(runId, "TOOL_CALL", "RUNNING", call.id(),
+                        call.name(), truncate(call.argumentsJson()), null, null));
+                runs.updateStatus(runId, "TOOL_RUNNING");
+                try {
+                    var result = tools.execute(call.name(), call.argumentsJson());
+                    var output = truncate(result.output());
+                    emitStep(emitter, runs.addStep(runId, "TOOL_RESULT", "COMPLETED", call.id(),
+                            call.name(), null, output, result.durationMs()));
+                    messages.add(ReActMessage.observation(call.id(), output));
+                    runs.updateStatus(runId, "OBSERVING");
+                } catch (Exception exception) {
+                    var failure = "工具执行失败：" + safeMessage(exception);
+                    emitStep(emitter, runs.addStep(runId, "TOOL_RESULT", "FAILED", call.id(),
+                            call.name(), null, truncate(failure), null));
+                    messages.add(ReActMessage.observation(call.id(), failure));
+                    runs.updateStatus(runId, "OBSERVING");
+                }
+            }
+        }
+        throw new IllegalStateException("达到最大工具轮数 " + maxRounds + "，运行已安全停止");
+    }
+
+    private void emitStep(SseEmitter emitter, RunStep step) throws IOException {
+        send(emitter, "step", step);
     }
 
     private void sendUnchecked(SseEmitter emitter, String event, Object data) {
@@ -106,6 +188,11 @@ public class ChatService {
     private String safeMessage(Exception exception) {
         var message = exception.getMessage();
         return message == null || message.isBlank() ? "模型调用失败" : message;
+    }
+
+    private String truncate(String value) {
+        if (value == null) return null;
+        return value.length() <= 4000 ? value : value.substring(0, 4000) + "…";
     }
 
     private String knowledgeContext(java.util.List<RagSource> sources) {

@@ -1,6 +1,7 @@
 package com.agentstudio.agent;
 
 import java.time.Instant;
+import java.util.List;
 
 public record AgentDefinition(
         String id,
@@ -9,6 +10,7 @@ public record AgentDefinition(
         String draftModelProfileId,
         String draftKnowledgeBaseId,
         String draftSystemPrompt,
+        List<String> draftToolNames,
         int latestVersionNumber,
         Instant createdAt,
         Instant updatedAt) {
