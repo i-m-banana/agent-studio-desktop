@@ -54,3 +54,4 @@ agent-studio:
   runtime:
     max-tool-rounds: ${AGENT_MAX_TOOL_ROUNDS:4}
     max-tool-calls-per-round: ${AGENT_MAX_TOOL_CALLS_PER_ROUND:4}
+    approval-timeout: ${AGENT_APPROVAL_TIMEOUT:90s}

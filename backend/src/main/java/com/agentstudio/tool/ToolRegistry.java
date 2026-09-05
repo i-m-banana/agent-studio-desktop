@@ -37,6 +37,10 @@ public class ToolRegistry {
         return names.stream().map(this::require).map(AgentTool::descriptor).toList();
     }
 
+    public ToolDescriptor descriptor(String name) {
+        return require(name).descriptor();
+    }
+
     public void validateNames(List<String> names) {
         names.forEach(this::require);
     }

@@ -20,8 +20,8 @@
 
 模型完整回答会在流结束后以 assistant 消息写入 MySQL。若模型中途失败，当前实现不会保存不完整 assistant 文本。SSE emitter 超时为 120 秒，HTTP 模型请求也设置 120 秒超时。
 
-绑定工具时使用非流式 Chat Completions 获取一轮完整的 assistant 消息和 tool_calls。平台执行已绑定工具，把 Observation 加入消息后再次调用模型，直到得到最终文本或达到最大轮数。每一轮产生 step 事件。工具版最终文本当前以一个 delta 事件返回；未绑定工具的路径仍然逐 token 转发多个 delta。
+绑定工具时使用非流式 Chat Completions 获取一轮完整的 assistant 消息和 tool_calls。平台执行已绑定工具，把 Observation 加入消息后再次调用模型，直到得到最终文本或达到最大轮数。每一轮产生 step 事件。遇到 HIGH 工具时，服务发送 `approval_required` 并把运行标为 WAITING_APPROVAL；前端调用独立的 approve 或 reject 接口，服务再发送 APPROVAL_RESULT。批准只对界面展示的原始参数有效，拒绝和超时作为 Observation 返回模型。工具版最终文本当前以一个 delta 事件返回；未绑定工具的路径仍然逐 token 转发多个 delta。
 
 ## 为什么选 SSE
 
-当前通信是单向增量输出，浏览器不需要在同一连接中反复向服务器推送控制帧，因此 SSE 足够。它基于普通 HTTP、实现简单、前端容易解析事件。现在已经增加通用 step 事件承载模型与工具过程；未来审批可再增加 waiting_approval 等状态。只有在需要高频双向控制时才有必要考虑 WebSocket。
+当前输出方向仍是服务端到浏览器，因此 SSE 足够。审批决定本身是一次普通 HTTP POST，不需要为了偶发的用户动作把整条链路改成 WebSocket。SSE 承载 run、sources、step、approval_required、delta、done 和 error；只有未来需要高频双向控制时才有必要考虑 WebSocket。

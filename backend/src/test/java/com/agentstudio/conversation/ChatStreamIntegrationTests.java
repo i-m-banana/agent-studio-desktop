@@ -29,11 +29,13 @@ import com.agentstudio.model.ModelTurn;
 import com.agentstudio.model.StreamingModelGateway;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -50,6 +52,10 @@ class ChatStreamIntegrationTests {
 
     @Autowired
     private KnowledgeService knowledge;
+
+    @Autowired
+    @Qualifier("primaryNamedParameterJdbcTemplate")
+    private NamedParameterJdbcTemplate jdbc;
 
     @MockitoBean
     private StreamingModelGateway modelGateway;
@@ -170,5 +176,50 @@ class ChatStreamIntegrationTests {
         mockMvc.perform(get("/api/runs/{id}", matcher.group(1)))
                 .andExpect(status().isOk())
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("\"status\":\"FAILED\"")));
+    }
+
+    @Test
+    void highRiskToolWaitsForApprovalAndRejectionPreventsExecution() throws Exception {
+        when(knowledgeRetriever.retrieve(any(), any())).thenReturn(List.of());
+        var callId = "approval-" + UUID.randomUUID();
+        when(modelGateway.complete(any(), any(), any()))
+                .thenReturn(new ModelTurn("", List.of(new ModelToolCall(callId, "write_workspace_note",
+                        "{\"fileName\":\"should-not-exist.md\",\"content\":\"blocked\"}"))))
+                .thenReturn(new ModelTurn("write was rejected", List.of()));
+        var suffix = UUID.randomUUID().toString();
+        var model = modelProfiles.create(new ModelProfileRequest(
+                "approval-model-" + suffix, "OPENAI_COMPATIBLE", "https://example.com/v1",
+                "test-model", "TEST_MODEL_KEY", new BigDecimal("0.2")));
+        var agent = agents.create(new AgentDefinitionRequest(
+                "approval-agent-" + suffix, "test", model.id(), null, "写文件前请求审批。",
+                List.of("write_workspace_note")));
+        var version = agents.publish(agent.id());
+
+        var result = mockMvc.perform(post("/api/chat/stream")
+                        .contentType(MediaType.APPLICATION_JSON).accept(MediaType.TEXT_EVENT_STREAM)
+                        .content("""
+                                {"agentVersionId":"%s","message":"写一份笔记"}
+                                """.formatted(version.id())))
+                .andExpect(request().asyncStarted()).andReturn();
+
+        String approvalId = null;
+        for (int attempt = 0; attempt < 100 && approvalId == null; attempt++) {
+            var ids = jdbc.query("SELECT id FROM approval_request WHERE tool_call_id=:callId",
+                    java.util.Map.of("callId", callId), (rs, row) -> rs.getString("id"));
+            if (!ids.isEmpty()) approvalId = ids.getFirst();
+            else Thread.sleep(20);
+        }
+        assertThat(approvalId).isNotNull();
+        mockMvc.perform(post("/api/approvals/{id}/reject", approvalId)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"test rejection\"}"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(asyncDispatch(result))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("event:approval_required")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("APPROVAL_RESULT")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("REJECTED")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("write was rejected")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("event:done")));
     }
 }

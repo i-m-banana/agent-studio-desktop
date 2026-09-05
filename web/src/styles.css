@@ -94,6 +94,13 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .sources summary { cursor: pointer; }
 .sources p { color: #91a299; line-height: 1.65; white-space: pre-wrap; }
 .run-steps { max-width: 850px; margin: 0 auto 26px; padding: 16px; border: 1px solid #3d4c42; border-radius: 12px; background: rgba(23, 36, 30, .75); }
+.approval-card { max-width: 850px; margin: 0 auto 26px; padding: 18px; border: 1px solid #765d2f; border-radius: 12px; background: rgba(79, 57, 20, .28); }
+.approval-card > strong { color: #efc978; }
+.approval-card p { margin: 12px 0 8px; color: #c9b789; }
+.approval-card pre { padding: 12px; color: #e0d3af; overflow-x: auto; white-space: pre-wrap; background: #17130b; }
+.approval-card small { display: block; color: #9e906d; }
+.approval-card > div { display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; }
+.approval-card .danger { margin-top: 0; }
 .run-steps > strong { display: block; margin-bottom: 10px; color: #c0d1c7; font-size: 12px; }
 .run-steps details { padding: 9px 0; border-top: 1px solid #2d4037; color: #aebbb4; font-size: 11px; }
 .run-steps details:first-of-type { border-top: 0; }
@@ -104,6 +111,9 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .step-status--completed { color: #68d6a4; background: rgba(104, 214, 164, .1); }
 .step-status--failed { color: #e4827b; background: rgba(228, 130, 123, .1); }
 .step-status--running, .step-status--tool_requested { color: #e4b966; background: rgba(228, 185, 102, .1); }
+.step-status--waiting { color: #e4b966; background: rgba(228, 185, 102, .1); }
+.step-status--approved, .step-status--consumed { color: #68d6a4; background: rgba(104, 214, 164, .1); }
+.step-status--rejected, .step-status--expired { color: #e4827b; background: rgba(228, 130, 123, .1); }
 .message { display: grid; grid-template-columns: 64px 1fr; gap: 18px; max-width: 850px; margin: 0 auto 24px; }
 .message > span { padding-top: 4px; color: #607168; font: 10px ui-monospace, monospace; letter-spacing: .12em; }
 .message p { margin: 0; padding: 16px 18px; color: #d8e2dc; border: 1px solid #2b4036; border-radius: 4px 14px 14px; background: #14231c; line-height: 1.7; white-space: pre-wrap; }

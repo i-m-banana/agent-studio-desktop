@@ -1,0 +1,1506 @@
+{
+  "schemaVersion" : "1.0",
+  "generatedAt" : "2026-09-05T06:17:43.321756900Z",
+  "gitCommit" : "be2697fdfc2507114e480a3e88d6c966ff23aae6",
+  "evaluator" : {
+    "mode" : "offline-production-components",
+    "javaVersion" : "21.0.4",
+    "fidelity" : "Tika + production TextChunker + production LocalHashEmbedding; exact in-memory cosine ranking"
+  },
+  "retrievalConfig" : {
+    "embeddingModel" : "local-hash",
+    "dimensions" : 384,
+    "distance" : "cosine",
+    "topK" : 5,
+    "scoreThreshold" : 0.05,
+    "targetChunkCharacters" : 900,
+    "maximumChunkCharacters" : 1100,
+    "overlapCharacters" : 120
+  },
+  "corpus" : {
+    "documentCount" : 11,
+    "chunkCount" : 27,
+    "corpusSha256" : "e3338b860bd32c6bd6891c2ff981a81f3f1cba0446b22af153a0ea4c7a479ccb",
+    "documents" : [ {
+      "fileName" : "00-入库说明与事实口径.md",
+      "rawSha256" : "786f07be16ce7e775ecf07ad44588ca1fb0fad3e141a46ef99ee9ea632efa5d5",
+      "extractedCharacters" : 1244,
+      "chunkCount" : 2
+    }, {
+      "fileName" : "01-项目总览与业务目标.md",
+      "rawSha256" : "c8592074d0fbe7b7fe459ec2d40bb09d53df222b42dcec641c174c679b5bc47b",
+      "extractedCharacters" : 1623,
+      "chunkCount" : 2
+    }, {
+      "fileName" : "02-架构设计与技术选型.md",
+      "rawSha256" : "9beed01f53effa3fa6499123137c67e115f8ff0e161db4b8fff37635bb0b2aa9",
+      "extractedCharacters" : 2147,
+      "chunkCount" : 3
+    }, {
+      "fileName" : "03-数据模型与不可变版本.md",
+      "rawSha256" : "a43f3b9988f01a22b9cfe0f8bfd9ce706686c1aeb328459e2feb750d58b9a80b",
+      "extractedCharacters" : 2013,
+      "chunkCount" : 2
+    }, {
+      "fileName" : "04-模型调用与SSE流式对话.md",
+      "rawSha256" : "43b231c48d68e5c8dc9eb43a16ae7fc156da90c9d5d6adc2fa834896b42ee647",
+      "extractedCharacters" : 1622,
+      "chunkCount" : 2
+    }, {
+      "fileName" : "05-RAG全链路与检索算法.md",
+      "rawSha256" : "9b73b6413e8f5167f73560405150d140880d95f0cff25cafe9ccd47f9ab1094e",
+      "extractedCharacters" : 1747,
+      "chunkCount" : 2
+    }, {
+      "fileName" : "06-开发过程与提交时间线.md",
+      "rawSha256" : "7c163950ccf3e4deaa2cc437335c2255b2e7da65f29269ca200d262d88c0d24c",
+      "extractedCharacters" : 2772,
+      "chunkCount" : 3
+    }, {
+      "fileName" : "07-真实故障与排查复盘.md",
+      "rawSha256" : "f82f9e55ffa43e7af65949336bd33fea762794904379ae91eeb8548989d2a476",
+      "extractedCharacters" : 3203,
+      "chunkCount" : 4
+    }, {
+      "fileName" : "08-测试策略与验收证据.md",
+      "rawSha256" : "af00e9d80cb21c41cd53b67175510d98b76519232b2f8008e3c50991acc2508f",
+      "extractedCharacters" : 2074,
+      "chunkCount" : 2
+    }, {
+      "fileName" : "09-安全边界局限与路线图.md",
+      "rawSha256" : "630cc5d71923ec60a67f7efd179409b047af7b61d684078cbe80267e168c12f7",
+      "extractedCharacters" : 1565,
+      "chunkCount" : 2
+    }, {
+      "fileName" : "10-面试讲述与追问准备.md",
+      "rawSha256" : "82153385c802a789a80c1e7a0b8912765cd69e086d5cd9b3c9dee35f13433f47",
+      "extractedCharacters" : 2889,
+      "chunkCount" : 3
+    } ],
+    "indexingLatencyMs" : 1855.5159
+  },
+  "metrics" : {
+    "totalCases" : 30,
+    "answerableCases" : 24,
+    "noAnswerCases" : 6,
+    "recallAt5" : 0.875,
+    "mrr" : 0.6631944444444444,
+    "noAnswerFalsePositiveRate" : 1.0,
+    "byVariant" : {
+      "canonical" : {
+        "totalCases" : 12,
+        "answerableCases" : 12,
+        "noAnswerCases" : 0,
+        "recallAt5" : 0.9166666666666666,
+        "mrr" : 0.7361111111111112,
+        "noAnswerFalsePositiveRate" : null
+      },
+      "paraphrase" : {
+        "totalCases" : 12,
+        "answerableCases" : 12,
+        "noAnswerCases" : 0,
+        "recallAt5" : 0.8333333333333334,
+        "mrr" : 0.5902777777777778,
+        "noAnswerFalsePositiveRate" : null
+      },
+      "negative" : {
+        "totalCases" : 6,
+        "answerableCases" : 0,
+        "noAnswerCases" : 6,
+        "recallAt5" : 0.0,
+        "mrr" : 0.0,
+        "noAnswerFalsePositiveRate" : 1.0
+      }
+    }
+  },
+  "thresholdSweep" : [ {
+    "threshold" : 0.05,
+    "recallAt5" : 0.875,
+    "mrr" : 0.6631944444444445,
+    "noAnswerFalsePositiveRate" : 1.0,
+    "meanReturnedChunks" : 5.0
+  }, {
+    "threshold" : 0.1,
+    "recallAt5" : 0.875,
+    "mrr" : 0.6631944444444445,
+    "noAnswerFalsePositiveRate" : 1.0,
+    "meanReturnedChunks" : 5.0
+  }, {
+    "threshold" : 0.2,
+    "recallAt5" : 0.875,
+    "mrr" : 0.6631944444444445,
+    "noAnswerFalsePositiveRate" : 1.0,
+    "meanReturnedChunks" : 4.866666666666666
+  }, {
+    "threshold" : 0.25,
+    "recallAt5" : 0.75,
+    "mrr" : 0.6180555555555556,
+    "noAnswerFalsePositiveRate" : 0.5,
+    "meanReturnedChunks" : 3.2666666666666666
+  }, {
+    "threshold" : 0.3,
+    "recallAt5" : 0.375,
+    "mrr" : 0.3125,
+    "noAnswerFalsePositiveRate" : 0.16666666666666666,
+    "meanReturnedChunks" : 1.4
+  }, {
+    "threshold" : 0.35,
+    "recallAt5" : 0.20833333333333334,
+    "mrr" : 0.1875,
+    "noAnswerFalsePositiveRate" : 0.16666666666666666,
+    "meanReturnedChunks" : 0.8333333333333334
+  }, {
+    "threshold" : 0.4,
+    "recallAt5" : 0.20833333333333334,
+    "mrr" : 0.1875,
+    "noAnswerFalsePositiveRate" : 0.16666666666666666,
+    "meanReturnedChunks" : 0.6666666666666666
+  }, {
+    "threshold" : 0.45,
+    "recallAt5" : 0.16666666666666666,
+    "mrr" : 0.14583333333333334,
+    "noAnswerFalsePositiveRate" : 0.16666666666666666,
+    "meanReturnedChunks" : 0.26666666666666666
+  }, {
+    "threshold" : 0.5,
+    "recallAt5" : 0.0,
+    "mrr" : 0.0,
+    "noAnswerFalsePositiveRate" : 0.16666666666666666,
+    "meanReturnedChunks" : 0.03333333333333333
+  }, {
+    "threshold" : 0.55,
+    "recallAt5" : 0.0,
+    "mrr" : 0.0,
+    "noAnswerFalsePositiveRate" : 0.0,
+    "meanReturnedChunks" : 0.0
+  }, {
+    "threshold" : 0.6,
+    "recallAt5" : 0.0,
+    "mrr" : 0.0,
+    "noAnswerFalsePositiveRate" : 0.0,
+    "meanReturnedChunks" : 0.0
+  }, {
+    "threshold" : 0.65,
+    "recallAt5" : 0.0,
+    "mrr" : 0.0,
+    "noAnswerFalsePositiveRate" : 0.0,
+    "meanReturnedChunks" : 0.0
+  }, {
+    "threshold" : 0.7,
+    "recallAt5" : 0.0,
+    "mrr" : 0.0,
+    "noAnswerFalsePositiveRate" : 0.0,
+    "meanReturnedChunks" : 0.0
+  } ],
+  "latency" : {
+    "measuredQueries" : 30,
+    "warmupRounds" : 8,
+    "p50Ms" : 0.1738,
+    "p95Ms" : 0.3295,
+    "maximumMs" : 1.6908
+  },
+  "answerMetrics" : {
+    "status" : "not_measured",
+    "reason" : "This offline run does not call the chat model. Pass -Answers with a captured answer-run JSON file to calculate answer metrics.",
+    "responseCount" : null,
+    "answerCitationCoverage" : null,
+    "expectedSourceCitationHitRate" : null,
+    "citationPrecision" : null,
+    "keyFactCoverage" : null,
+    "noAnswerAbstentionRate" : null,
+    "endToEndP50Ms" : null,
+    "endToEndP95Ms" : null
+  },
+  "cases" : [ {
+    "id" : "rag-001",
+    "category" : "basic_fact",
+    "variant" : "canonical",
+    "question" : "Agent Studio Desktop 当前使用哪些端口？",
+    "answerable" : true,
+    "expectedSources" : [ "02-架构设计与技术选型.md", "06-开发过程与提交时间线.md" ],
+    "firstRelevantRank" : 2,
+    "hitAt5" : true,
+    "falsePositive" : false,
+    "latencyMs" : 0.1863,
+    "returnedSources" : [ "00-入库说明与事实口径.md", "06-开发过程与提交时间线.md", "10-面试讲述与追问准备.md", "08-测试策略与验收证据.md", "01-项目总览与业务目标.md" ],
+    "hits" : [ {
+      "rank" : 1,
+      "fileName" : "00-入库说明与事实口径.md",
+      "chunkIndex" : 0,
+      "score" : 0.4590037054246705,
+      "contentPreview" : "# Agent Studio Desktop 知识包入库说明 这套文档用于 Agent Studio Desktop 的 RAG 手工验收，也用于帮助项目负责人复盘设计、开发、排障和测试过程。建议在前端新建名为“Agent Studio 项目知识库”的知识库，然后逐份上传本目录中的 Markdown 文件。逐份上传比合并成一个大文件更适合验证来源文件展示、跨文档召回和删除一致性。 ## 推荐入库顺序 1. 项目总览； 2. 架构与技术选型； 3. 数据模型与版本机制； 4. …"
+    }, {
+      "rank" : 2,
+      "fileName" : "06-开发过程与提交时间线.md",
+      "chunkIndex" : 0,
+      "score" : 0.45142619174007376,
+      "contentPreview" : "# Agent Studio Desktop：开发过程与提交时间线 ## 阶段 0：独立工程基线 第一个提交是 `de8dd90 chore: establish agent studio desktop baseline`。这一阶段建立独立 Git 仓库、Spring Boot 单体、React + TypeScript + Vite 前端、Docker Compose、健康检查、README、架构决策和来源边界记录。 实际环境确认 Maven 使用 Java 21.0.4…"
+    }, {
+      "rank" : 3,
+      "fileName" : "10-面试讲述与追问准备.md",
+      "chunkIndex" : 0,
+      "score" : 0.43148692934122257,
+      "contentPreview" : "# Agent Studio Desktop：面试讲述与追问准备 ## 90 秒项目介绍 我主导做了一个单机优先的智能体搭建工具 Agent Studio Desktop，目标是让用户不改 Java 代码，就能配置 OpenAI 兼容模型、提示词和知识库，发布固定版本的 Agent，并在网页上做流式问答和查看引用来源。后端采用 Java 21 和 Spring Boot 模块化单体，前端是 React + TypeScript，MySQL 保存业务配置，PostgreSQL …"
+    }, {
+      "rank" : 4,
+      "fileName" : "08-测试策略与验收证据.md",
+      "chunkIndex" : 0,
+      "score" : 0.42570942689363456,
+      "contentPreview" : "# Agent Studio Desktop：测试策略与验收证据 ## 自动化测试 后端当前有 15 个测试，最终执行结果是 15 个通过、0 失败、0 错误。 `AgentStudioApplicationTests` 验证 Spring 上下文能加载。`SystemStatusControllerTests` 验证健康状态接口。`AgentBuilderIntegrationTests` 验证模型配置、草稿发布和不可变版本：发布 v1 后修改模型与草稿，再发布 v2，必须…"
+    }, {
+      "rank" : 5,
+      "fileName" : "01-项目总览与业务目标.md",
+      "chunkIndex" : 0,
+      "score" : 0.38721769864196387,
+      "contentPreview" : "# Agent Studio Desktop：项目总览与业务目标 ## 一句话定位 Agent Studio Desktop 是一个运行在个人电脑上的智能体搭建与调试工具。用户不需要修改 Java 代码，就能配置 OpenAI 兼容模型、系统提示词和知识库，发布一个固定版本的 Agent，并在本地网页中流式对话、查看检索来源。 它不是公网 SaaS，也不是高并发多租户平台。产品的核心价值是让“模型连接、提示词、知识和版本”变成可配置资产，同时让本地开发环境简单、过程可观察、结…"
+    } ]
+  }, {
+    "id" : "rag-002",
+    "category" : "basic_fact",
+    "variant" : "canonical",
+    "question" : "当前 RAG 的 chunk 参数是什么？",
+    "answerable" : true,
+    "expectedSources" : [ "05-RAG全链路与检索算法.md" ],
+    "firstRelevantRank" : 0,
+    "hitAt5" : false,
+    "falsePositive" : false,
+    "latencyMs" : 0.3295,
+    "returnedSources" : [ "00-入库说明与事实口径.md", "09-安全边界局限与路线图.md", "01-项目总览与业务目标.md", "02-架构设计与技术选型.md", "08-测试策略与验收证据.md" ],
+    "hits" : [ {
+      "rank" : 1,
+      "fileName" : "00-入库说明与事实口径.md",
+      "chunkIndex" : 0,
+      "score" : 0.2945501465407913,
+      "contentPreview" : "# Agent Studio Desktop 知识包入库说明 这套文档用于 Agent Studio Desktop 的 RAG 手工验收，也用于帮助项目负责人复盘设计、开发、排障和测试过程。建议在前端新建名为“Agent Studio 项目知识库”的知识库，然后逐份上传本目录中的 Markdown 文件。逐份上传比合并成一个大文件更适合验证来源文件展示、跨文档召回和删除一致性。 ## 推荐入库顺序 1. 项目总览； 2. 架构与技术选型； 3. 数据模型与版本机制； 4. …"
+    }, {
+      "rank" : 2,
+      "fileName" : "09-安全边界局限与路线图.md",
+      "chunkIndex" : 0,
+      "score" : 0.2929163905062016,
+      "contentPreview" : "# Agent Studio Desktop：安全边界、当前局限与路线图 ## 已有安全边界 模型密钥不进入数据库和 Git，ModelProfile 只保存环境变量名称。后端在模型调用时读取启动进程环境。文件保存路径经过绝对化、规范化和 dataRoot 前缀检查，避免通过文件名写出授权目录。上传大小限制为 20 MB，API 请求使用校验注解，外部模型错误文本会截断。 AgentVersion 不可变，会话固定绑定版本，减少运行中配置漂移。知识库检索按 knowledge…"
+    }, {
+      "rank" : 3,
+      "fileName" : "01-项目总览与业务目标.md",
+      "chunkIndex" : 1,
+      "score" : 0.28849578111874313,
+      "contentPreview" : "## 当前技术栈 - 后端：Java 21、Spring Boot 3.4.3、Maven、Spring JDBC、Flyway； - 前端：React 19、TypeScript、Vite； - 业务数据库：MySQL 8.4； - 向量数据库：PostgreSQL 17 + pgvector； - 文档解析：Apache Tika 3.1.0； - 模型接口：OpenAI Chat Completions 兼容 SSE，已用 DeepSeek 实测； - Embeddin…"
+    }, {
+      "rank" : 4,
+      "fileName" : "02-架构设计与技术选型.md",
+      "chunkIndex" : 0,
+      "score" : 0.2838230432493084,
+      "contentPreview" : "# Agent Studio Desktop：架构设计与技术选型 ## 模块化单体 项目选择“Spring Boot 模块化单体 + 独立 React 前端 + 两个数据库容器”。后端只有一个 Maven 工程，通过 `agent`、`model`、`conversation`、`knowledge`、`system` 等 Java package 隔离职责。 这个选择针对的是单机开发工具场景。微服务会引入服务发现、网络调用、分布式事务、部署和日志聚合成本，而当前用户只有一个…"
+    }, {
+      "rank" : 5,
+      "fileName" : "08-测试策略与验收证据.md",
+      "chunkIndex" : 1,
+      "score" : 0.2785011302756976,
+      "contentPreview" : "染。 ## 真实环境验证 Docker Desktop 中 MySQL 为 23306，pgvector 为 15432，二者均 healthy。Spring Boot 连接 MySQL 8.4，Flyway V1 至 V4 执行成功。VectorPool 连接 PostgreSQL 并初始化版本化 chunk 表；旧表有 HNSW，新 Qwen 小语料表采用精确 cosine。 DeepSeek 真实调用验证了 OpenAI 兼容请求和中文 SSE 增量，最终收到 done…"
+    } ]
+  }, {
+    "id" : "rag-003",
+    "category" : "basic_fact",
+    "variant" : "canonical",
+    "question" : "项目是否已经支持 SSH 和 ReAct？",
+    "answerable" : true,
+    "expectedSources" : [ "00-入库说明与事实口径.md", "01-项目总览与业务目标.md", "09-安全边界局限与路线图.md" ],
+    "firstRelevantRank" : 1,
+    "hitAt5" : true,
+    "falsePositive" : false,
+    "latencyMs" : 0.182,
+    "returnedSources" : [ "01-项目总览与业务目标.md", "00-入库说明与事实口径.md", "07-真实故障与排查复盘.md", "06-开发过程与提交时间线.md", "09-安全边界局限与路线图.md" ],
+    "hits" : [ {
+      "rank" : 1,
+      "fileName" : "01-项目总览与业务目标.md",
+      "chunkIndex" : 0,
+      "score" : 0.2514944607238362,
+      "contentPreview" : "# Agent Studio Desktop：项目总览与业务目标 ## 一句话定位 Agent Studio Desktop 是一个运行在个人电脑上的智能体搭建与调试工具。用户不需要修改 Java 代码，就能配置 OpenAI 兼容模型、系统提示词和知识库，发布一个固定版本的 Agent，并在本地网页中流式对话、查看检索来源。 它不是公网 SaaS，也不是高并发多租户平台。产品的核心价值是让“模型连接、提示词、知识和版本”变成可配置资产，同时让本地开发环境简单、过程可观察、结…"
+    }, {
+      "rank" : 2,
+      "fileName" : "00-入库说明与事实口径.md",
+      "chunkIndex" : 0,
+      "score" : 0.24966631317910074,
+      "contentPreview" : "# Agent Studio Desktop 知识包入库说明 这套文档用于 Agent Studio Desktop 的 RAG 手工验收，也用于帮助项目负责人复盘设计、开发、排障和测试过程。建议在前端新建名为“Agent Studio 项目知识库”的知识库，然后逐份上传本目录中的 Markdown 文件。逐份上传比合并成一个大文件更适合验证来源文件展示、跨文档召回和删除一致性。 ## 推荐入库顺序 1. 项目总览； 2. 架构与技术选型； 3. 数据模型与版本机制； 4. …"
+    }, {
+      "rank" : 3,
+      "fileName" : "07-真实故障与排查复盘.md",
+      "chunkIndex" : 2,
+      "score" : 0.24721745313610463,
+      "contentPreview" : "struction-aware 模型的常见建议，为每个问题添加统一中文任务说明。复测后 Recall 没变，但 MRR 降到 0.6917，相关文档更常排在后面。 这不是接口或维度错误，而是提示前缀改变了向量空间中的查询表达。修复是保留 queryInstruction 配置能力但默认置空，并重新运行同一冻结题集，MRR 恢复到 0.8160。知识包扩充后又在新语料上复测，仍采用无前缀方案。经验是 embedding 的 prompt 必须在本领域语料上做消融，而且语料变更后…"
+    }, {
+      "rank" : 4,
+      "fileName" : "06-开发过程与提交时间线.md",
+      "chunkIndex" : 1,
+      "score" : 0.24512294117887004,
+      "contentPreview" : "al workflow`。新增 Flyway V2、知识库与文档元数据、Tika 解析、文本切分、本地 384 维词法向量、pgvector 表和 HNSW 索引、知识库绑定、sources SSE 事件，以及前端知识库页面和来源展示。 真实验收创建了“科研助手验收库”和“科研知识助手”。示例 Markdown 上传后状态 READY，对话返回来源文件、chunk 0 和相似度。删除测试确认 MySQL 元数据、本地文件和向量检索结果同时消失，重新上传后恢复。 ## 开发方法…"
+    }, {
+      "rank" : 5,
+      "fileName" : "09-安全边界局限与路线图.md",
+      "chunkIndex" : 0,
+      "score" : 0.2331955708316776,
+      "contentPreview" : "# Agent Studio Desktop：安全边界、当前局限与路线图 ## 已有安全边界 模型密钥不进入数据库和 Git，ModelProfile 只保存环境变量名称。后端在模型调用时读取启动进程环境。文件保存路径经过绝对化、规范化和 dataRoot 前缀检查，避免通过文件名写出授权目录。上传大小限制为 20 MB，API 请求使用校验注解，外部模型错误文本会截断。 AgentVersion 不可变，会话固定绑定版本，减少运行中配置漂移。知识库检索按 knowledge…"
+    } ]
+  }, {
+    "id" : "rag-004",
+    "category" : "principle",
+    "variant" : "canonical",
+    "question" : "为什么更新 ModelProfile 不会改变已经发布的 AgentVersion？",
+    "answerable" : true,
+    "expectedSources" : [ "03-数据模型与不可变版本.md" ],
+    "firstRelevantRank" : 1,
+    "hitAt5" : true,
+    "falsePositive" : false,
+    "latencyMs" : 0.1598,
+    "returnedSources" : [ "03-数据模型与不可变版本.md", "04-模型调用与SSE流式对话.md", "06-开发过程与提交时间线.md", "10-面试讲述与追问准备.md" ],
+    "hits" : [ {
+      "rank" : 1,
+      "fileName" : "03-数据模型与不可变版本.md",
+      "chunkIndex" : 1,
+      "score" : 0.46738981452117484,
+      "contentPreview" : "nowledgeBase` 是知识容器。`KnowledgeDocument` 保存文件名、媒体类型、大小、SHA-256、本地路径、处理状态、chunk 数、失败原因和时间。旧向量表 `knowledge_chunk` 保存 384 维 LocalHash；新表 `knowledge_chunk_v2` 保存 1024 维 Qwen 向量，并增加 embeddingModel 和 embeddingVersion。两代索引隔离，不能把不同模型或维度的数据混在一次距离计算中。…"
+    }, {
+      "rank" : 2,
+      "fileName" : "04-模型调用与SSE流式对话.md",
+      "chunkIndex" : 0,
+      "score" : 0.45105784737120236,
+      "contentPreview" : "# Agent Studio Desktop：模型调用与 SSE 流式对话 ## OpenAI 兼容适配 项目没有直接绑定某个厂商 SDK，而是使用 Java `HttpClient` 调用 OpenAI Chat Completions 兼容接口。网关从 AgentVersion 读取 baseUrl、modelName、temperature 和 apiKeyEnv。如果 baseUrl 没有以 `/chat/completions` 结束，网关自动补齐路径。 请求体包含…"
+    }, {
+      "rank" : 3,
+      "fileName" : "03-数据模型与不可变版本.md",
+      "chunkIndex" : 0,
+      "score" : 0.43721399637960884,
+      "contentPreview" : "# Agent Studio Desktop：数据模型与不可变版本 ## 核心实体 `ModelProfile` 保存模型显示名称、供应商、API 地址、模型名、密钥环境变量名和温度。它不保存密钥明文。 `AgentDefinition` 表示可编辑的 Agent 草稿，包含名称、描述、草稿模型标识、可选草稿知识库标识、系统提示词和最新版本号。状态由版本号推导：尚未发布是 DRAFT，至少发布过一次是 PUBLISHED。 草稿工具绑定保存在 `agent_tool_bind…"
+    }, {
+      "rank" : 4,
+      "fileName" : "06-开发过程与提交时间线.md",
+      "chunkIndex" : 0,
+      "score" : 0.4176968389442054,
+      "contentPreview" : "# Agent Studio Desktop：开发过程与提交时间线 ## 阶段 0：独立工程基线 第一个提交是 `de8dd90 chore: establish agent studio desktop baseline`。这一阶段建立独立 Git 仓库、Spring Boot 单体、React + TypeScript + Vite 前端、Docker Compose、健康检查、README、架构决策和来源边界记录。 实际环境确认 Maven 使用 Java 21.0.4…"
+    }, {
+      "rank" : 5,
+      "fileName" : "10-面试讲述与追问准备.md",
+      "chunkIndex" : 0,
+      "score" : 0.3779797515148459,
+      "contentPreview" : "# Agent Studio Desktop：面试讲述与追问准备 ## 90 秒项目介绍 我主导做了一个单机优先的智能体搭建工具 Agent Studio Desktop，目标是让用户不改 Java 代码，就能配置 OpenAI 兼容模型、提示词和知识库，发布固定版本的 Agent，并在网页上做流式问答和查看引用来源。后端采用 Java 21 和 Spring Boot 模块化单体，前端是 React + TypeScript，MySQL 保存业务配置，PostgreSQL …"
+    } ]
+  }, {
+    "id" : "rag-005",
+    "category" : "principle",
+    "variant" : "canonical",
+    "question" : "为什么 sources 已经返回但最后仍然 error？",
+    "answerable" : true,
+    "expectedSources" : [ "04-模型调用与SSE流式对话.md", "07-真实故障与排查复盘.md" ],
+    "firstRelevantRank" : 1,
+    "hitAt5" : true,
+    "falsePositive" : false,
+    "latencyMs" : 0.1573,
+    "returnedSources" : [ "04-模型调用与SSE流式对话.md", "08-测试策略与验收证据.md", "07-真实故障与排查复盘.md", "02-架构设计与技术选型.md", "09-安全边界局限与路线图.md" ],
+    "hits" : [ {
+      "rank" : 1,
+      "fileName" : "04-模型调用与SSE流式对话.md",
+      "chunkIndex" : 0,
+      "score" : 0.30706128197425137,
+      "contentPreview" : "# Agent Studio Desktop：模型调用与 SSE 流式对话 ## OpenAI 兼容适配 项目没有直接绑定某个厂商 SDK，而是使用 Java `HttpClient` 调用 OpenAI Chat Completions 兼容接口。网关从 AgentVersion 读取 baseUrl、modelName、temperature 和 apiKeyEnv。如果 baseUrl 没有以 `/chat/completions` 结束，网关自动补齐路径。 请求体包含…"
+    }, {
+      "rank" : 2,
+      "fileName" : "08-测试策略与验收证据.md",
+      "chunkIndex" : 1,
+      "score" : 0.27535972283983917,
+      "contentPreview" : "染。 ## 真实环境验证 Docker Desktop 中 MySQL 为 23306，pgvector 为 15432，二者均 healthy。Spring Boot 连接 MySQL 8.4，Flyway V1 至 V4 执行成功。VectorPool 连接 PostgreSQL 并初始化版本化 chunk 表；旧表有 HNSW，新 Qwen 小语料表采用精确 cosine。 DeepSeek 真实调用验证了 OpenAI 兼容请求和中文 SSE 增量，最终收到 done…"
+    }, {
+      "rank" : 3,
+      "fileName" : "07-真实故障与排查复盘.md",
+      "chunkIndex" : 1,
+      "score" : 0.272021565529117,
+      "contentPreview" : "SQL，业务 `NamedParameterJdbcTemplate` 仍可能连到 PostgreSQL。表现为向 PostgreSQL 执行 `INSERT knowledge_base` 或查询 `model_profile`，然后报 relation does not exist。 根因是 Spring 容器里同时存在多个 DataSource 和 JdbcTemplate，而业务仓储没有足够明确的限定。修复包括：创建带 `@Primary` 和 `@FlywayDat…"
+    }, {
+      "rank" : 4,
+      "fileName" : "02-架构设计与技术选型.md",
+      "chunkIndex" : 1,
+      "score" : 0.27017453013647985,
+      "contentPreview" : "024 维向量并写入 `knowledge_chunk_v2`，记录模型和索引版本；旧 384 维表继续保留。知识库升级必须由用户显式触发重建，启动应用不会自动改写索引。 当前 Qwen 表采用精确 cosine 排序，不建立 HNSW 向量索引。原因是当前语料规模很小，近似索引没有性能必要，反而可能牺牲召回。表上只对 knowledgeBaseId 和 embeddingVersion 建范围索引。 ## 为什么不引入 Redis、MQ 和 MinIO 第一版没有缓存规模、…"
+    }, {
+      "rank" : 5,
+      "fileName" : "09-安全边界局限与路线图.md",
+      "chunkIndex" : 0,
+      "score" : 0.25001327694843556,
+      "contentPreview" : "# Agent Studio Desktop：安全边界、当前局限与路线图 ## 已有安全边界 模型密钥不进入数据库和 Git，ModelProfile 只保存环境变量名称。后端在模型调用时读取启动进程环境。文件保存路径经过绝对化、规范化和 dataRoot 前缀检查，避免通过文件名写出授权目录。上传大小限制为 20 MB，API 请求使用校验注解，外部模型错误文本会截断。 AgentVersion 不可变，会话固定绑定版本，减少运行中配置漂移。知识库检索按 knowledge…"
+    } ]
+  }, {
+    "id" : "rag-006",
+    "category" : "principle",
+    "variant" : "canonical",
+    "question" : "本地词法哈希向量有哪些优缺点？",
+    "answerable" : true,
+    "expectedSources" : [ "05-RAG全链路与检索算法.md", "01-项目总览与业务目标.md", "10-面试讲述与追问准备.md" ],
+    "firstRelevantRank" : 3,
+    "hitAt5" : true,
+    "falsePositive" : false,
+    "latencyMs" : 0.1477,
+    "returnedSources" : [ "07-真实故障与排查复盘.md", "09-安全边界局限与路线图.md", "10-面试讲述与追问准备.md", "00-入库说明与事实口径.md", "08-测试策略与验收证据.md" ],
+    "hits" : [ {
+      "rank" : 1,
+      "fileName" : "07-真实故障与排查复盘.md",
+      "chunkIndex" : 2,
+      "score" : 0.2579696915228802,
+      "contentPreview" : "struction-aware 模型的常见建议，为每个问题添加统一中文任务说明。复测后 Recall 没变，但 MRR 降到 0.6917，相关文档更常排在后面。 这不是接口或维度错误，而是提示前缀改变了向量空间中的查询表达。修复是保留 queryInstruction 配置能力但默认置空，并重新运行同一冻结题集，MRR 恢复到 0.8160。知识包扩充后又在新语料上复测，仍采用无前缀方案。经验是 embedding 的 prompt 必须在本领域语料上做消融，而且语料变更后…"
+    }, {
+      "rank" : 2,
+      "fileName" : "09-安全边界局限与路线图.md",
+      "chunkIndex" : 1,
+      "score" : 0.24787105777755003,
+      "contentPreview" : "段继续无边界调参。 第二优先级原本是 Tool 与显式 ReAct，其中低风险第一阶段已完成：模型只提出 tool call，执行经过 ToolRegistry；AgentRun/RunStep、最大轮数、单轮调用数和单工具超时已经落地。仍需补总运行超时、主动取消、崩溃恢复、通用 Schema 校验和更多只读工具。 第三优先级的最小安全审批已经完成：HIGH 请求生成 ApprovalRequest，绑定 runId、toolCallId、工具名、原始参数、参数哈希、过期时间…"
+    }, {
+      "rank" : 3,
+      "fileName" : "10-面试讲述与追问准备.md",
+      "chunkIndex" : 0,
+      "score" : 0.24645748696945616,
+      "contentPreview" : "# Agent Studio Desktop：面试讲述与追问准备 ## 90 秒项目介绍 我主导做了一个单机优先的智能体搭建工具 Agent Studio Desktop，目标是让用户不改 Java 代码，就能配置 OpenAI 兼容模型、提示词和知识库，发布固定版本的 Agent，并在网页上做流式问答和查看引用来源。后端采用 Java 21 和 Spring Boot 模块化单体，前端是 React + TypeScript，MySQL 保存业务配置，PostgreSQL …"
+    }, {
+      "rank" : 4,
+      "fileName" : "00-入库说明与事实口径.md",
+      "chunkIndex" : 0,
+      "score" : 0.24315671537237407,
+      "contentPreview" : "# Agent Studio Desktop 知识包入库说明 这套文档用于 Agent Studio Desktop 的 RAG 手工验收，也用于帮助项目负责人复盘设计、开发、排障和测试过程。建议在前端新建名为“Agent Studio 项目知识库”的知识库，然后逐份上传本目录中的 Markdown 文件。逐份上传比合并成一个大文件更适合验证来源文件展示、跨文档召回和删除一致性。 ## 推荐入库顺序 1. 项目总览； 2. 架构与技术选型； 3. 数据模型与版本机制； 4. …"
+    }, {
+      "rank" : 5,
+      "fileName" : "08-测试策略与验收证据.md",
+      "chunkIndex" : 0,
+      "score" : 0.2398777696157021,
+      "contentPreview" : "# Agent Studio Desktop：测试策略与验收证据 ## 自动化测试 后端当前有 15 个测试，最终执行结果是 15 个通过、0 失败、0 错误。 `AgentStudioApplicationTests` 验证 Spring 上下文能加载。`SystemStatusControllerTests` 验证健康状态接口。`AgentBuilderIntegrationTests` 验证模型配置、草稿发布和不可变版本：发布 v1 后修改模型与草稿，再发布 v2，必须…"
+    } ]
+  }, {
+    "id" : "rag-007",
+    "category" : "diagnosis",
+    "variant" : "canonical",
+    "question" : "Docker 显示容器 Created，但 MySQL 没启动，报端口已分配，应怎么判断？",
+    "answerable" : true,
+    "expectedSources" : [ "07-真实故障与排查复盘.md", "06-开发过程与提交时间线.md" ],
+    "firstRelevantRank" : 1,
+    "hitAt5" : true,
+    "falsePositive" : false,
+    "latencyMs" : 0.1557,
+    "returnedSources" : [ "07-真实故障与排查复盘.md", "10-面试讲述与追问准备.md", "02-架构设计与技术选型.md", "06-开发过程与提交时间线.md" ],
+    "hits" : [ {
+      "rank" : 1,
+      "fileName" : "07-真实故障与排查复盘.md",
+      "chunkIndex" : 0,
+      "score" : 0.41283235596178375,
+      "contentPreview" : "# Agent Studio Desktop：真实故障与排查复盘 ## 故障一：MySQL 端口连续冲突 现象是 Docker 报 `bind: Only one usage of each socket address` 或 `port is already allocated`。3306 被占用后改到 13306仍冲突，最终选择 23306。 根因不是容器内 MySQL 启动失败，而是 Windows 宿主机端口已经被其他进程或容器占用。修复是在 Compose 中只修改…"
+    }, {
+      "rank" : 2,
+      "fileName" : "07-真实故障与排查复盘.md",
+      "chunkIndex" : 1,
+      "score" : 0.3744214956628635,
+      "contentPreview" : "SQL，业务 `NamedParameterJdbcTemplate` 仍可能连到 PostgreSQL。表现为向 PostgreSQL 执行 `INSERT knowledge_base` 或查询 `model_profile`，然后报 relation does not exist。 根因是 Spring 容器里同时存在多个 DataSource 和 JdbcTemplate，而业务仓储没有足够明确的限定。修复包括：创建带 `@Primary` 和 `@FlywayDat…"
+    }, {
+      "rank" : 3,
+      "fileName" : "10-面试讲述与追问准备.md",
+      "chunkIndex" : 1,
+      "score" : 0.3614746804269166,
+      "contentPreview" : "A-256 且只能消费一次，拒绝或超时不执行。SSH、Coding、身份与跨重启恢复仍如实保留为后续。 ## STAR 故事：双数据源问题 情境：加入 pgvector 后，应用同时有 MySQL 和 PostgreSQL 两个数据源。任务：让 Flyway 只迁移 MySQL，业务 CRUD 使用 MySQL，向量读写只使用 PostgreSQL。 行动：我根据异常中的 `relation does not exist` 和连接池日志定位到自动装配选错连接，而不是表迁移缺失…"
+    }, {
+      "rank" : 4,
+      "fileName" : "02-架构设计与技术选型.md",
+      "chunkIndex" : 1,
+      "score" : 0.3498120802095691,
+      "contentPreview" : "024 维向量并写入 `knowledge_chunk_v2`，记录模型和索引版本；旧 384 维表继续保留。知识库升级必须由用户显式触发重建，启动应用不会自动改写索引。 当前 Qwen 表采用精确 cosine 排序，不建立 HNSW 向量索引。原因是当前语料规模很小，近似索引没有性能必要，反而可能牺牲召回。表上只对 knowledgeBaseId 和 embeddingVersion 建范围索引。 ## 为什么不引入 Redis、MQ 和 MinIO 第一版没有缓存规模、…"
+    }, {
+      "rank" : 5,
+      "fileName" : "06-开发过程与提交时间线.md",
+      "chunkIndex" : 0,
+      "score" : 0.33664840293950865,
+      "contentPreview" : "# Agent Studio Desktop：开发过程与提交时间线 ## 阶段 0：独立工程基线 第一个提交是 `de8dd90 chore: establish agent studio desktop baseline`。这一阶段建立独立 Git 仓库、Spring Boot 单体、React + TypeScript + Vite 前端、Docker Compose、健康检查、README、架构决策和来源边界记录。 实际环境确认 Maven 使用 Java 21.0.4…"
+    } ]
+  }, {
+    "id" : "rag-008",
+    "category" : "diagnosis",
+    "variant" : "canonical",
+    "question" : "为什么加了 pgvector 后，查询 model_profile 却报 PostgreSQL relation 不存在？",
+    "answerable" : true,
+    "expectedSources" : [ "07-真实故障与排查复盘.md", "10-面试讲述与追问准备.md" ],
+    "firstRelevantRank" : 1,
+    "hitAt5" : true,
+    "falsePositive" : false,
+    "latencyMs" : 1.6908,
+    "returnedSources" : [ "07-真实故障与排查复盘.md", "10-面试讲述与追问准备.md", "06-开发过程与提交时间线.md", "09-安全边界局限与路线图.md" ],
+    "hits" : [ {
+      "rank" : 1,
+      "fileName" : "07-真实故障与排查复盘.md",
+      "chunkIndex" : 1,
+      "score" : 0.47758913988847385,
+      "contentPreview" : "SQL，业务 `NamedParameterJdbcTemplate` 仍可能连到 PostgreSQL。表现为向 PostgreSQL 执行 `INSERT knowledge_base` 或查询 `model_profile`，然后报 relation does not exist。 根因是 Spring 容器里同时存在多个 DataSource 和 JdbcTemplate，而业务仓储没有足够明确的限定。修复包括：创建带 `@Primary` 和 `@FlywayDat…"
+    }, {
+      "rank" : 2,
+      "fileName" : "10-面试讲述与追问准备.md",
+      "chunkIndex" : 1,
+      "score" : 0.47354921887285095,
+      "contentPreview" : "A-256 且只能消费一次，拒绝或超时不执行。SSH、Coding、身份与跨重启恢复仍如实保留为后续。 ## STAR 故事：双数据源问题 情境：加入 pgvector 后，应用同时有 MySQL 和 PostgreSQL 两个数据源。任务：让 Flyway 只迁移 MySQL，业务 CRUD 使用 MySQL，向量读写只使用 PostgreSQL。 行动：我根据异常中的 `relation does not exist` 和连接池日志定位到自动装配选错连接，而不是表迁移缺失…"
+    }, {
+      "rank" : 3,
+      "fileName" : "06-开发过程与提交时间线.md",
+      "chunkIndex" : 0,
+      "score" : 0.44107061059013325,
+      "contentPreview" : "# Agent Studio Desktop：开发过程与提交时间线 ## 阶段 0：独立工程基线 第一个提交是 `de8dd90 chore: establish agent studio desktop baseline`。这一阶段建立独立 Git 仓库、Spring Boot 单体、React + TypeScript + Vite 前端、Docker Compose、健康检查、README、架构决策和来源边界记录。 实际环境确认 Maven 使用 Java 21.0.4…"
+    }, {
+      "rank" : 4,
+      "fileName" : "09-安全边界局限与路线图.md",
+      "chunkIndex" : 0,
+      "score" : 0.4336398605475433,
+      "contentPreview" : "# Agent Studio Desktop：安全边界、当前局限与路线图 ## 已有安全边界 模型密钥不进入数据库和 Git，ModelProfile 只保存环境变量名称。后端在模型调用时读取启动进程环境。文件保存路径经过绝对化、规范化和 dataRoot 前缀检查，避免通过文件名写出授权目录。上传大小限制为 20 MB，API 请求使用校验注解，外部模型错误文本会截断。 AgentVersion 不可变，会话固定绑定版本，减少运行中配置漂移。知识库检索按 knowledge…"
+    }, {
+      "rank" : 5,
+      "fileName" : "10-面试讲述与追问准备.md",
+      "chunkIndex" : 0,
+      "score" : 0.43200525398330064,
+      "contentPreview" : "# Agent Studio Desktop：面试讲述与追问准备 ## 90 秒项目介绍 我主导做了一个单机优先的智能体搭建工具 Agent Studio Desktop，目标是让用户不改 Java 代码，就能配置 OpenAI 兼容模型、提示词和知识库，发布固定版本的 Agent，并在网页上做流式问答和查看引用来源。后端采用 Java 21 和 Spring Boot 模块化单体，前端是 React + TypeScript，MySQL 保存业务配置，PostgreSQL …"
+    } ]
+  }, {
+    "id" : "rag-009",
+    "category" : "design",
+    "variant" : "canonical",
+    "question" : "如果要把当前 RAG 升级成真正语义检索，不能只替换哪一行代码？",
+    "answerable" : true,
+    "expectedSources" : [ "05-RAG全链路与检索算法.md", "09-安全边界局限与路线图.md" ],
+    "firstRelevantRank" : 2,
+    "hitAt5" : true,
+    "falsePositive" : false,
+    "latencyMs" : 0.2322,
+    "returnedSources" : [ "00-入库说明与事实口径.md", "09-安全边界局限与路线图.md", "08-测试策略与验收证据.md", "06-开发过程与提交时间线.md", "05-RAG全链路与检索算法.md" ],
+    "hits" : [ {
+      "rank" : 1,
+      "fileName" : "00-入库说明与事实口径.md",
+      "chunkIndex" : 0,
+      "score" : 0.3183668700313828,
+      "contentPreview" : "# Agent Studio Desktop 知识包入库说明 这套文档用于 Agent Studio Desktop 的 RAG 手工验收，也用于帮助项目负责人复盘设计、开发、排障和测试过程。建议在前端新建名为“Agent Studio 项目知识库”的知识库，然后逐份上传本目录中的 Markdown 文件。逐份上传比合并成一个大文件更适合验证来源文件展示、跨文档召回和删除一致性。 ## 推荐入库顺序 1. 项目总览； 2. 架构与技术选型； 3. 数据模型与版本机制； 4. …"
+    }, {
+      "rank" : 2,
+      "fileName" : "09-安全边界局限与路线图.md",
+      "chunkIndex" : 0,
+      "score" : 0.2927790910404282,
+      "contentPreview" : "# Agent Studio Desktop：安全边界、当前局限与路线图 ## 已有安全边界 模型密钥不进入数据库和 Git，ModelProfile 只保存环境变量名称。后端在模型调用时读取启动进程环境。文件保存路径经过绝对化、规范化和 dataRoot 前缀检查，避免通过文件名写出授权目录。上传大小限制为 20 MB，API 请求使用校验注解，外部模型错误文本会截断。 AgentVersion 不可变，会话固定绑定版本，减少运行中配置漂移。知识库检索按 knowledge…"
+    }, {
+      "rank" : 3,
+      "fileName" : "08-测试策略与验收证据.md",
+      "chunkIndex" : 1,
+      "score" : 0.27821560528648653,
+      "contentPreview" : "染。 ## 真实环境验证 Docker Desktop 中 MySQL 为 23306，pgvector 为 15432，二者均 healthy。Spring Boot 连接 MySQL 8.4，Flyway V1 至 V4 执行成功。VectorPool 连接 PostgreSQL 并初始化版本化 chunk 表；旧表有 HNSW，新 Qwen 小语料表采用精确 cosine。 DeepSeek 真实调用验证了 OpenAI 兼容请求和中文 SSE 增量，最终收到 done…"
+    }, {
+      "rank" : 4,
+      "fileName" : "06-开发过程与提交时间线.md",
+      "chunkIndex" : 2,
+      "score" : 0.2762456752227675,
+      "contentPreview" : "OOL_RESULT，再发起最终 MODEL_CALL；上海、北京和伦敦时区都得到结果，同一时区的后续问题还体现了模型按上下文判断无需重复调用。因此真实供应商的工具协议兼容性不再只依赖 mock。 ## 第七阶段：参数绑定的高风险审批 2026-09-05 在低风险链路验证后增加 Flyway V4、ApprovalRequest 和 HIGH/WRITE 的 write_workspace_note。该工具只能在 `data/tool-workspace` 下新建 `.md…"
+    }, {
+      "rank" : 5,
+      "fileName" : "05-RAG全链路与检索算法.md",
+      "chunkIndex" : 1,
+      "score" : 0.2759787102588075,
+      "contentPreview" : "1 - cosine distance`。新模型的 0.05 仅保留现有召回行为，不代表有效拒答阈值。 检索结果一方面通过 SSE `sources` 发送给前端，另一方面拼成系统上下文注入模型。这样用户能看到证据，模型也能据此作答。 ## 删除闭环 删除文档时先删除 pgvector 中对应 documentId 的 chunk，再删除 MySQL 文档元数据，最后删除本地文件。验收时确认删除后文档列表为空、本地文件不存在，并且再次提问不再出现 sources；随后重新上传…"
+    } ]
+  }, {
+    "id" : "rag-010",
+    "category" : "design",
+    "variant" : "canonical",
+    "question" : "删除文档为什么是一个值得讨论的工程问题？",
+    "answerable" : true,
+    "expectedSources" : [ "02-架构设计与技术选型.md", "05-RAG全链路与检索算法.md", "09-安全边界局限与路线图.md", "10-面试讲述与追问准备.md" ],
+    "firstRelevantRank" : 2,
+    "hitAt5" : true,
+    "falsePositive" : false,
+    "latencyMs" : 0.1764,
+    "returnedSources" : [ "08-测试策略与验收证据.md", "09-安全边界局限与路线图.md", "01-项目总览与业务目标.md", "03-数据模型与不可变版本.md" ],
+    "hits" : [ {
+      "rank" : 1,
+      "fileName" : "08-测试策略与验收证据.md",
+      "chunkIndex" : 0,
+      "score" : 0.26514215420905957,
+      "contentPreview" : "# Agent Studio Desktop：测试策略与验收证据 ## 自动化测试 后端当前有 15 个测试，最终执行结果是 15 个通过、0 失败、0 错误。 `AgentStudioApplicationTests` 验证 Spring 上下文能加载。`SystemStatusControllerTests` 验证健康状态接口。`AgentBuilderIntegrationTests` 验证模型配置、草稿发布和不可变版本：发布 v1 后修改模型与草稿，再发布 v2，必须…"
+    }, {
+      "rank" : 2,
+      "fileName" : "09-安全边界局限与路线图.md",
+      "chunkIndex" : 0,
+      "score" : 0.2500743968593872,
+      "contentPreview" : "# Agent Studio Desktop：安全边界、当前局限与路线图 ## 已有安全边界 模型密钥不进入数据库和 Git，ModelProfile 只保存环境变量名称。后端在模型调用时读取启动进程环境。文件保存路径经过绝对化、规范化和 dataRoot 前缀检查，避免通过文件名写出授权目录。上传大小限制为 20 MB，API 请求使用校验注解，外部模型错误文本会截断。 AgentVersion 不可变，会话固定绑定版本，减少运行中配置漂移。知识库检索按 knowledge…"
+    }, {
+      "rank" : 3,
+      "fileName" : "01-项目总览与业务目标.md",
+      "chunkIndex" : 0,
+      "score" : 0.24489797506367414,
+      "contentPreview" : "# Agent Studio Desktop：项目总览与业务目标 ## 一句话定位 Agent Studio Desktop 是一个运行在个人电脑上的智能体搭建与调试工具。用户不需要修改 Java 代码，就能配置 OpenAI 兼容模型、系统提示词和知识库，发布一个固定版本的 Agent，并在本地网页中流式对话、查看检索来源。 它不是公网 SaaS，也不是高并发多租户平台。产品的核心价值是让“模型连接、提示词、知识和版本”变成可配置资产，同时让本地开发环境简单、过程可观察、结…"
+    }, {
+      "rank" : 4,
+      "fileName" : "03-数据模型与不可变版本.md",
+      "chunkIndex" : 1,
+      "score" : 0.23923071856649192,
+      "contentPreview" : "nowledgeBase` 是知识容器。`KnowledgeDocument` 保存文件名、媒体类型、大小、SHA-256、本地路径、处理状态、chunk 数、失败原因和时间。旧向量表 `knowledge_chunk` 保存 384 维 LocalHash；新表 `knowledge_chunk_v2` 保存 1024 维 Qwen 向量，并增加 embeddingModel 和 embeddingVersion。两代索引隔离，不能把不同模型或维度的数据混在一次距离计算中。…"
+    }, {
+      "rank" : 5,
+      "fileName" : "01-项目总览与业务目标.md",
+      "chunkIndex" : 1,
+      "score" : 0.22626097823928903,
+      "contentPreview" : "## 当前技术栈 - 后端：Java 21、Spring Boot 3.4.3、Maven、Spring JDBC、Flyway； - 前端：React 19、TypeScript、Vite； - 业务数据库：MySQL 8.4； - 向量数据库：PostgreSQL 17 + pgvector； - 文档解析：Apache Tika 3.1.0； - 模型接口：OpenAI Chat Completions 兼容 SSE，已用 DeepSeek 实测； - Embeddin…"
+    } ]
+  }, {
+    "id" : "rag-011",
+    "category" : "anti_hallucination",
+    "variant" : "canonical",
+    "question" : "这个项目是否是企业级高并发、多租户智能体平台？",
+    "answerable" : true,
+    "expectedSources" : [ "01-项目总览与业务目标.md", "09-安全边界局限与路线图.md" ],
+    "firstRelevantRank" : 1,
+    "hitAt5" : true,
+    "falsePositive" : false,
+    "latencyMs" : 0.2055,
+    "returnedSources" : [ "01-项目总览与业务目标.md", "06-开发过程与提交时间线.md", "00-入库说明与事实口径.md", "05-RAG全链路与检索算法.md" ],
+    "hits" : [ {
+      "rank" : 1,
+      "fileName" : "01-项目总览与业务目标.md",
+      "chunkIndex" : 0,
+      "score" : 0.26034862597430924,
+      "contentPreview" : "# Agent Studio Desktop：项目总览与业务目标 ## 一句话定位 Agent Studio Desktop 是一个运行在个人电脑上的智能体搭建与调试工具。用户不需要修改 Java 代码，就能配置 OpenAI 兼容模型、系统提示词和知识库，发布一个固定版本的 Agent，并在本地网页中流式对话、查看检索来源。 它不是公网 SaaS，也不是高并发多租户平台。产品的核心价值是让“模型连接、提示词、知识和版本”变成可配置资产，同时让本地开发环境简单、过程可观察、结…"
+    }, {
+      "rank" : 2,
+      "fileName" : "06-开发过程与提交时间线.md",
+      "chunkIndex" : 1,
+      "score" : 0.2399618823607123,
+      "contentPreview" : "al workflow`。新增 Flyway V2、知识库与文档元数据、Tika 解析、文本切分、本地 384 维词法向量、pgvector 表和 HNSW 索引、知识库绑定、sources SSE 事件，以及前端知识库页面和来源展示。 真实验收创建了“科研助手验收库”和“科研知识助手”。示例 Markdown 上传后状态 READY，对话返回来源文件、chunk 0 和相似度。删除测试确认 MySQL 元数据、本地文件和向量检索结果同时消失，重新上传后恢复。 ## 开发方法…"
+    }, {
+      "rank" : 3,
+      "fileName" : "06-开发过程与提交时间线.md",
+      "chunkIndex" : 2,
+      "score" : 0.2387861804756368,
+      "contentPreview" : "OOL_RESULT，再发起最终 MODEL_CALL；上海、北京和伦敦时区都得到结果，同一时区的后续问题还体现了模型按上下文判断无需重复调用。因此真实供应商的工具协议兼容性不再只依赖 mock。 ## 第七阶段：参数绑定的高风险审批 2026-09-05 在低风险链路验证后增加 Flyway V4、ApprovalRequest 和 HIGH/WRITE 的 write_workspace_note。该工具只能在 `data/tool-workspace` 下新建 `.md…"
+    }, {
+      "rank" : 4,
+      "fileName" : "00-入库说明与事实口径.md",
+      "chunkIndex" : 0,
+      "score" : 0.22244019292568967,
+      "contentPreview" : "# Agent Studio Desktop 知识包入库说明 这套文档用于 Agent Studio Desktop 的 RAG 手工验收，也用于帮助项目负责人复盘设计、开发、排障和测试过程。建议在前端新建名为“Agent Studio 项目知识库”的知识库，然后逐份上传本目录中的 Markdown 文件。逐份上传比合并成一个大文件更适合验证来源文件展示、跨文档召回和删除一致性。 ## 推荐入库顺序 1. 项目总览； 2. 架构与技术选型； 3. 数据模型与版本机制； 4. …"
+    }, {
+      "rank" : 5,
+      "fileName" : "05-RAG全链路与检索算法.md",
+      "chunkIndex" : 1,
+      "score" : 0.21965915033206437,
+      "contentPreview" : "1 - cosine distance`。新模型的 0.05 仅保留现有召回行为，不代表有效拒答阈值。 检索结果一方面通过 SSE `sources` 发送给前端，另一方面拼成系统上下文注入模型。这样用户能看到证据，模型也能据此作答。 ## 删除闭环 删除文档时先删除 pgvector 中对应 documentId 的 chunk，再删除 MySQL 文档元数据，最后删除本地文件。验收时确认删除后文档列表为空、本地文件不存在，并且再次提问不再出现 sources；随后重新上传…"
+    } ]
+  }, {
+    "id" : "rag-012",
+    "category" : "anti_hallucination",
+    "variant" : "canonical",
+    "question" : "项目是否直接复制了 ai-rag、WaLiSSH 和 WaLiCode 的业务代码？",
+    "answerable" : true,
+    "expectedSources" : [ "00-入库说明与事实口径.md", "01-项目总览与业务目标.md" ],
+    "firstRelevantRank" : 1,
+    "hitAt5" : true,
+    "falsePositive" : false,
+    "latencyMs" : 0.1802,
+    "returnedSources" : [ "00-入库说明与事实口径.md", "06-开发过程与提交时间线.md", "01-项目总览与业务目标.md" ],
+    "hits" : [ {
+      "rank" : 1,
+      "fileName" : "00-入库说明与事实口径.md",
+      "chunkIndex" : 1,
+      "score" : 0.45545307355837616,
+      "contentPreview" : "用治理，不能描述成企业级审批平台。 项目参考过 ai-rag、WaLiSSH 和 WaLiCode 的思路，但新工程在独立 Git 仓库中从骨架开始建设，没有把来源项目整包复制过来。可强调的成果是架构取舍、版本隔离、双数据库边界、RAG 闭环、真实排障和可验证证据，不应把来源项目代码或框架能力描述为个人原创。 ## 面试使用原则 理解每个“为什么”比背诵类名更重要。推荐使用“我主导了需求收敛、架构取舍、环境配置、验收和问题闭环，并使用 AI 编程助手加速实现”的真实口径。若面…"
+    }, {
+      "rank" : 2,
+      "fileName" : "00-入库说明与事实口径.md",
+      "chunkIndex" : 0,
+      "score" : 0.40643391398117645,
+      "contentPreview" : "# Agent Studio Desktop 知识包入库说明 这套文档用于 Agent Studio Desktop 的 RAG 手工验收，也用于帮助项目负责人复盘设计、开发、排障和测试过程。建议在前端新建名为“Agent Studio 项目知识库”的知识库，然后逐份上传本目录中的 Markdown 文件。逐份上传比合并成一个大文件更适合验证来源文件展示、跨文档召回和删除一致性。 ## 推荐入库顺序 1. 项目总览； 2. 架构与技术选型； 3. 数据模型与版本机制； 4. …"
+    }, {
+      "rank" : 3,
+      "fileName" : "06-开发过程与提交时间线.md",
+      "chunkIndex" : 2,
+      "score" : 0.3207226063813578,
+      "contentPreview" : "OOL_RESULT，再发起最终 MODEL_CALL；上海、北京和伦敦时区都得到结果，同一时区的后续问题还体现了模型按上下文判断无需重复调用。因此真实供应商的工具协议兼容性不再只依赖 mock。 ## 第七阶段：参数绑定的高风险审批 2026-09-05 在低风险链路验证后增加 Flyway V4、ApprovalRequest 和 HIGH/WRITE 的 write_workspace_note。该工具只能在 `data/tool-workspace` 下新建 `.md…"
+    }, {
+      "rank" : 4,
+      "fileName" : "01-项目总览与业务目标.md",
+      "chunkIndex" : 0,
+      "score" : 0.30939980826502783,
+      "contentPreview" : "# Agent Studio Desktop：项目总览与业务目标 ## 一句话定位 Agent Studio Desktop 是一个运行在个人电脑上的智能体搭建与调试工具。用户不需要修改 Java 代码，就能配置 OpenAI 兼容模型、系统提示词和知识库，发布一个固定版本的 Agent，并在本地网页中流式对话、查看检索来源。 它不是公网 SaaS，也不是高并发多租户平台。产品的核心价值是让“模型连接、提示词、知识和版本”变成可配置资产，同时让本地开发环境简单、过程可观察、结…"
+    }, {
+      "rank" : 5,
+      "fileName" : "06-开发过程与提交时间线.md",
+      "chunkIndex" : 0,
+      "score" : 0.3058794602014607,
+      "contentPreview" : "# Agent Studio Desktop：开发过程与提交时间线 ## 阶段 0：独立工程基线 第一个提交是 `de8dd90 chore: establish agent studio desktop baseline`。这一阶段建立独立 Git 仓库、Spring Boot 单体、React + TypeScript + Vite 前端、Docker Compose、健康检查、README、架构决策和来源边界记录。 实际环境确认 Maven 使用 Java 21.0.4…"
+    } ]
+  }, {
+    "id" : "rag-013",
+    "category" : "basic_fact",
+    "variant" : "paraphrase",
+    "question" : "我想在本机放行防火墙，浏览器、Java 服务和两套数据库分别监听什么端口？",
+    "answerable" : true,
+    "expectedSources" : [ "02-架构设计与技术选型.md", "06-开发过程与提交时间线.md" ],
+    "firstRelevantRank" : 0,
+    "hitAt5" : false,
+    "falsePositive" : false,
+    "latencyMs" : 0.187,
+    "returnedSources" : [ "07-真实故障与排查复盘.md", "09-安全边界局限与路线图.md" ],
+    "hits" : [ {
+      "rank" : 1,
+      "fileName" : "07-真实故障与排查复盘.md",
+      "chunkIndex" : 0,
+      "score" : 0.3199706875189935,
+      "contentPreview" : "# Agent Studio Desktop：真实故障与排查复盘 ## 故障一：MySQL 端口连续冲突 现象是 Docker 报 `bind: Only one usage of each socket address` 或 `port is already allocated`。3306 被占用后改到 13306仍冲突，最终选择 23306。 根因不是容器内 MySQL 启动失败，而是 Windows 宿主机端口已经被其他进程或容器占用。修复是在 Compose 中只修改…"
+    }, {
+      "rank" : 2,
+      "fileName" : "07-真实故障与排查复盘.md",
+      "chunkIndex" : 1,
+      "score" : 0.27972558482408727,
+      "contentPreview" : "SQL，业务 `NamedParameterJdbcTemplate` 仍可能连到 PostgreSQL。表现为向 PostgreSQL 执行 `INSERT knowledge_base` 或查询 `model_profile`，然后报 relation does not exist。 根因是 Spring 容器里同时存在多个 DataSource 和 JdbcTemplate，而业务仓储没有足够明确的限定。修复包括：创建带 `@Primary` 和 `@FlywayDat…"
+    }, {
+      "rank" : 3,
+      "fileName" : "09-安全边界局限与路线图.md",
+      "chunkIndex" : 1,
+      "score" : 0.274943906760154,
+      "contentPreview" : "段继续无边界调参。 第二优先级原本是 Tool 与显式 ReAct，其中低风险第一阶段已完成：模型只提出 tool call，执行经过 ToolRegistry；AgentRun/RunStep、最大轮数、单轮调用数和单工具超时已经落地。仍需补总运行超时、主动取消、崩溃恢复、通用 Schema 校验和更多只读工具。 第三优先级的最小安全审批已经完成：HIGH 请求生成 ApprovalRequest，绑定 runId、toolCallId、工具名、原始参数、参数哈希、过期时间…"
+    }, {
+      "rank" : 4,
+      "fileName" : "09-安全边界局限与路线图.md",
+      "chunkIndex" : 0,
+      "score" : 0.2745428071889102,
+      "contentPreview" : "# Agent Studio Desktop：安全边界、当前局限与路线图 ## 已有安全边界 模型密钥不进入数据库和 Git，ModelProfile 只保存环境变量名称。后端在模型调用时读取启动进程环境。文件保存路径经过绝对化、规范化和 dataRoot 前缀检查，避免通过文件名写出授权目录。上传大小限制为 20 MB，API 请求使用校验注解，外部模型错误文本会截断。 AgentVersion 不可变，会话固定绑定版本，减少运行中配置漂移。知识库检索按 knowledge…"
+    }, {
+      "rank" : 5,
+      "fileName" : "07-真实故障与排查复盘.md",
+      "chunkIndex" : 2,
+      "score" : 0.2722222488441421,
+      "contentPreview" : "struction-aware 模型的常见建议，为每个问题添加统一中文任务说明。复测后 Recall 没变，但 MRR 降到 0.6917，相关文档更常排在后面。 这不是接口或维度错误，而是提示前缀改变了向量空间中的查询表达。修复是保留 queryInstruction 配置能力但默认置空，并重新运行同一冻结题集，MRR 恢复到 0.8160。知识包扩充后又在新语料上复测，仍采用无前缀方案。经验是 embedding 的 prompt 必须在本领域语料上做消融，而且语料变更后…"
+    } ]
+  }, {
+    "id" : "rag-014",
+    "category" : "basic_fact",
+    "variant" : "paraphrase",
+    "question" : "长文被拆成片段时，期望长度、硬上限、相邻片段重复范围和断句规则分别怎样？",
+    "answerable" : true,
+    "expectedSources" : [ "05-RAG全链路与检索算法.md" ],
+    "firstRelevantRank" : 1,
+    "hitAt5" : true,
+    "falsePositive" : false,
+    "latencyMs" : 0.2053,
+    "returnedSources" : [ "05-RAG全链路与检索算法.md", "02-架构设计与技术选型.md", "09-安全边界局限与路线图.md", "01-项目总览与业务目标.md", "08-测试策略与验收证据.md" ],
+    "hits" : [ {
+      "rank" : 1,
+      "fileName" : "05-RAG全链路与检索算法.md",
+      "chunkIndex" : 1,
+      "score" : 0.2914270954212979,
+      "contentPreview" : "1 - cosine distance`。新模型的 0.05 仅保留现有召回行为，不代表有效拒答阈值。 检索结果一方面通过 SSE `sources` 发送给前端，另一方面拼成系统上下文注入模型。这样用户能看到证据，模型也能据此作答。 ## 删除闭环 删除文档时先删除 pgvector 中对应 documentId 的 chunk，再删除 MySQL 文档元数据，最后删除本地文件。验收时确认删除后文档列表为空、本地文件不存在，并且再次提问不再出现 sources；随后重新上传…"
+    }, {
+      "rank" : 2,
+      "fileName" : "02-架构设计与技术选型.md",
+      "chunkIndex" : 0,
+      "score" : 0.25795864572506333,
+      "contentPreview" : "# Agent Studio Desktop：架构设计与技术选型 ## 模块化单体 项目选择“Spring Boot 模块化单体 + 独立 React 前端 + 两个数据库容器”。后端只有一个 Maven 工程，通过 `agent`、`model`、`conversation`、`knowledge`、`system` 等 Java package 隔离职责。 这个选择针对的是单机开发工具场景。微服务会引入服务发现、网络调用、分布式事务、部署和日志聚合成本，而当前用户只有一个…"
+    }, {
+      "rank" : 3,
+      "fileName" : "09-安全边界局限与路线图.md",
+      "chunkIndex" : 0,
+      "score" : 0.25582397742580304,
+      "contentPreview" : "# Agent Studio Desktop：安全边界、当前局限与路线图 ## 已有安全边界 模型密钥不进入数据库和 Git，ModelProfile 只保存环境变量名称。后端在模型调用时读取启动进程环境。文件保存路径经过绝对化、规范化和 dataRoot 前缀检查，避免通过文件名写出授权目录。上传大小限制为 20 MB，API 请求使用校验注解，外部模型错误文本会截断。 AgentVersion 不可变，会话固定绑定版本，减少运行中配置漂移。知识库检索按 knowledge…"
+    }, {
+      "rank" : 4,
+      "fileName" : "01-项目总览与业务目标.md",
+      "chunkIndex" : 0,
+      "score" : 0.25158563342922985,
+      "contentPreview" : "# Agent Studio Desktop：项目总览与业务目标 ## 一句话定位 Agent Studio Desktop 是一个运行在个人电脑上的智能体搭建与调试工具。用户不需要修改 Java 代码，就能配置 OpenAI 兼容模型、系统提示词和知识库，发布一个固定版本的 Agent，并在本地网页中流式对话、查看检索来源。 它不是公网 SaaS，也不是高并发多租户平台。产品的核心价值是让“模型连接、提示词、知识和版本”变成可配置资产，同时让本地开发环境简单、过程可观察、结…"
+    }, {
+      "rank" : 5,
+      "fileName" : "08-测试策略与验收证据.md",
+      "chunkIndex" : 1,
+      "score" : 0.24688954569720176,
+      "contentPreview" : "染。 ## 真实环境验证 Docker Desktop 中 MySQL 为 23306，pgvector 为 15432，二者均 healthy。Spring Boot 连接 MySQL 8.4，Flyway V1 至 V4 执行成功。VectorPool 连接 PostgreSQL 并初始化版本化 chunk 表；旧表有 HNSW，新 Qwen 小语料表采用精确 cosine。 DeepSeek 真实调用验证了 OpenAI 兼容请求和中文 SSE 增量，最终收到 done…"
+    } ]
+  }, {
+    "id" : "rag-015",
+    "category" : "basic_fact",
+    "variant" : "paraphrase",
+    "question" : "现在能让模型循环调用远程终端工具，并在危险操作前等待批准吗？",
+    "answerable" : true,
+    "expectedSources" : [ "00-入库说明与事实口径.md", "01-项目总览与业务目标.md", "09-安全边界局限与路线图.md" ],
+    "firstRelevantRank" : 1,
+    "hitAt5" : true,
+    "falsePositive" : false,
+    "latencyMs" : 0.1961,
+    "returnedSources" : [ "09-安全边界局限与路线图.md", "04-模型调用与SSE流式对话.md", "10-面试讲述与追问准备.md", "06-开发过程与提交时间线.md" ],
+    "hits" : [ {
+      "rank" : 1,
+      "fileName" : "09-安全边界局限与路线图.md",
+      "chunkIndex" : 1,
+      "score" : 0.25678590113455235,
+      "contentPreview" : "段继续无边界调参。 第二优先级原本是 Tool 与显式 ReAct，其中低风险第一阶段已完成：模型只提出 tool call，执行经过 ToolRegistry；AgentRun/RunStep、最大轮数、单轮调用数和单工具超时已经落地。仍需补总运行超时、主动取消、崩溃恢复、通用 Schema 校验和更多只读工具。 第三优先级的最小安全审批已经完成：HIGH 请求生成 ApprovalRequest，绑定 runId、toolCallId、工具名、原始参数、参数哈希、过期时间…"
+    }, {
+      "rank" : 2,
+      "fileName" : "04-模型调用与SSE流式对话.md",
+      "chunkIndex" : 1,
+      "score" : 0.2510354537527946,
+      "contentPreview" : "源文件和 chunk。 模型完整回答会在流结束后以 assistant 消息写入 MySQL。若模型中途失败，当前实现不会保存不完整 assistant 文本。SSE emitter 超时为 120 秒，HTTP 模型请求也设置 120 秒超时。 绑定工具时使用非流式 Chat Completions 获取一轮完整的 assistant 消息和 tool_calls。平台执行已绑定工具，把 Observation 加入消息后再次调用模型，直到得到最终文本或达到最大轮数。每一轮…"
+    }, {
+      "rank" : 3,
+      "fileName" : "10-面试讲述与追问准备.md",
+      "chunkIndex" : 2,
+      "score" : 0.24627029494721883,
+      "contentPreview" : "重放。ApprovalRequest 保存规范化的原始参数和 SHA-256，执行前用同一哈希原子消费 APPROVED 状态；这样批准的是用户看到的这一次具体调用，而不是对工具的永久放行。 问：高风险审批已经等于安全平台了吗？答：不是。当前证明的是单机环境中的参数绑定、拒绝、过期和一次性消费；还没有登录身份、RBAC、策略引擎、跨重启等待恢复和远程执行隔离，不能夸大成企业级治理。 问：工具版为什么不是逐 token 流式？答：每轮必须先得到完整 tool_calls 才能安…"
+    }, {
+      "rank" : 4,
+      "fileName" : "06-开发过程与提交时间线.md",
+      "chunkIndex" : 1,
+      "score" : 0.24462733808632384,
+      "contentPreview" : "al workflow`。新增 Flyway V2、知识库与文档元数据、Tika 解析、文本切分、本地 384 维词法向量、pgvector 表和 HNSW 索引、知识库绑定、sources SSE 事件，以及前端知识库页面和来源展示。 真实验收创建了“科研助手验收库”和“科研知识助手”。示例 Markdown 上传后状态 READY，对话返回来源文件、chunk 0 和相似度。删除测试确认 MySQL 元数据、本地文件和向量检索结果同时消失，重新上传后恢复。 ## 开发方法…"
+    }, {
+      "rank" : 5,
+      "fileName" : "04-模型调用与SSE流式对话.md",
+      "chunkIndex" : 0,
+      "score" : 0.2408594285028066,
+      "contentPreview" : "# Agent Studio Desktop：模型调用与 SSE 流式对话 ## OpenAI 兼容适配 项目没有直接绑定某个厂商 SDK，而是使用 Java `HttpClient` 调用 OpenAI Chat Completions 兼容接口。网关从 AgentVersion 读取 baseUrl、modelName、temperature 和 apiKeyEnv。如果 baseUrl 没有以 `/chat/completions` 结束，网关自动补齐路径。 请求体包含…"
+    } ]
+  }, {
+    "id" : "rag-016",
+    "category" : "principle",
+    "variant" : "paraphrase",
+    "question" : "管理员后来改了模型地址和温度，为何旧会话的运行含义仍能复现？",
+    "answerable" : true,
+    "expectedSources" : [ "03-数据模型与不可变版本.md" ],
+    "firstRelevantRank" : 1,
+    "hitAt5" : true,
+    "falsePositive" : false,
+    "latencyMs" : 0.1596,
+    "returnedSources" : [ "03-数据模型与不可变版本.md", "01-项目总览与业务目标.md", "06-开发过程与提交时间线.md", "10-面试讲述与追问准备.md" ],
+    "hits" : [ {
+      "rank" : 1,
+      "fileName" : "03-数据模型与不可变版本.md",
+      "chunkIndex" : 1,
+      "score" : 0.2686076167974784,
+      "contentPreview" : "nowledgeBase` 是知识容器。`KnowledgeDocument` 保存文件名、媒体类型、大小、SHA-256、本地路径、处理状态、chunk 数、失败原因和时间。旧向量表 `knowledge_chunk` 保存 384 维 LocalHash；新表 `knowledge_chunk_v2` 保存 1024 维 Qwen 向量，并增加 embeddingModel 和 embeddingVersion。两代索引隔离，不能把不同模型或维度的数据混在一次距离计算中。…"
+    }, {
+      "rank" : 2,
+      "fileName" : "01-项目总览与业务目标.md",
+      "chunkIndex" : 0,
+      "score" : 0.259732705789412,
+      "contentPreview" : "# Agent Studio Desktop：项目总览与业务目标 ## 一句话定位 Agent Studio Desktop 是一个运行在个人电脑上的智能体搭建与调试工具。用户不需要修改 Java 代码，就能配置 OpenAI 兼容模型、系统提示词和知识库，发布一个固定版本的 Agent，并在本地网页中流式对话、查看检索来源。 它不是公网 SaaS，也不是高并发多租户平台。产品的核心价值是让“模型连接、提示词、知识和版本”变成可配置资产，同时让本地开发环境简单、过程可观察、结…"
+    }, {
+      "rank" : 3,
+      "fileName" : "06-开发过程与提交时间线.md",
+      "chunkIndex" : 1,
+      "score" : 0.24449769324282394,
+      "contentPreview" : "al workflow`。新增 Flyway V2、知识库与文档元数据、Tika 解析、文本切分、本地 384 维词法向量、pgvector 表和 HNSW 索引、知识库绑定、sources SSE 事件，以及前端知识库页面和来源展示。 真实验收创建了“科研助手验收库”和“科研知识助手”。示例 Markdown 上传后状态 READY，对话返回来源文件、chunk 0 和相似度。删除测试确认 MySQL 元数据、本地文件和向量检索结果同时消失，重新上传后恢复。 ## 开发方法…"
+    }, {
+      "rank" : 4,
+      "fileName" : "10-面试讲述与追问准备.md",
+      "chunkIndex" : 0,
+      "score" : 0.24237078543003976,
+      "contentPreview" : "# Agent Studio Desktop：面试讲述与追问准备 ## 90 秒项目介绍 我主导做了一个单机优先的智能体搭建工具 Agent Studio Desktop，目标是让用户不改 Java 代码，就能配置 OpenAI 兼容模型、提示词和知识库，发布固定版本的 Agent，并在网页上做流式问答和查看引用来源。后端采用 Java 21 和 Spring Boot 模块化单体，前端是 React + TypeScript，MySQL 保存业务配置，PostgreSQL …"
+    }, {
+      "rank" : 5,
+      "fileName" : "10-面试讲述与追问准备.md",
+      "chunkIndex" : 2,
+      "score" : 0.24130979023057464,
+      "contentPreview" : "重放。ApprovalRequest 保存规范化的原始参数和 SHA-256，执行前用同一哈希原子消费 APPROVED 状态；这样批准的是用户看到的这一次具体调用，而不是对工具的永久放行。 问：高风险审批已经等于安全平台了吗？答：不是。当前证明的是单机环境中的参数绑定、拒绝、过期和一次性消费；还没有登录身份、RBAC、策略引擎、跨重启等待恢复和远程执行隔离，不能夸大成企业级治理。 问：工具版为什么不是逐 token 流式？答：每轮必须先得到完整 tool_calls 才能安…"
+    } ]
+  }, {
+    "id" : "rag-017",
+    "category" : "principle",
+    "variant" : "paraphrase",
+    "question" : "页面已经列出命中文档，随后对话却失败，这两个现象为什么不矛盾？",
+    "answerable" : true,
+    "expectedSources" : [ "04-模型调用与SSE流式对话.md", "07-真实故障与排查复盘.md" ],
+    "firstRelevantRank" : 1,
+    "hitAt5" : true,
+    "falsePositive" : false,
+    "latencyMs" : 0.0957,
+    "returnedSources" : [ "04-模型调用与SSE流式对话.md", "05-RAG全链路与检索算法.md", "06-开发过程与提交时间线.md", "03-数据模型与不可变版本.md" ],
+    "hits" : [ {
+      "rank" : 1,
+      "fileName" : "04-模型调用与SSE流式对话.md",
+      "chunkIndex" : 0,
+      "score" : 0.31506017678507436,
+      "contentPreview" : "# Agent Studio Desktop：模型调用与 SSE 流式对话 ## OpenAI 兼容适配 项目没有直接绑定某个厂商 SDK，而是使用 Java `HttpClient` 调用 OpenAI Chat Completions 兼容接口。网关从 AgentVersion 读取 baseUrl、modelName、temperature 和 apiKeyEnv。如果 baseUrl 没有以 `/chat/completions` 结束，网关自动补齐路径。 请求体包含…"
+    }, {
+      "rank" : 2,
+      "fileName" : "05-RAG全链路与检索算法.md",
+      "chunkIndex" : 0,
+      "score" : 0.3046692865945515,
+      "contentPreview" : "# Agent Studio Desktop：RAG 全链路与检索算法 ## 上传和元数据 用户在前端选择知识库并上传文档，单文件上限 20 MB。后端先校验知识库和非空文件，清理文件名，读取字节，计算 SHA-256，然后把文件写入 `data/knowledge/{knowledgeBaseId}/{documentId}.{extension}`。所有路径都会归一化并检查必须位于 dataRoot 下，防止路径越界。 MySQL 文档记录最初是 PROCESSING。解…"
+    }, {
+      "rank" : 3,
+      "fileName" : "06-开发过程与提交时间线.md",
+      "chunkIndex" : 0,
+      "score" : 0.2917754593598682,
+      "contentPreview" : "# Agent Studio Desktop：开发过程与提交时间线 ## 阶段 0：独立工程基线 第一个提交是 `de8dd90 chore: establish agent studio desktop baseline`。这一阶段建立独立 Git 仓库、Spring Boot 单体、React + TypeScript + Vite 前端、Docker Compose、健康检查、README、架构决策和来源边界记录。 实际环境确认 Maven 使用 Java 21.0.4…"
+    }, {
+      "rank" : 4,
+      "fileName" : "05-RAG全链路与检索算法.md",
+      "chunkIndex" : 1,
+      "score" : 0.27629789239990005,
+      "contentPreview" : "1 - cosine distance`。新模型的 0.05 仅保留现有召回行为，不代表有效拒答阈值。 检索结果一方面通过 SSE `sources` 发送给前端，另一方面拼成系统上下文注入模型。这样用户能看到证据，模型也能据此作答。 ## 删除闭环 删除文档时先删除 pgvector 中对应 documentId 的 chunk，再删除 MySQL 文档元数据，最后删除本地文件。验收时确认删除后文档列表为空、本地文件不存在，并且再次提问不再出现 sources；随后重新上传…"
+    }, {
+      "rank" : 5,
+      "fileName" : "03-数据模型与不可变版本.md",
+      "chunkIndex" : 1,
+      "score" : 0.2749526794549157,
+      "contentPreview" : "nowledgeBase` 是知识容器。`KnowledgeDocument` 保存文件名、媒体类型、大小、SHA-256、本地路径、处理状态、chunk 数、失败原因和时间。旧向量表 `knowledge_chunk` 保存 384 维 LocalHash；新表 `knowledge_chunk_v2` 保存 1024 维 Qwen 向量，并增加 embeddingModel 和 embeddingVersion。两代索引隔离，不能把不同模型或维度的数据混在一次距离计算中。…"
+    } ]
+  }, {
+    "id" : "rag-018",
+    "category" : "principle",
+    "variant" : "paraphrase",
+    "question" : "不联网也能生成检索表示的方案带来了什么便利，又牺牲了哪些跨措辞能力？",
+    "answerable" : true,
+    "expectedSources" : [ "05-RAG全链路与检索算法.md", "01-项目总览与业务目标.md", "10-面试讲述与追问准备.md" ],
+    "firstRelevantRank" : 3,
+    "hitAt5" : true,
+    "falsePositive" : false,
+    "latencyMs" : 0.1394,
+    "returnedSources" : [ "07-真实故障与排查复盘.md", "06-开发过程与提交时间线.md", "10-面试讲述与追问准备.md", "09-安全边界局限与路线图.md", "02-架构设计与技术选型.md" ],
+    "hits" : [ {
+      "rank" : 1,
+      "fileName" : "07-真实故障与排查复盘.md",
+      "chunkIndex" : 0,
+      "score" : 0.3365867515316532,
+      "contentPreview" : "# Agent Studio Desktop：真实故障与排查复盘 ## 故障一：MySQL 端口连续冲突 现象是 Docker 报 `bind: Only one usage of each socket address` 或 `port is already allocated`。3306 被占用后改到 13306仍冲突，最终选择 23306。 根因不是容器内 MySQL 启动失败，而是 Windows 宿主机端口已经被其他进程或容器占用。修复是在 Compose 中只修改…"
+    }, {
+      "rank" : 2,
+      "fileName" : "06-开发过程与提交时间线.md",
+      "chunkIndex" : 0,
+      "score" : 0.2990047707523294,
+      "contentPreview" : "# Agent Studio Desktop：开发过程与提交时间线 ## 阶段 0：独立工程基线 第一个提交是 `de8dd90 chore: establish agent studio desktop baseline`。这一阶段建立独立 Git 仓库、Spring Boot 单体、React + TypeScript + Vite 前端、Docker Compose、健康检查、README、架构决策和来源边界记录。 实际环境确认 Maven 使用 Java 21.0.4…"
+    }, {
+      "rank" : 3,
+      "fileName" : "10-面试讲述与追问准备.md",
+      "chunkIndex" : 2,
+      "score" : 0.2885161406660021,
+      "contentPreview" : "重放。ApprovalRequest 保存规范化的原始参数和 SHA-256，执行前用同一哈希原子消费 APPROVED 状态；这样批准的是用户看到的这一次具体调用，而不是对工具的永久放行。 问：高风险审批已经等于安全平台了吗？答：不是。当前证明的是单机环境中的参数绑定、拒绝、过期和一次性消费；还没有登录身份、RBAC、策略引擎、跨重启等待恢复和远程执行隔离，不能夸大成企业级治理。 问：工具版为什么不是逐 token 流式？答：每轮必须先得到完整 tool_calls 才能安…"
+    }, {
+      "rank" : 4,
+      "fileName" : "09-安全边界局限与路线图.md",
+      "chunkIndex" : 1,
+      "score" : 0.2849614166134207,
+      "contentPreview" : "段继续无边界调参。 第二优先级原本是 Tool 与显式 ReAct，其中低风险第一阶段已完成：模型只提出 tool call，执行经过 ToolRegistry；AgentRun/RunStep、最大轮数、单轮调用数和单工具超时已经落地。仍需补总运行超时、主动取消、崩溃恢复、通用 Schema 校验和更多只读工具。 第三优先级的最小安全审批已经完成：HIGH 请求生成 ApprovalRequest，绑定 runId、toolCallId、工具名、原始参数、参数哈希、过期时间…"
+    }, {
+      "rank" : 5,
+      "fileName" : "02-架构设计与技术选型.md",
+      "chunkIndex" : 0,
+      "score" : 0.28369000043628867,
+      "contentPreview" : "# Agent Studio Desktop：架构设计与技术选型 ## 模块化单体 项目选择“Spring Boot 模块化单体 + 独立 React 前端 + 两个数据库容器”。后端只有一个 Maven 工程，通过 `agent`、`model`、`conversation`、`knowledge`、`system` 等 Java package 隔离职责。 这个选择针对的是单机开发工具场景。微服务会引入服务发现、网络调用、分布式事务、部署和日志聚合成本，而当前用户只有一个…"
+    } ]
+  }, {
+    "id" : "rag-019",
+    "category" : "diagnosis",
+    "variant" : "paraphrase",
+    "question" : "数据库镜像已经创建却没有健康运行，而且 Windows 提示地址被占用，排查重点在哪里？",
+    "answerable" : true,
+    "expectedSources" : [ "07-真实故障与排查复盘.md", "06-开发过程与提交时间线.md" ],
+    "firstRelevantRank" : 2,
+    "hitAt5" : true,
+    "falsePositive" : false,
+    "latencyMs" : 0.149,
+    "returnedSources" : [ "10-面试讲述与追问准备.md", "07-真实故障与排查复盘.md", "01-项目总览与业务目标.md" ],
+    "hits" : [ {
+      "rank" : 1,
+      "fileName" : "10-面试讲述与追问准备.md",
+      "chunkIndex" : 2,
+      "score" : 0.3283977588736113,
+      "contentPreview" : "重放。ApprovalRequest 保存规范化的原始参数和 SHA-256，执行前用同一哈希原子消费 APPROVED 状态；这样批准的是用户看到的这一次具体调用，而不是对工具的永久放行。 问：高风险审批已经等于安全平台了吗？答：不是。当前证明的是单机环境中的参数绑定、拒绝、过期和一次性消费；还没有登录身份、RBAC、策略引擎、跨重启等待恢复和远程执行隔离，不能夸大成企业级治理。 问：工具版为什么不是逐 token 流式？答：每轮必须先得到完整 tool_calls 才能安…"
+    }, {
+      "rank" : 2,
+      "fileName" : "07-真实故障与排查复盘.md",
+      "chunkIndex" : 0,
+      "score" : 0.31135250442439205,
+      "contentPreview" : "# Agent Studio Desktop：真实故障与排查复盘 ## 故障一：MySQL 端口连续冲突 现象是 Docker 报 `bind: Only one usage of each socket address` 或 `port is already allocated`。3306 被占用后改到 13306仍冲突，最终选择 23306。 根因不是容器内 MySQL 启动失败，而是 Windows 宿主机端口已经被其他进程或容器占用。修复是在 Compose 中只修改…"
+    }, {
+      "rank" : 3,
+      "fileName" : "07-真实故障与排查复盘.md",
+      "chunkIndex" : 2,
+      "score" : 0.29742483963868854,
+      "contentPreview" : "struction-aware 模型的常见建议，为每个问题添加统一中文任务说明。复测后 Recall 没变，但 MRR 降到 0.6917，相关文档更常排在后面。 这不是接口或维度错误，而是提示前缀改变了向量空间中的查询表达。修复是保留 queryInstruction 配置能力但默认置空，并重新运行同一冻结题集，MRR 恢复到 0.8160。知识包扩充后又在新语料上复测，仍采用无前缀方案。经验是 embedding 的 prompt 必须在本领域语料上做消融，而且语料变更后…"
+    }, {
+      "rank" : 4,
+      "fileName" : "01-项目总览与业务目标.md",
+      "chunkIndex" : 0,
+      "score" : 0.2941459186212341,
+      "contentPreview" : "# Agent Studio Desktop：项目总览与业务目标 ## 一句话定位 Agent Studio Desktop 是一个运行在个人电脑上的智能体搭建与调试工具。用户不需要修改 Java 代码，就能配置 OpenAI 兼容模型、系统提示词和知识库，发布一个固定版本的 Agent，并在本地网页中流式对话、查看检索来源。 它不是公网 SaaS，也不是高并发多租户平台。产品的核心价值是让“模型连接、提示词、知识和版本”变成可配置资产，同时让本地开发环境简单、过程可观察、结…"
+    }, {
+      "rank" : 5,
+      "fileName" : "10-面试讲述与追问准备.md",
+      "chunkIndex" : 0,
+      "score" : 0.29121157808013737,
+      "contentPreview" : "# Agent Studio Desktop：面试讲述与追问准备 ## 90 秒项目介绍 我主导做了一个单机优先的智能体搭建工具 Agent Studio Desktop，目标是让用户不改 Java 代码，就能配置 OpenAI 兼容模型、提示词和知识库，发布固定版本的 Agent，并在网页上做流式问答和查看引用来源。后端采用 Java 21 和 Spring Boot 模块化单体，前端是 React + TypeScript，MySQL 保存业务配置，PostgreSQL …"
+    } ]
+  }, {
+    "id" : "rag-020",
+    "category" : "diagnosis",
+    "variant" : "paraphrase",
+    "question" : "业务表明明迁移成功，请求却落到了向量库，Spring 的注入边界应如何收紧？",
+    "answerable" : true,
+    "expectedSources" : [ "07-真实故障与排查复盘.md", "10-面试讲述与追问准备.md" ],
+    "firstRelevantRank" : 2,
+    "hitAt5" : true,
+    "falsePositive" : false,
+    "latencyMs" : 0.1739,
+    "returnedSources" : [ "01-项目总览与业务目标.md", "07-真实故障与排查复盘.md", "02-架构设计与技术选型.md", "10-面试讲述与追问准备.md" ],
+    "hits" : [ {
+      "rank" : 1,
+      "fileName" : "01-项目总览与业务目标.md",
+      "chunkIndex" : 0,
+      "score" : 0.32604035480464805,
+      "contentPreview" : "# Agent Studio Desktop：项目总览与业务目标 ## 一句话定位 Agent Studio Desktop 是一个运行在个人电脑上的智能体搭建与调试工具。用户不需要修改 Java 代码，就能配置 OpenAI 兼容模型、系统提示词和知识库，发布一个固定版本的 Agent，并在本地网页中流式对话、查看检索来源。 它不是公网 SaaS，也不是高并发多租户平台。产品的核心价值是让“模型连接、提示词、知识和版本”变成可配置资产，同时让本地开发环境简单、过程可观察、结…"
+    }, {
+      "rank" : 2,
+      "fileName" : "07-真实故障与排查复盘.md",
+      "chunkIndex" : 0,
+      "score" : 0.3082548064330533,
+      "contentPreview" : "# Agent Studio Desktop：真实故障与排查复盘 ## 故障一：MySQL 端口连续冲突 现象是 Docker 报 `bind: Only one usage of each socket address` 或 `port is already allocated`。3306 被占用后改到 13306仍冲突，最终选择 23306。 根因不是容器内 MySQL 启动失败，而是 Windows 宿主机端口已经被其他进程或容器占用。修复是在 Compose 中只修改…"
+    }, {
+      "rank" : 3,
+      "fileName" : "02-架构设计与技术选型.md",
+      "chunkIndex" : 0,
+      "score" : 0.30481716802307696,
+      "contentPreview" : "# Agent Studio Desktop：架构设计与技术选型 ## 模块化单体 项目选择“Spring Boot 模块化单体 + 独立 React 前端 + 两个数据库容器”。后端只有一个 Maven 工程，通过 `agent`、`model`、`conversation`、`knowledge`、`system` 等 Java package 隔离职责。 这个选择针对的是单机开发工具场景。微服务会引入服务发现、网络调用、分布式事务、部署和日志聚合成本，而当前用户只有一个…"
+    }, {
+      "rank" : 4,
+      "fileName" : "10-面试讲述与追问准备.md",
+      "chunkIndex" : 0,
+      "score" : 0.3042460656070986,
+      "contentPreview" : "# Agent Studio Desktop：面试讲述与追问准备 ## 90 秒项目介绍 我主导做了一个单机优先的智能体搭建工具 Agent Studio Desktop，目标是让用户不改 Java 代码，就能配置 OpenAI 兼容模型、提示词和知识库，发布固定版本的 Agent，并在网页上做流式问答和查看引用来源。后端采用 Java 21 和 Spring Boot 模块化单体，前端是 React + TypeScript，MySQL 保存业务配置，PostgreSQL …"
+    }, {
+      "rank" : 5,
+      "fileName" : "10-面试讲述与追问准备.md",
+      "chunkIndex" : 1,
+      "score" : 0.2953815282273959,
+      "contentPreview" : "A-256 且只能消费一次，拒绝或超时不执行。SSH、Coding、身份与跨重启恢复仍如实保留为后续。 ## STAR 故事：双数据源问题 情境：加入 pgvector 后，应用同时有 MySQL 和 PostgreSQL 两个数据源。任务：让 Flyway 只迁移 MySQL，业务 CRUD 使用 MySQL，向量读写只使用 PostgreSQL。 行动：我根据异常中的 `relation does not exist` 和连接池日志定位到自动装配选错连接，而不是表迁移缺失…"
+    } ]
+  }, {
+    "id" : "rag-021",
+    "category" : "design",
+    "variant" : "paraphrase",
+    "question" : "把词面指纹换成神经网络表征时，怎样避免旧数据与新数据悄悄混用？",
+    "answerable" : true,
+    "expectedSources" : [ "05-RAG全链路与检索算法.md", "09-安全边界局限与路线图.md" ],
+    "firstRelevantRank" : 0,
+    "hitAt5" : false,
+    "falsePositive" : false,
+    "latencyMs" : 0.1831,
+    "returnedSources" : [ "00-入库说明与事实口径.md", "06-开发过程与提交时间线.md", "10-面试讲述与追问准备.md", "01-项目总览与业务目标.md", "02-架构设计与技术选型.md" ],
+    "hits" : [ {
+      "rank" : 1,
+      "fileName" : "00-入库说明与事实口径.md",
+      "chunkIndex" : 1,
+      "score" : 0.25511456366599394,
+      "contentPreview" : "用治理，不能描述成企业级审批平台。 项目参考过 ai-rag、WaLiSSH 和 WaLiCode 的思路，但新工程在独立 Git 仓库中从骨架开始建设，没有把来源项目整包复制过来。可强调的成果是架构取舍、版本隔离、双数据库边界、RAG 闭环、真实排障和可验证证据，不应把来源项目代码或框架能力描述为个人原创。 ## 面试使用原则 理解每个“为什么”比背诵类名更重要。推荐使用“我主导了需求收敛、架构取舍、环境配置、验收和问题闭环，并使用 AI 编程助手加速实现”的真实口径。若面…"
+    }, {
+      "rank" : 2,
+      "fileName" : "06-开发过程与提交时间线.md",
+      "chunkIndex" : 2,
+      "score" : 0.2539542556428024,
+      "contentPreview" : "OOL_RESULT，再发起最终 MODEL_CALL；上海、北京和伦敦时区都得到结果，同一时区的后续问题还体现了模型按上下文判断无需重复调用。因此真实供应商的工具协议兼容性不再只依赖 mock。 ## 第七阶段：参数绑定的高风险审批 2026-09-05 在低风险链路验证后增加 Flyway V4、ApprovalRequest 和 HIGH/WRITE 的 write_workspace_note。该工具只能在 `data/tool-workspace` 下新建 `.md…"
+    }, {
+      "rank" : 3,
+      "fileName" : "10-面试讲述与追问准备.md",
+      "chunkIndex" : 0,
+      "score" : 0.24775123370804691,
+      "contentPreview" : "# Agent Studio Desktop：面试讲述与追问准备 ## 90 秒项目介绍 我主导做了一个单机优先的智能体搭建工具 Agent Studio Desktop，目标是让用户不改 Java 代码，就能配置 OpenAI 兼容模型、提示词和知识库，发布固定版本的 Agent，并在网页上做流式问答和查看引用来源。后端采用 Java 21 和 Spring Boot 模块化单体，前端是 React + TypeScript，MySQL 保存业务配置，PostgreSQL …"
+    }, {
+      "rank" : 4,
+      "fileName" : "01-项目总览与业务目标.md",
+      "chunkIndex" : 0,
+      "score" : 0.24738534674808385,
+      "contentPreview" : "# Agent Studio Desktop：项目总览与业务目标 ## 一句话定位 Agent Studio Desktop 是一个运行在个人电脑上的智能体搭建与调试工具。用户不需要修改 Java 代码，就能配置 OpenAI 兼容模型、系统提示词和知识库，发布一个固定版本的 Agent，并在本地网页中流式对话、查看检索来源。 它不是公网 SaaS，也不是高并发多租户平台。产品的核心价值是让“模型连接、提示词、知识和版本”变成可配置资产，同时让本地开发环境简单、过程可观察、结…"
+    }, {
+      "rank" : 5,
+      "fileName" : "02-架构设计与技术选型.md",
+      "chunkIndex" : 1,
+      "score" : 0.24083635114438404,
+      "contentPreview" : "024 维向量并写入 `knowledge_chunk_v2`，记录模型和索引版本；旧 384 维表继续保留。知识库升级必须由用户显式触发重建，启动应用不会自动改写索引。 当前 Qwen 表采用精确 cosine 排序，不建立 HNSW 向量索引。原因是当前语料规模很小，近似索引没有性能必要，反而可能牺牲召回。表上只对 knowledgeBaseId 和 embeddingVersion 建范围索引。 ## 为什么不引入 Redis、MQ 和 MinIO 第一版没有缓存规模、…"
+    } ]
+  }, {
+    "id" : "rag-022",
+    "category" : "design",
+    "variant" : "paraphrase",
+    "question" : "一份资料横跨关系记录、磁盘原件和可重建索引，清理到一半失败会留下什么风险？",
+    "answerable" : true,
+    "expectedSources" : [ "02-架构设计与技术选型.md", "05-RAG全链路与检索算法.md", "09-安全边界局限与路线图.md", "10-面试讲述与追问准备.md" ],
+    "firstRelevantRank" : 1,
+    "hitAt5" : true,
+    "falsePositive" : false,
+    "latencyMs" : 0.1708,
+    "returnedSources" : [ "09-安全边界局限与路线图.md", "05-RAG全链路与检索算法.md", "07-真实故障与排查复盘.md", "08-测试策略与验收证据.md", "00-入库说明与事实口径.md" ],
+    "hits" : [ {
+      "rank" : 1,
+      "fileName" : "09-安全边界局限与路线图.md",
+      "chunkIndex" : 1,
+      "score" : 0.27425649353962145,
+      "contentPreview" : "段继续无边界调参。 第二优先级原本是 Tool 与显式 ReAct，其中低风险第一阶段已完成：模型只提出 tool call，执行经过 ToolRegistry；AgentRun/RunStep、最大轮数、单轮调用数和单工具超时已经落地。仍需补总运行超时、主动取消、崩溃恢复、通用 Schema 校验和更多只读工具。 第三优先级的最小安全审批已经完成：HIGH 请求生成 ApprovalRequest，绑定 runId、toolCallId、工具名、原始参数、参数哈希、过期时间…"
+    }, {
+      "rank" : 2,
+      "fileName" : "05-RAG全链路与检索算法.md",
+      "chunkIndex" : 0,
+      "score" : 0.26619278419496556,
+      "contentPreview" : "# Agent Studio Desktop：RAG 全链路与检索算法 ## 上传和元数据 用户在前端选择知识库并上传文档，单文件上限 20 MB。后端先校验知识库和非空文件，清理文件名，读取字节，计算 SHA-256，然后把文件写入 `data/knowledge/{knowledgeBaseId}/{documentId}.{extension}`。所有路径都会归一化并检查必须位于 dataRoot 下，防止路径越界。 MySQL 文档记录最初是 PROCESSING。解…"
+    }, {
+      "rank" : 3,
+      "fileName" : "07-真实故障与排查复盘.md",
+      "chunkIndex" : 0,
+      "score" : 0.2650675530388894,
+      "contentPreview" : "# Agent Studio Desktop：真实故障与排查复盘 ## 故障一：MySQL 端口连续冲突 现象是 Docker 报 `bind: Only one usage of each socket address` 或 `port is already allocated`。3306 被占用后改到 13306仍冲突，最终选择 23306。 根因不是容器内 MySQL 启动失败，而是 Windows 宿主机端口已经被其他进程或容器占用。修复是在 Compose 中只修改…"
+    }, {
+      "rank" : 4,
+      "fileName" : "08-测试策略与验收证据.md",
+      "chunkIndex" : 1,
+      "score" : 0.24651855645080334,
+      "contentPreview" : "染。 ## 真实环境验证 Docker Desktop 中 MySQL 为 23306，pgvector 为 15432，二者均 healthy。Spring Boot 连接 MySQL 8.4，Flyway V1 至 V4 执行成功。VectorPool 连接 PostgreSQL 并初始化版本化 chunk 表；旧表有 HNSW，新 Qwen 小语料表采用精确 cosine。 DeepSeek 真实调用验证了 OpenAI 兼容请求和中文 SSE 增量，最终收到 done…"
+    }, {
+      "rank" : 5,
+      "fileName" : "00-入库说明与事实口径.md",
+      "chunkIndex" : 1,
+      "score" : 0.24560381834632583,
+      "contentPreview" : "用治理，不能描述成企业级审批平台。 项目参考过 ai-rag、WaLiSSH 和 WaLiCode 的思路，但新工程在独立 Git 仓库中从骨架开始建设，没有把来源项目整包复制过来。可强调的成果是架构取舍、版本隔离、双数据库边界、RAG 闭环、真实排障和可验证证据，不应把来源项目代码或框架能力描述为个人原创。 ## 面试使用原则 理解每个“为什么”比背诵类名更重要。推荐使用“我主导了需求收敛、架构取舍、环境配置、验收和问题闭环，并使用 AI 编程助手加速实现”的真实口径。若面…"
+    } ]
+  }, {
+    "id" : "rag-023",
+    "category" : "anti_hallucination",
+    "variant" : "paraphrase",
+    "question" : "它能否作为面向许多企业租户、具备弹性扩容和高可用承诺的线上服务？",
+    "answerable" : true,
+    "expectedSources" : [ "01-项目总览与业务目标.md", "09-安全边界局限与路线图.md" ],
+    "firstRelevantRank" : 4,
+    "hitAt5" : true,
+    "falsePositive" : false,
+    "latencyMs" : 0.1738,
+    "returnedSources" : [ "06-开发过程与提交时间线.md", "08-测试策略与验收证据.md", "09-安全边界局限与路线图.md", "10-面试讲述与追问准备.md" ],
+    "hits" : [ {
+      "rank" : 1,
+      "fileName" : "06-开发过程与提交时间线.md",
+      "chunkIndex" : 1,
+      "score" : 0.2854990211595169,
+      "contentPreview" : "al workflow`。新增 Flyway V2、知识库与文档元数据、Tika 解析、文本切分、本地 384 维词法向量、pgvector 表和 HNSW 索引、知识库绑定、sources SSE 事件，以及前端知识库页面和来源展示。 真实验收创建了“科研助手验收库”和“科研知识助手”。示例 Markdown 上传后状态 READY，对话返回来源文件、chunk 0 和相似度。删除测试确认 MySQL 元数据、本地文件和向量检索结果同时消失，重新上传后恢复。 ## 开发方法…"
+    }, {
+      "rank" : 2,
+      "fileName" : "08-测试策略与验收证据.md",
+      "chunkIndex" : 1,
+      "score" : 0.2576915054671383,
+      "contentPreview" : "染。 ## 真实环境验证 Docker Desktop 中 MySQL 为 23306，pgvector 为 15432，二者均 healthy。Spring Boot 连接 MySQL 8.4，Flyway V1 至 V4 执行成功。VectorPool 连接 PostgreSQL 并初始化版本化 chunk 表；旧表有 HNSW，新 Qwen 小语料表采用精确 cosine。 DeepSeek 真实调用验证了 OpenAI 兼容请求和中文 SSE 增量，最终收到 done…"
+    }, {
+      "rank" : 3,
+      "fileName" : "06-开发过程与提交时间线.md",
+      "chunkIndex" : 2,
+      "score" : 0.2529828803580952,
+      "contentPreview" : "OOL_RESULT，再发起最终 MODEL_CALL；上海、北京和伦敦时区都得到结果，同一时区的后续问题还体现了模型按上下文判断无需重复调用。因此真实供应商的工具协议兼容性不再只依赖 mock。 ## 第七阶段：参数绑定的高风险审批 2026-09-05 在低风险链路验证后增加 Flyway V4、ApprovalRequest 和 HIGH/WRITE 的 write_workspace_note。该工具只能在 `data/tool-workspace` 下新建 `.md…"
+    }, {
+      "rank" : 4,
+      "fileName" : "09-安全边界局限与路线图.md",
+      "chunkIndex" : 1,
+      "score" : 0.2493412413411807,
+      "contentPreview" : "段继续无边界调参。 第二优先级原本是 Tool 与显式 ReAct，其中低风险第一阶段已完成：模型只提出 tool call，执行经过 ToolRegistry；AgentRun/RunStep、最大轮数、单轮调用数和单工具超时已经落地。仍需补总运行超时、主动取消、崩溃恢复、通用 Schema 校验和更多只读工具。 第三优先级的最小安全审批已经完成：HIGH 请求生成 ApprovalRequest，绑定 runId、toolCallId、工具名、原始参数、参数哈希、过期时间…"
+    }, {
+      "rank" : 5,
+      "fileName" : "10-面试讲述与追问准备.md",
+      "chunkIndex" : 2,
+      "score" : 0.24432898262819766,
+      "contentPreview" : "重放。ApprovalRequest 保存规范化的原始参数和 SHA-256，执行前用同一哈希原子消费 APPROVED 状态；这样批准的是用户看到的这一次具体调用，而不是对工具的永久放行。 问：高风险审批已经等于安全平台了吗？答：不是。当前证明的是单机环境中的参数绑定、拒绝、过期和一次性消费；还没有登录身份、RBAC、策略引擎、跨重启等待恢复和远程执行隔离，不能夸大成企业级治理。 问：工具版为什么不是逐 token 流式？答：每轮必须先得到完整 tool_calls 才能安…"
+    } ]
+  }, {
+    "id" : "rag-024",
+    "category" : "anti_hallucination",
+    "variant" : "paraphrase",
+    "question" : "三个前身工程在这里扮演的是代码母版，还是仅供取舍时参考的资料？",
+    "answerable" : true,
+    "expectedSources" : [ "00-入库说明与事实口径.md", "01-项目总览与业务目标.md" ],
+    "firstRelevantRank" : 2,
+    "hitAt5" : true,
+    "falsePositive" : false,
+    "latencyMs" : 0.1754,
+    "returnedSources" : [ "07-真实故障与排查复盘.md", "00-入库说明与事实口径.md", "06-开发过程与提交时间线.md", "10-面试讲述与追问准备.md" ],
+    "hits" : [ {
+      "rank" : 1,
+      "fileName" : "07-真实故障与排查复盘.md",
+      "chunkIndex" : 1,
+      "score" : 0.24839251773551757,
+      "contentPreview" : "SQL，业务 `NamedParameterJdbcTemplate` 仍可能连到 PostgreSQL。表现为向 PostgreSQL 执行 `INSERT knowledge_base` 或查询 `model_profile`，然后报 relation does not exist。 根因是 Spring 容器里同时存在多个 DataSource 和 JdbcTemplate，而业务仓储没有足够明确的限定。修复包括：创建带 `@Primary` 和 `@FlywayDat…"
+    }, {
+      "rank" : 2,
+      "fileName" : "00-入库说明与事实口径.md",
+      "chunkIndex" : 0,
+      "score" : 0.24216220186217843,
+      "contentPreview" : "# Agent Studio Desktop 知识包入库说明 这套文档用于 Agent Studio Desktop 的 RAG 手工验收，也用于帮助项目负责人复盘设计、开发、排障和测试过程。建议在前端新建名为“Agent Studio 项目知识库”的知识库，然后逐份上传本目录中的 Markdown 文件。逐份上传比合并成一个大文件更适合验证来源文件展示、跨文档召回和删除一致性。 ## 推荐入库顺序 1. 项目总览； 2. 架构与技术选型； 3. 数据模型与版本机制； 4. …"
+    }, {
+      "rank" : 3,
+      "fileName" : "00-入库说明与事实口径.md",
+      "chunkIndex" : 1,
+      "score" : 0.24194334335366885,
+      "contentPreview" : "用治理，不能描述成企业级审批平台。 项目参考过 ai-rag、WaLiSSH 和 WaLiCode 的思路，但新工程在独立 Git 仓库中从骨架开始建设，没有把来源项目整包复制过来。可强调的成果是架构取舍、版本隔离、双数据库边界、RAG 闭环、真实排障和可验证证据，不应把来源项目代码或框架能力描述为个人原创。 ## 面试使用原则 理解每个“为什么”比背诵类名更重要。推荐使用“我主导了需求收敛、架构取舍、环境配置、验收和问题闭环，并使用 AI 编程助手加速实现”的真实口径。若面…"
+    }, {
+      "rank" : 4,
+      "fileName" : "06-开发过程与提交时间线.md",
+      "chunkIndex" : 1,
+      "score" : 0.2342128407768137,
+      "contentPreview" : "al workflow`。新增 Flyway V2、知识库与文档元数据、Tika 解析、文本切分、本地 384 维词法向量、pgvector 表和 HNSW 索引、知识库绑定、sources SSE 事件，以及前端知识库页面和来源展示。 真实验收创建了“科研助手验收库”和“科研知识助手”。示例 Markdown 上传后状态 READY，对话返回来源文件、chunk 0 和相似度。删除测试确认 MySQL 元数据、本地文件和向量检索结果同时消失，重新上传后恢复。 ## 开发方法…"
+    }, {
+      "rank" : 5,
+      "fileName" : "10-面试讲述与追问准备.md",
+      "chunkIndex" : 0,
+      "score" : 0.2318133833345546,
+      "contentPreview" : "# Agent Studio Desktop：面试讲述与追问准备 ## 90 秒项目介绍 我主导做了一个单机优先的智能体搭建工具 Agent Studio Desktop，目标是让用户不改 Java 代码，就能配置 OpenAI 兼容模型、提示词和知识库，发布固定版本的 Agent，并在网页上做流式问答和查看引用来源。后端采用 Java 21 和 Spring Boot 模块化单体，前端是 React + TypeScript，MySQL 保存业务配置，PostgreSQL …"
+    } ]
+  }, {
+    "id" : "rag-025",
+    "category" : "unanswerable",
+    "variant" : "negative",
+    "question" : "这个项目采用哪一种开源许可证，是否允许闭源商用？",
+    "answerable" : false,
+    "expectedSources" : [ ],
+    "firstRelevantRank" : 0,
+    "hitAt5" : false,
+    "falsePositive" : true,
+    "latencyMs" : 0.1491,
+    "returnedSources" : [ "01-项目总览与业务目标.md", "00-入库说明与事实口径.md", "06-开发过程与提交时间线.md", "05-RAG全链路与检索算法.md" ],
+    "hits" : [ {
+      "rank" : 1,
+      "fileName" : "01-项目总览与业务目标.md",
+      "chunkIndex" : 0,
+      "score" : 0.21344264719639003,
+      "contentPreview" : "# Agent Studio Desktop：项目总览与业务目标 ## 一句话定位 Agent Studio Desktop 是一个运行在个人电脑上的智能体搭建与调试工具。用户不需要修改 Java 代码，就能配置 OpenAI 兼容模型、系统提示词和知识库，发布一个固定版本的 Agent，并在本地网页中流式对话、查看检索来源。 它不是公网 SaaS，也不是高并发多租户平台。产品的核心价值是让“模型连接、提示词、知识和版本”变成可配置资产，同时让本地开发环境简单、过程可观察、结…"
+    }, {
+      "rank" : 2,
+      "fileName" : "00-入库说明与事实口径.md",
+      "chunkIndex" : 0,
+      "score" : 0.1890056706050756,
+      "contentPreview" : "# Agent Studio Desktop 知识包入库说明 这套文档用于 Agent Studio Desktop 的 RAG 手工验收，也用于帮助项目负责人复盘设计、开发、排障和测试过程。建议在前端新建名为“Agent Studio 项目知识库”的知识库，然后逐份上传本目录中的 Markdown 文件。逐份上传比合并成一个大文件更适合验证来源文件展示、跨文档召回和删除一致性。 ## 推荐入库顺序 1. 项目总览； 2. 架构与技术选型； 3. 数据模型与版本机制； 4. …"
+    }, {
+      "rank" : 3,
+      "fileName" : "00-入库说明与事实口径.md",
+      "chunkIndex" : 1,
+      "score" : 0.18624808181518124,
+      "contentPreview" : "用治理，不能描述成企业级审批平台。 项目参考过 ai-rag、WaLiSSH 和 WaLiCode 的思路，但新工程在独立 Git 仓库中从骨架开始建设，没有把来源项目整包复制过来。可强调的成果是架构取舍、版本隔离、双数据库边界、RAG 闭环、真实排障和可验证证据，不应把来源项目代码或框架能力描述为个人原创。 ## 面试使用原则 理解每个“为什么”比背诵类名更重要。推荐使用“我主导了需求收敛、架构取舍、环境配置、验收和问题闭环，并使用 AI 编程助手加速实现”的真实口径。若面…"
+    }, {
+      "rank" : 4,
+      "fileName" : "06-开发过程与提交时间线.md",
+      "chunkIndex" : 2,
+      "score" : 0.18540098856341955,
+      "contentPreview" : "OOL_RESULT，再发起最终 MODEL_CALL；上海、北京和伦敦时区都得到结果，同一时区的后续问题还体现了模型按上下文判断无需重复调用。因此真实供应商的工具协议兼容性不再只依赖 mock。 ## 第七阶段：参数绑定的高风险审批 2026-09-05 在低风险链路验证后增加 Flyway V4、ApprovalRequest 和 HIGH/WRITE 的 write_workspace_note。该工具只能在 `data/tool-workspace` 下新建 `.md…"
+    }, {
+      "rank" : 5,
+      "fileName" : "05-RAG全链路与检索算法.md",
+      "chunkIndex" : 0,
+      "score" : 0.18054063331272346,
+      "contentPreview" : "# Agent Studio Desktop：RAG 全链路与检索算法 ## 上传和元数据 用户在前端选择知识库并上传文档，单文件上限 20 MB。后端先校验知识库和非空文件，清理文件名，读取字节，计算 SHA-256，然后把文件写入 `data/knowledge/{knowledgeBaseId}/{documentId}.{extension}`。所有路径都会归一化并检查必须位于 dataRoot 下，防止路径越界。 MySQL 文档记录最初是 PROCESSING。解…"
+    } ]
+  }, {
+    "id" : "rag-026",
+    "category" : "unanswerable",
+    "variant" : "negative",
+    "question" : "系统默认管理员用户名、初始登录密码和密码过期策略是什么？",
+    "answerable" : false,
+    "expectedSources" : [ ],
+    "firstRelevantRank" : 0,
+    "hitAt5" : false,
+    "falsePositive" : true,
+    "latencyMs" : 0.1398,
+    "returnedSources" : [ "09-安全边界局限与路线图.md", "10-面试讲述与追问准备.md", "05-RAG全链路与检索算法.md", "00-入库说明与事实口径.md" ],
+    "hits" : [ {
+      "rank" : 1,
+      "fileName" : "09-安全边界局限与路线图.md",
+      "chunkIndex" : 0,
+      "score" : 0.2841498967072579,
+      "contentPreview" : "# Agent Studio Desktop：安全边界、当前局限与路线图 ## 已有安全边界 模型密钥不进入数据库和 Git，ModelProfile 只保存环境变量名称。后端在模型调用时读取启动进程环境。文件保存路径经过绝对化、规范化和 dataRoot 前缀检查，避免通过文件名写出授权目录。上传大小限制为 20 MB，API 请求使用校验注解，外部模型错误文本会截断。 AgentVersion 不可变，会话固定绑定版本，减少运行中配置漂移。知识库检索按 knowledge…"
+    }, {
+      "rank" : 2,
+      "fileName" : "10-面试讲述与追问准备.md",
+      "chunkIndex" : 2,
+      "score" : 0.27618513187721344,
+      "contentPreview" : "重放。ApprovalRequest 保存规范化的原始参数和 SHA-256，执行前用同一哈希原子消费 APPROVED 状态；这样批准的是用户看到的这一次具体调用，而不是对工具的永久放行。 问：高风险审批已经等于安全平台了吗？答：不是。当前证明的是单机环境中的参数绑定、拒绝、过期和一次性消费；还没有登录身份、RBAC、策略引擎、跨重启等待恢复和远程执行隔离，不能夸大成企业级治理。 问：工具版为什么不是逐 token 流式？答：每轮必须先得到完整 tool_calls 才能安…"
+    }, {
+      "rank" : 3,
+      "fileName" : "05-RAG全链路与检索算法.md",
+      "chunkIndex" : 0,
+      "score" : 0.24680330835907532,
+      "contentPreview" : "# Agent Studio Desktop：RAG 全链路与检索算法 ## 上传和元数据 用户在前端选择知识库并上传文档，单文件上限 20 MB。后端先校验知识库和非空文件，清理文件名，读取字节，计算 SHA-256，然后把文件写入 `data/knowledge/{knowledgeBaseId}/{documentId}.{extension}`。所有路径都会归一化并检查必须位于 dataRoot 下，防止路径越界。 MySQL 文档记录最初是 PROCESSING。解…"
+    }, {
+      "rank" : 4,
+      "fileName" : "00-入库说明与事实口径.md",
+      "chunkIndex" : 0,
+      "score" : 0.24646382017333807,
+      "contentPreview" : "# Agent Studio Desktop 知识包入库说明 这套文档用于 Agent Studio Desktop 的 RAG 手工验收，也用于帮助项目负责人复盘设计、开发、排障和测试过程。建议在前端新建名为“Agent Studio 项目知识库”的知识库，然后逐份上传本目录中的 Markdown 文件。逐份上传比合并成一个大文件更适合验证来源文件展示、跨文档召回和删除一致性。 ## 推荐入库顺序 1. 项目总览； 2. 架构与技术选型； 3. 数据模型与版本机制； 4. …"
+    }, {
+      "rank" : 5,
+      "fileName" : "05-RAG全链路与检索算法.md",
+      "chunkIndex" : 1,
+      "score" : 0.2399266930410038,
+      "contentPreview" : "1 - cosine distance`。新模型的 0.05 仅保留现有召回行为，不代表有效拒答阈值。 检索结果一方面通过 SSE `sources` 发送给前端，另一方面拼成系统上下文注入模型。这样用户能看到证据，模型也能据此作答。 ## 删除闭环 删除文档时先删除 pgvector 中对应 documentId 的 chunk，再删除 MySQL 文档元数据，最后删除本地文件。验收时确认删除后文档列表为空、本地文件不存在，并且再次提问不再出现 sources；随后重新上传…"
+    } ]
+  }, {
+    "id" : "rag-027",
+    "category" : "unanswerable",
+    "variant" : "negative",
+    "question" : "配套移动端 App 支持哪些 iOS 和 Android 版本？",
+    "answerable" : false,
+    "expectedSources" : [ ],
+    "firstRelevantRank" : 0,
+    "hitAt5" : false,
+    "falsePositive" : true,
+    "latencyMs" : 0.1489,
+    "returnedSources" : [ "05-RAG全链路与检索算法.md", "10-面试讲述与追问准备.md", "06-开发过程与提交时间线.md" ],
+    "hits" : [ {
+      "rank" : 1,
+      "fileName" : "05-RAG全链路与检索算法.md",
+      "chunkIndex" : 0,
+      "score" : 0.29911139737878534,
+      "contentPreview" : "# Agent Studio Desktop：RAG 全链路与检索算法 ## 上传和元数据 用户在前端选择知识库并上传文档，单文件上限 20 MB。后端先校验知识库和非空文件，清理文件名，读取字节，计算 SHA-256，然后把文件写入 `data/knowledge/{knowledgeBaseId}/{documentId}.{extension}`。所有路径都会归一化并检查必须位于 dataRoot 下，防止路径越界。 MySQL 文档记录最初是 PROCESSING。解…"
+    }, {
+      "rank" : 2,
+      "fileName" : "10-面试讲述与追问准备.md",
+      "chunkIndex" : 0,
+      "score" : 0.29232109229370773,
+      "contentPreview" : "# Agent Studio Desktop：面试讲述与追问准备 ## 90 秒项目介绍 我主导做了一个单机优先的智能体搭建工具 Agent Studio Desktop，目标是让用户不改 Java 代码，就能配置 OpenAI 兼容模型、提示词和知识库，发布固定版本的 Agent，并在网页上做流式问答和查看引用来源。后端采用 Java 21 和 Spring Boot 模块化单体，前端是 React + TypeScript，MySQL 保存业务配置，PostgreSQL …"
+    }, {
+      "rank" : 3,
+      "fileName" : "06-开发过程与提交时间线.md",
+      "chunkIndex" : 0,
+      "score" : 0.29196515810614554,
+      "contentPreview" : "# Agent Studio Desktop：开发过程与提交时间线 ## 阶段 0：独立工程基线 第一个提交是 `de8dd90 chore: establish agent studio desktop baseline`。这一阶段建立独立 Git 仓库、Spring Boot 单体、React + TypeScript + Vite 前端、Docker Compose、健康检查、README、架构决策和来源边界记录。 实际环境确认 Maven 使用 Java 21.0.4…"
+    }, {
+      "rank" : 4,
+      "fileName" : "10-面试讲述与追问准备.md",
+      "chunkIndex" : 2,
+      "score" : 0.27690513253275595,
+      "contentPreview" : "重放。ApprovalRequest 保存规范化的原始参数和 SHA-256，执行前用同一哈希原子消费 APPROVED 状态；这样批准的是用户看到的这一次具体调用，而不是对工具的永久放行。 问：高风险审批已经等于安全平台了吗？答：不是。当前证明的是单机环境中的参数绑定、拒绝、过期和一次性消费；还没有登录身份、RBAC、策略引擎、跨重启等待恢复和远程执行隔离，不能夸大成企业级治理。 问：工具版为什么不是逐 token 流式？答：每轮必须先得到完整 tool_calls 才能安…"
+    }, {
+      "rank" : 5,
+      "fileName" : "10-面试讲述与追问准备.md",
+      "chunkIndex" : 1,
+      "score" : 0.2638577196703312,
+      "contentPreview" : "A-256 且只能消费一次，拒绝或超时不执行。SSH、Coding、身份与跨重启恢复仍如实保留为后续。 ## STAR 故事：双数据源问题 情境：加入 pgvector 后，应用同时有 MySQL 和 PostgreSQL 两个数据源。任务：让 Flyway 只迁移 MySQL，业务 CRUD 使用 MySQL，向量读写只使用 PostgreSQL。 行动：我根据异常中的 `relation does not exist` 和连接池日志定位到自动装配选错连接，而不是表迁移缺失…"
+    } ]
+  }, {
+    "id" : "rag-028",
+    "category" : "unanswerable",
+    "variant" : "negative",
+    "question" : "生产集群承诺的每秒并发请求数、可用性 SLA 和故障恢复时间是多少？",
+    "answerable" : false,
+    "expectedSources" : [ ],
+    "firstRelevantRank" : 0,
+    "hitAt5" : false,
+    "falsePositive" : true,
+    "latencyMs" : 0.1485,
+    "returnedSources" : [ "02-架构设计与技术选型.md", "09-安全边界局限与路线图.md", "00-入库说明与事实口径.md", "01-项目总览与业务目标.md", "06-开发过程与提交时间线.md" ],
+    "hits" : [ {
+      "rank" : 1,
+      "fileName" : "02-架构设计与技术选型.md",
+      "chunkIndex" : 0,
+      "score" : 0.23734508913067665,
+      "contentPreview" : "# Agent Studio Desktop：架构设计与技术选型 ## 模块化单体 项目选择“Spring Boot 模块化单体 + 独立 React 前端 + 两个数据库容器”。后端只有一个 Maven 工程，通过 `agent`、`model`、`conversation`、`knowledge`、`system` 等 Java package 隔离职责。 这个选择针对的是单机开发工具场景。微服务会引入服务发现、网络调用、分布式事务、部署和日志聚合成本，而当前用户只有一个…"
+    }, {
+      "rank" : 2,
+      "fileName" : "09-安全边界局限与路线图.md",
+      "chunkIndex" : 0,
+      "score" : 0.23642936800786232,
+      "contentPreview" : "# Agent Studio Desktop：安全边界、当前局限与路线图 ## 已有安全边界 模型密钥不进入数据库和 Git，ModelProfile 只保存环境变量名称。后端在模型调用时读取启动进程环境。文件保存路径经过绝对化、规范化和 dataRoot 前缀检查，避免通过文件名写出授权目录。上传大小限制为 20 MB，API 请求使用校验注解，外部模型错误文本会截断。 AgentVersion 不可变，会话固定绑定版本，减少运行中配置漂移。知识库检索按 knowledge…"
+    }, {
+      "rank" : 3,
+      "fileName" : "00-入库说明与事实口径.md",
+      "chunkIndex" : 0,
+      "score" : 0.23111845255199825,
+      "contentPreview" : "# Agent Studio Desktop 知识包入库说明 这套文档用于 Agent Studio Desktop 的 RAG 手工验收，也用于帮助项目负责人复盘设计、开发、排障和测试过程。建议在前端新建名为“Agent Studio 项目知识库”的知识库，然后逐份上传本目录中的 Markdown 文件。逐份上传比合并成一个大文件更适合验证来源文件展示、跨文档召回和删除一致性。 ## 推荐入库顺序 1. 项目总览； 2. 架构与技术选型； 3. 数据模型与版本机制； 4. …"
+    }, {
+      "rank" : 4,
+      "fileName" : "01-项目总览与业务目标.md",
+      "chunkIndex" : 0,
+      "score" : 0.22950229716322768,
+      "contentPreview" : "# Agent Studio Desktop：项目总览与业务目标 ## 一句话定位 Agent Studio Desktop 是一个运行在个人电脑上的智能体搭建与调试工具。用户不需要修改 Java 代码，就能配置 OpenAI 兼容模型、系统提示词和知识库，发布一个固定版本的 Agent，并在本地网页中流式对话、查看检索来源。 它不是公网 SaaS，也不是高并发多租户平台。产品的核心价值是让“模型连接、提示词、知识和版本”变成可配置资产，同时让本地开发环境简单、过程可观察、结…"
+    }, {
+      "rank" : 5,
+      "fileName" : "06-开发过程与提交时间线.md",
+      "chunkIndex" : 1,
+      "score" : 0.2257982086491361,
+      "contentPreview" : "al workflow`。新增 Flyway V2、知识库与文档元数据、Tika 解析、文本切分、本地 384 维词法向量、pgvector 表和 HNSW 索引、知识库绑定、sources SSE 事件，以及前端知识库页面和来源展示。 真实验收创建了“科研助手验收库”和“科研知识助手”。示例 Markdown 上传后状态 READY，对话返回来源文件、chunk 0 和相似度。删除测试确认 MySQL 元数据、本地文件和向量检索结果同时消失，重新上传后恢复。 ## 开发方法…"
+    } ]
+  }, {
+    "id" : "rag-029",
+    "category" : "unanswerable",
+    "variant" : "negative",
+    "question" : "Ollama 中 qwen3-embedding:0.6b 的下载体积和最低显存要求是多少？",
+    "answerable" : false,
+    "expectedSources" : [ ],
+    "firstRelevantRank" : 0,
+    "hitAt5" : false,
+    "falsePositive" : true,
+    "latencyMs" : 0.1675,
+    "returnedSources" : [ "01-项目总览与业务目标.md", "05-RAG全链路与检索算法.md", "07-真实故障与排查复盘.md", "06-开发过程与提交时间线.md" ],
+    "hits" : [ {
+      "rank" : 1,
+      "fileName" : "01-项目总览与业务目标.md",
+      "chunkIndex" : 1,
+      "score" : 0.5134946571730683,
+      "contentPreview" : "## 当前技术栈 - 后端：Java 21、Spring Boot 3.4.3、Maven、Spring JDBC、Flyway； - 前端：React 19、TypeScript、Vite； - 业务数据库：MySQL 8.4； - 向量数据库：PostgreSQL 17 + pgvector； - 文档解析：Apache Tika 3.1.0； - 模型接口：OpenAI Chat Completions 兼容 SSE，已用 DeepSeek 实测； - Embeddin…"
+    }, {
+      "rank" : 2,
+      "fileName" : "05-RAG全链路与检索算法.md",
+      "chunkIndex" : 0,
+      "score" : 0.43176378896067796,
+      "contentPreview" : "# Agent Studio Desktop：RAG 全链路与检索算法 ## 上传和元数据 用户在前端选择知识库并上传文档，单文件上限 20 MB。后端先校验知识库和非空文件，清理文件名，读取字节，计算 SHA-256，然后把文件写入 `data/knowledge/{knowledgeBaseId}/{documentId}.{extension}`。所有路径都会归一化并检查必须位于 dataRoot 下，防止路径越界。 MySQL 文档记录最初是 PROCESSING。解…"
+    }, {
+      "rank" : 3,
+      "fileName" : "07-真实故障与排查复盘.md",
+      "chunkIndex" : 2,
+      "score" : 0.40929745394576283,
+      "contentPreview" : "struction-aware 模型的常见建议，为每个问题添加统一中文任务说明。复测后 Recall 没变，但 MRR 降到 0.6917，相关文档更常排在后面。 这不是接口或维度错误，而是提示前缀改变了向量空间中的查询表达。修复是保留 queryInstruction 配置能力但默认置空，并重新运行同一冻结题集，MRR 恢复到 0.8160。知识包扩充后又在新语料上复测，仍采用无前缀方案。经验是 embedding 的 prompt 必须在本领域语料上做消融，而且语料变更后…"
+    }, {
+      "rank" : 4,
+      "fileName" : "05-RAG全链路与检索算法.md",
+      "chunkIndex" : 1,
+      "score" : 0.4057982835844604,
+      "contentPreview" : "1 - cosine distance`。新模型的 0.05 仅保留现有召回行为，不代表有效拒答阈值。 检索结果一方面通过 SSE `sources` 发送给前端，另一方面拼成系统上下文注入模型。这样用户能看到证据，模型也能据此作答。 ## 删除闭环 删除文档时先删除 pgvector 中对应 documentId 的 chunk，再删除 MySQL 文档元数据，最后删除本地文件。验收时确认删除后文档列表为空、本地文件不存在，并且再次提问不再出现 sources；随后重新上传…"
+    }, {
+      "rank" : 5,
+      "fileName" : "06-开发过程与提交时间线.md",
+      "chunkIndex" : 2,
+      "score" : 0.3717816819951304,
+      "contentPreview" : "OOL_RESULT，再发起最终 MODEL_CALL；上海、北京和伦敦时区都得到结果，同一时区的后续问题还体现了模型按上下文判断无需重复调用。因此真实供应商的工具协议兼容性不再只依赖 mock。 ## 第七阶段：参数绑定的高风险审批 2026-09-05 在低风险链路验证后增加 Flyway V4、ApprovalRequest 和 HIGH/WRITE 的 write_workspace_note。该工具只能在 `data/tool-workspace` 下新建 `.md…"
+    } ]
+  }, {
+    "id" : "rag-030",
+    "category" : "unanswerable",
+    "variant" : "negative",
+    "question" : "项目团队成员的姓名、职位和每个人的具体分工是什么？",
+    "answerable" : false,
+    "expectedSources" : [ ],
+    "firstRelevantRank" : 0,
+    "hitAt5" : false,
+    "falsePositive" : true,
+    "latencyMs" : 0.2511,
+    "returnedSources" : [ "08-测试策略与验收证据.md", "09-安全边界局限与路线图.md", "07-真实故障与排查复盘.md", "01-项目总览与业务目标.md", "10-面试讲述与追问准备.md" ],
+    "hits" : [ {
+      "rank" : 1,
+      "fileName" : "08-测试策略与验收证据.md",
+      "chunkIndex" : 1,
+      "score" : 0.24871206111525254,
+      "contentPreview" : "染。 ## 真实环境验证 Docker Desktop 中 MySQL 为 23306，pgvector 为 15432，二者均 healthy。Spring Boot 连接 MySQL 8.4，Flyway V1 至 V4 执行成功。VectorPool 连接 PostgreSQL 并初始化版本化 chunk 表；旧表有 HNSW，新 Qwen 小语料表采用精确 cosine。 DeepSeek 真实调用验证了 OpenAI 兼容请求和中文 SSE 增量，最终收到 done…"
+    }, {
+      "rank" : 2,
+      "fileName" : "09-安全边界局限与路线图.md",
+      "chunkIndex" : 0,
+      "score" : 0.2434025192774952,
+      "contentPreview" : "# Agent Studio Desktop：安全边界、当前局限与路线图 ## 已有安全边界 模型密钥不进入数据库和 Git，ModelProfile 只保存环境变量名称。后端在模型调用时读取启动进程环境。文件保存路径经过绝对化、规范化和 dataRoot 前缀检查，避免通过文件名写出授权目录。上传大小限制为 20 MB，API 请求使用校验注解，外部模型错误文本会截断。 AgentVersion 不可变，会话固定绑定版本，减少运行中配置漂移。知识库检索按 knowledge…"
+    }, {
+      "rank" : 3,
+      "fileName" : "07-真实故障与排查复盘.md",
+      "chunkIndex" : 2,
+      "score" : 0.24296812705086307,
+      "contentPreview" : "struction-aware 模型的常见建议，为每个问题添加统一中文任务说明。复测后 Recall 没变，但 MRR 降到 0.6917，相关文档更常排在后面。 这不是接口或维度错误，而是提示前缀改变了向量空间中的查询表达。修复是保留 queryInstruction 配置能力但默认置空，并重新运行同一冻结题集，MRR 恢复到 0.8160。知识包扩充后又在新语料上复测，仍采用无前缀方案。经验是 embedding 的 prompt 必须在本领域语料上做消融，而且语料变更后…"
+    }, {
+      "rank" : 4,
+      "fileName" : "01-项目总览与业务目标.md",
+      "chunkIndex" : 0,
+      "score" : 0.23654057140421694,
+      "contentPreview" : "# Agent Studio Desktop：项目总览与业务目标 ## 一句话定位 Agent Studio Desktop 是一个运行在个人电脑上的智能体搭建与调试工具。用户不需要修改 Java 代码，就能配置 OpenAI 兼容模型、系统提示词和知识库，发布一个固定版本的 Agent，并在本地网页中流式对话、查看检索来源。 它不是公网 SaaS，也不是高并发多租户平台。产品的核心价值是让“模型连接、提示词、知识和版本”变成可配置资产，同时让本地开发环境简单、过程可观察、结…"
+    }, {
+      "rank" : 5,
+      "fileName" : "10-面试讲述与追问准备.md",
+      "chunkIndex" : 1,
+      "score" : 0.23468109748306268,
+      "contentPreview" : "A-256 且只能消费一次，拒绝或超时不执行。SSH、Coding、身份与跨重启恢复仍如实保留为后续。 ## STAR 故事：双数据源问题 情境：加入 pgvector 后，应用同时有 MySQL 和 PostgreSQL 两个数据源。任务：让 Flyway 只迁移 MySQL，业务 CRUD 使用 MySQL，向量读写只使用 PostgreSQL。 行动：我根据异常中的 `relation does not exist` 和连接池日志定位到自动装配选错连接，而不是表迁移缺失…"
+    } ]
+  } ],
+  "interpretationNotes" : [ "Recall@5 and MRR use the first returned chunk whose fileName is in expectedSources.", "No-answer false-positive rate counts any post-threshold returned chunk as a false positive.", "Latency is local JVM exact-scan latency on this small corpus; it is not pgvector/HNSW or end-to-end chat latency.", "Files 11 and 12 are excluded by an enforced corpus invariant." ]
+}
