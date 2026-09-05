@@ -40,7 +40,7 @@ public class StdioMcpClient implements McpTransportClient {
             var initialized = initialize(session);
             var tools = new ArrayList<McpRemoteTool>();
             String cursor = null;
-            do {
+            if (initialized.tools()) do {
                 var params = cursor == null ? Map.<String, Object>of() : Map.<String, Object>of("cursor", cursor);
                 var response = session.request("tools/list", params, Duration.ofSeconds(20));
                 for (var node : response.path("result").path("tools")) {
@@ -53,8 +53,62 @@ public class StdioMcpClient implements McpTransportClient {
                 cursor = response.path("result").path("nextCursor").asText(null);
                 if (tools.size() > 200) throw new IOException("MCP Server 暴露工具超过 200 个，已停止同步");
             } while (cursor != null && !cursor.isBlank());
+            var resources = new ArrayList<McpRemoteResource>();
+            cursor = null;
+            if (initialized.resources()) do {
+                var params = cursor == null ? Map.<String, Object>of() : Map.<String, Object>of("cursor", cursor);
+                var response = session.request("resources/list", params, Duration.ofSeconds(20));
+                for (var node : response.path("result").path("resources")) {
+                    resources.add(new McpRemoteResource(requiredText(node, "uri"), requiredText(node, "name"),
+                            node.path("title").asText(""), node.path("description").asText(""),
+                            node.path("mimeType").asText(null), node.has("size") ? node.path("size").asLong() : null));
+                }
+                cursor = response.path("result").path("nextCursor").asText(null);
+                if (resources.size() > 500) throw new IOException("MCP Server 暴露资源超过 500 个，已停止同步");
+            } while (cursor != null && !cursor.isBlank());
+            var prompts = new ArrayList<McpRemotePrompt>();
+            cursor = null;
+            if (initialized.prompts()) do {
+                var params = cursor == null ? Map.<String, Object>of() : Map.<String, Object>of("cursor", cursor);
+                var response = session.request("prompts/list", params, Duration.ofSeconds(20));
+                for (var node : response.path("result").path("prompts")) prompts.add(prompt(node));
+                cursor = response.path("result").path("nextCursor").asText(null);
+                if (prompts.size() > 200) throw new IOException("MCP Server 暴露提示词超过 200 个，已停止同步");
+            } while (cursor != null && !cursor.isBlank());
             return new McpDiscovery(initialized.protocolVersion(), initialized.serverName(),
-                    initialized.serverVersion(), List.copyOf(tools));
+                    initialized.serverVersion(), List.copyOf(tools), List.copyOf(resources), List.copyOf(prompts));
+        }
+    }
+
+    @Override
+    public List<McpResourceContent> readResource(McpServer server, String uri) throws Exception {
+        try (var session = start(server)) {
+            var initialized = initialize(session);
+            if (!initialized.resources()) throw new IOException("MCP Server 未声明 resources 能力");
+            var response = session.request("resources/read", Map.of("uri", uri), Duration.ofSeconds(30));
+            var contents = new ArrayList<McpResourceContent>();
+            for (var node : response.path("result").path("contents")) {
+                contents.add(new McpResourceContent(requiredText(node, "uri"), node.path("mimeType").asText(null),
+                        node.has("text") ? node.path("text").asText() : null,
+                        node.has("blob") ? node.path("blob").asText() : null));
+            }
+            return List.copyOf(contents);
+        }
+    }
+
+    @Override
+    public McpPromptResult getPrompt(McpServer server, String name, Map<String, String> arguments) throws Exception {
+        try (var session = start(server)) {
+            var initialized = initialize(session);
+            if (!initialized.prompts()) throw new IOException("MCP Server 未声明 prompts 能力");
+            var response = session.request("prompts/get", Map.of("name", name, "arguments", arguments),
+                    Duration.ofSeconds(30));
+            var result = response.path("result");
+            var messages = new ArrayList<McpPromptMessage>();
+            for (var node : result.path("messages")) {
+                messages.add(new McpPromptMessage(requiredText(node, "role"), node.path("content")));
+            }
+            return new McpPromptResult(result.path("description").asText(""), List.copyOf(messages));
         }
     }
 
@@ -80,10 +134,14 @@ public class StdioMcpClient implements McpTransportClient {
             throw new IOException("MCP 协议版本不兼容：Server 返回 " + protocol + "，客户端支持 "
                     + StreamableHttpMcpClient.REQUESTED_PROTOCOL);
         }
-        if (!result.path("capabilities").has("tools")) throw new IOException("MCP Server 未声明 tools 能力");
+        var capabilities = result.path("capabilities");
+        if (!capabilities.has("tools") && !capabilities.has("resources") && !capabilities.has("prompts")) {
+            throw new IOException("MCP Server 未声明 tools、resources 或 prompts 能力");
+        }
         session.notification("notifications/initialized", Map.of());
         return new Initialized(protocol, result.path("serverInfo").path("name").asText("unknown"),
-                result.path("serverInfo").path("version").asText("unknown"));
+                result.path("serverInfo").path("version").asText("unknown"), capabilities.has("tools"),
+                capabilities.has("resources"), capabilities.has("prompts"));
     }
 
     private Session start(McpServer server) throws IOException {
@@ -136,6 +194,16 @@ public class StdioMcpClient implements McpTransportClient {
 
     private String abbreviate(String value, int max) {
         return value.length() <= max ? value : value.substring(0, max) + "…";
+    }
+
+    private McpRemotePrompt prompt(JsonNode node) throws IOException {
+        var arguments = new ArrayList<McpPromptArgument>();
+        for (var argument : node.path("arguments")) {
+            arguments.add(new McpPromptArgument(requiredText(argument, "name"),
+                    argument.path("description").asText(""), argument.path("required").asBoolean(false)));
+        }
+        return new McpRemotePrompt(requiredText(node, "name"), node.path("title").asText(""),
+                node.path("description").asText(""), List.copyOf(arguments));
     }
 
     private final class Session implements AutoCloseable {
@@ -240,5 +308,6 @@ public class StdioMcpClient implements McpTransportClient {
         }
     }
 
-    private record Initialized(String protocolVersion, String serverName, String serverVersion) {}
+    private record Initialized(String protocolVersion, String serverName, String serverVersion,
+                               boolean tools, boolean resources, boolean prompts) {}
 }

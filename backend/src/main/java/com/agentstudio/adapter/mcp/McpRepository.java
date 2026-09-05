@@ -100,6 +100,9 @@ public class McpRepository {
     }
 
     public void delete(String serverId) {
+        jdbc.update("DELETE FROM mcp_sync_event WHERE server_id=:id", Map.of("id", serverId));
+        jdbc.update("DELETE FROM mcp_prompt_catalog WHERE server_id=:id", Map.of("id", serverId));
+        jdbc.update("DELETE FROM mcp_resource_catalog WHERE server_id=:id", Map.of("id", serverId));
         jdbc.update("DELETE FROM mcp_tool_catalog WHERE server_id=:id", Map.of("id", serverId));
         jdbc.update("DELETE FROM mcp_server WHERE id=:id", Map.of("id", serverId));
     }
@@ -122,8 +125,98 @@ public class McpRepository {
                 .addValue("now", Timestamp.from(now)));
     }
 
+    public void insertSyncEvent(McpSyncEvent event) {
+        jdbc.update("""
+                INSERT INTO mcp_sync_event
+                    (id,server_id,status,protocol_version,tool_count,resource_count,prompt_count,
+                     added_count,removed_count,unchanged_count,error_message,created_at)
+                VALUES (:id,:serverId,:status,:protocol,:tools,:resources,:prompts,
+                        :added,:removed,:unchanged,:error,:createdAt)
+                """, new MapSqlParameterSource().addValue("id", event.id())
+                .addValue("serverId", event.serverId()).addValue("status", event.status())
+                .addValue("protocol", event.protocolVersion()).addValue("tools", event.toolCount())
+                .addValue("resources", event.resourceCount()).addValue("prompts", event.promptCount())
+                .addValue("added", event.added()).addValue("removed", event.removed())
+                .addValue("unchanged", event.unchanged()).addValue("error", event.errorMessage())
+                .addValue("createdAt", Timestamp.from(event.createdAt())));
+    }
+
+    public List<McpSyncEvent> findSyncEvents(String serverId, int limit) {
+        return jdbc.query("""
+                SELECT * FROM mcp_sync_event WHERE server_id=:id
+                ORDER BY created_at DESC LIMIT :limit
+                """, new MapSqlParameterSource().addValue("id", serverId).addValue("limit", limit),
+                (rs, row) -> new McpSyncEvent(rs.getString("id"), rs.getString("server_id"),
+                        rs.getString("status"), rs.getString("protocol_version"), rs.getInt("tool_count"),
+                        rs.getInt("resource_count"), rs.getInt("prompt_count"), rs.getInt("added_count"),
+                        rs.getInt("removed_count"), rs.getInt("unchanged_count"), rs.getString("error_message"),
+                        instant(rs, "created_at")));
+    }
+
     public void deactivateTools(String serverId) {
         jdbc.update("UPDATE mcp_tool_catalog SET active=FALSE WHERE server_id=:id", Map.of("id", serverId));
+        jdbc.update("UPDATE mcp_resource_catalog SET active=FALSE WHERE server_id=:id", Map.of("id", serverId));
+        jdbc.update("UPDATE mcp_prompt_catalog SET active=FALSE WHERE server_id=:id", Map.of("id", serverId));
+    }
+
+    public void upsertResource(McpCatalogResource resource, String uriSha256) {
+        var parameters = new MapSqlParameterSource().addValue("publicId", resource.publicId())
+                .addValue("serverId", resource.serverId()).addValue("uri", resource.uri())
+                .addValue("uriHash", uriSha256).addValue("name", resource.name())
+                .addValue("displayName", resource.displayName()).addValue("description", resource.description())
+                .addValue("mimeType", resource.mimeType()).addValue("size", resource.size())
+                .addValue("active", resource.active()).addValue("discoveredAt", Timestamp.from(resource.discoveredAt()));
+        var updated = jdbc.update("""
+                UPDATE mcp_resource_catalog SET resource_name=:name,display_name=:displayName,
+                    description=:description,mime_type=:mimeType,resource_size=:size,active=:active,
+                    discovered_at=:discoveredAt WHERE public_id=:publicId
+                """, parameters);
+        if (updated == 0) jdbc.update("""
+                INSERT INTO mcp_resource_catalog
+                    (public_id,server_id,uri_value,uri_sha256,resource_name,display_name,description,
+                     mime_type,resource_size,active,discovered_at)
+                VALUES (:publicId,:serverId,:uri,:uriHash,:name,:displayName,:description,
+                        :mimeType,:size,:active,:discoveredAt)
+                """, parameters);
+    }
+
+    public void upsertPrompt(McpCatalogPrompt prompt) {
+        var parameters = new MapSqlParameterSource().addValue("publicName", prompt.publicName())
+                .addValue("serverId", prompt.serverId()).addValue("remoteName", prompt.remoteName())
+                .addValue("displayName", prompt.displayName()).addValue("description", prompt.description())
+                .addValue("arguments", json(prompt.arguments())).addValue("hash", prompt.fingerprintSha256())
+                .addValue("active", prompt.active()).addValue("discoveredAt", Timestamp.from(prompt.discoveredAt()));
+        var updated = jdbc.update("""
+                UPDATE mcp_prompt_catalog SET display_name=:displayName,description=:description,
+                    active=:active,discovered_at=:discoveredAt WHERE public_name=:publicName
+                """, parameters);
+        if (updated == 0) jdbc.update("""
+                INSERT INTO mcp_prompt_catalog
+                    (public_name,server_id,remote_name,display_name,description,arguments_json,
+                     fingerprint_sha256,active,discovered_at)
+                VALUES (:publicName,:serverId,:remoteName,:displayName,:description,:arguments,
+                        :hash,:active,:discoveredAt)
+                """, parameters);
+    }
+
+    public List<McpCatalogResource> findResources(String serverId) {
+        return jdbc.query("SELECT * FROM mcp_resource_catalog WHERE server_id=:id ORDER BY active DESC,display_name",
+                Map.of("id", serverId), this::mapResource);
+    }
+
+    public Optional<McpCatalogResource> findResource(String publicId) {
+        return jdbc.query("SELECT * FROM mcp_resource_catalog WHERE public_id=:id", Map.of("id", publicId),
+                this::mapResource).stream().findFirst();
+    }
+
+    public List<McpCatalogPrompt> findPrompts(String serverId) {
+        return jdbc.query("SELECT * FROM mcp_prompt_catalog WHERE server_id=:id ORDER BY active DESC,display_name",
+                Map.of("id", serverId), this::mapPrompt);
+    }
+
+    public Optional<McpCatalogPrompt> findPrompt(String publicName) {
+        return jdbc.query("SELECT * FROM mcp_prompt_catalog WHERE public_name=:name", Map.of("name", publicName),
+                this::mapPrompt).stream().findFirst();
     }
 
     public void upsertTool(McpCatalogTool tool) {
@@ -194,6 +287,24 @@ public class McpRepository {
         } catch (Exception exception) {
             throw new SQLException("MCP 工具 Schema 无法读取", exception);
         }
+    }
+
+    private McpCatalogResource mapResource(ResultSet rs, int row) throws SQLException {
+        var size = rs.getObject("resource_size", Long.class);
+        return new McpCatalogResource(rs.getString("public_id"), rs.getString("server_id"),
+                rs.getString("uri_value"), rs.getString("resource_name"), rs.getString("display_name"),
+                rs.getString("description"), rs.getString("mime_type"), size, rs.getBoolean("active"),
+                instant(rs, "discovered_at"));
+    }
+
+    private McpCatalogPrompt mapPrompt(ResultSet rs, int row) throws SQLException {
+        try {
+            var arguments = read(rs.getString("arguments_json"), new TypeReference<List<McpPromptArgument>>() {}, List.of());
+            return new McpCatalogPrompt(rs.getString("public_name"), rs.getString("server_id"),
+                    rs.getString("remote_name"), rs.getString("display_name"), rs.getString("description"),
+                    arguments, rs.getBoolean("active"), rs.getString("fingerprint_sha256"),
+                    instant(rs, "discovered_at"));
+        } catch (Exception exception) { throw new SQLException("MCP Prompt 参数无法读取", exception); }
     }
 
 

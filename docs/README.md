@@ -10,6 +10,7 @@
 - `decisions/0008-safe-execution-audit-gateway.md`：统一 Schema 校验、风险审批、工具执行和结构化审计；
 - `decisions/0009-mcp-streamable-http-adapter.md`：MCP 动态发现、稳定命名、版本修订与统一安全入口；
 - `decisions/0010-mcp-stdio-and-trust-policy.md`：stdio 子进程生命周期、Server 管理与显式信任策略；
+- `decisions/0011-mcp-resources-prompts-and-completion-boundary.md`：Resources、Prompts、知识库导入、同步历史和协议完成边界；
 - `SOURCE_REFERENCES.md`：三个来源项目的版本、状态、许可证口径和参考边界；
 - `VERIFICATION.md`：每阶段的实际验证证据与未验证项。
 - `../examples/project-knowledge-pack`：可逐份上传的项目知识、开发复盘、面试讲述与 RAG 盲测题库。

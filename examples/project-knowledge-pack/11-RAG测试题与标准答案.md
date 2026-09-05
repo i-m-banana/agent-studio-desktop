@@ -2,7 +2,7 @@
 
 本文提供一组跨文档问题。第一轮测试时不要把本文件上传到知识库，只上传 00 到 10；提问时也不要把标准答案一起粘贴到对话中。这样可以观察智能体是否真正从多份项目文档中检索和组合答案。完成盲测后，可再上传本文件测试 FAQ 精确召回。
 
-加入 MCP 材料后的最终 00–10 评测快照为 11 份文档、35 个 chunk，SHA-256 `a1970fceb87a09ad2044ef027b1de0cd3086b510842f3d8817e0ab79bac46259`。同语料离线检索结果：Qwen Recall@5 100%、MRR 0.8278、改写题 MRR 0.8361、p95 233.375 ms；LocalHash Recall@5 87.50%、MRR 0.6854。两者无答案误召回率仍为 100%。结果文件还保存逐文档哈希；00–10 继续修改后必须重新生成快照。本文件不参与语料构建，因此记录这些数值不会造成评测循环。
+MCP 三类核心能力收口后的最终 00–10 评测快照为 11 份文档、42 个 chunk，SHA-256 `35639a984b8a9607645ea4b7447d4643dd63161431b7a66e0c2026ebdae5e3a8`。同语料离线检索结果：Qwen Recall@5 100%、MRR 0.8542、原题 MRR 0.9167、改写题 MRR 0.7917、p95 275.724 ms；LocalHash Recall@5 87.50%、MRR 0.6507、改写题 MRR 0.5903。两者无答案误召回率仍为 100%。结果文件还保存逐文档哈希；00–10 继续修改后必须重新生成快照。本文件不参与语料构建，因此记录这些数值不会造成评测循环。
 
 ## 基础事实题
 
@@ -16,7 +16,7 @@
 
 问题：项目是否已经支持 SSH 和 ReAct？
 
-标准答案：显式 ReAct 已经支持，包括两个内置工具、MCP Streamable HTTP 与 stdio 动态工具、版本快照、AgentRun/RunStep、统一安全执行网关、Schema 校验、参数审批、AuditEvent、主动取消、总超时和历史详情；MCP OAuth/resources/prompts、stdio OS 沙箱、SSH、Coding、身份和断点续跑仍未实现。因此不能回答成“完全没有 ReAct”，也不能回答成“已经是完整工具平台”。
+标准答案：显式 ReAct 已经支持，包括两个内置工具、MCP Streamable HTTP 与 stdio 动态工具、版本快照、AgentRun/RunStep、统一安全执行网关、Schema 校验、参数审批、AuditEvent、主动取消、总超时和历史详情；MCP Resources/Prompts 也已支持，但 OAuth、sampling、elicitation、roots、resource templates、订阅通知、stdio OS 沙箱、SSH、Coding、身份和断点续跑仍未实现。因此不能回答成“完全没有 ReAct”，也不能回答成“已经是完整工具平台”。
 
 问题：RunStep 和 AuditEvent 为什么不能合成一张表？
 
@@ -97,6 +97,14 @@
 问题：项目的 MCP 是怎样接入的，为什么没有绕过原有安全链？
 
 标准答案：平台实现 MCP 2025-06-18 Streamable HTTP 的初始化、工具发现和调用，发现结果以稳定平台名进入原 ToolRegistry。ChatService 仍只做显式 ReAct，MCP 调用和内置工具一样经过 ToolInputValidator、SafeExecutionGateway、参数绑定审批、超时、取消、RunStep 与 AuditEvent，不存在 MCP 专用的旁路执行入口。
+
+问题：MCP 的 Resource 和 Prompt 如何使用，为什么不自动塞给模型？
+
+标准答案：Resource 属于应用控制的上下文，用户可以预览或显式导入当前知识库，导入继续复用大小限制、Tika、切块、embedding 和 pgvector；Prompt 属于用户控制的模板，用户选择并填写必填参数后才调用 prompts/get。它们不会暗中修改 Agent 系统提示词或自动进入 ReAct。
+
+问题：MCP Server 的同步与配置迁移怎样追溯且不泄露密钥？
+
+标准答案：mcp_sync_event 保存每次 READY/FAILED、协议版本、Tools/Resources/Prompts 数量、工具差异和错误；配置 JSON 可导入导出，但平台本来只保存 Bearer Token 环境变量名或 stdio 环境变量名称映射，所以导出不含秘密值。
 
 问题：MCP 工具名称或 Schema 更新后如何避免历史版本漂移？
 

@@ -18,6 +18,12 @@ type AgentRun = Omit<RunSummary, 'stepCount'> & { steps: RunStep[] }
 type AuditEvent = { id: string; eventType: string; toolName?: string; capability?: string; riskLevel?: string; status: string; argumentsSha256?: string; details?: string; createdAt: string }
 type McpTool = { publicName: string; remoteName: string; displayName: string; description: string; capability: string; riskLevel: string; timeoutSeconds: number; active: boolean; enabled: boolean; schemaSha256: string }
 type McpServer = { id: string; name: string; transport: 'STREAMABLE_HTTP' | 'STDIO'; endpointUrl?: string; apiKeyEnv?: string; command?: string; arguments: string[]; workingDirectory?: string; environment: Record<string, string>; enabled: boolean; status: string; protocolVersion?: string; remoteServerName?: string; remoteServerVersion?: string; lastError?: string; lastSyncedAt?: string; tools: McpTool[] }
+type McpResource = { publicId: string; uri: string; name: string; displayName: string; description: string; mimeType?: string; size?: number; active: boolean }
+type McpPromptArgument = { name: string; description: string; required: boolean }
+type McpPrompt = { publicName: string; remoteName: string; displayName: string; description: string; arguments: McpPromptArgument[]; active: boolean }
+type McpPromptResult = { description: string; messages: { role: string; content: unknown }[] }
+type McpSyncEvent = { id: string; status: string; protocolVersion?: string; toolCount: number; resourceCount: number; promptCount: number; added: number; removed: number; unchanged: number; errorMessage?: string; createdAt: string }
+type McpConfiguration = { name: string; transport: 'STREAMABLE_HTTP' | 'STDIO'; endpointUrl?: string; apiKeyEnv?: string; command?: string; arguments: string[]; workingDirectory?: string; environment: Record<string, string> }
 
 const emptyModel = { name: '', provider: 'OPENAI_COMPATIBLE', baseUrl: 'https://api.openai.com/v1', modelName: '', apiKeyEnv: 'OPENAI_API_KEY', temperature: 0.7 }
 const emptyAgent = { name: '', description: '', modelProfileId: '', knowledgeBaseId: '', systemPrompt: '', toolNames: [] as string[] }
@@ -41,6 +47,9 @@ function App() {
   const [mcpServers, setMcpServers] = useState<McpServer[]>([])
   const [mcpForm, setMcpForm] = useState(emptyMcp)
   const [editingMcpId, setEditingMcpId] = useState<string>()
+  const [mcpAssets, setMcpAssets] = useState<Record<string, { resources: McpResource[]; prompts: McpPrompt[] }>>({})
+  const [mcpPreview, setMcpPreview] = useState<{ title: string; content: string }>()
+  const [mcpSyncEvents, setMcpSyncEvents] = useState<Record<string, McpSyncEvent[]>>({})
   const [knowledgeBases, setKnowledgeBases] = useState<KnowledgeBase[]>([])
   const [documents, setDocuments] = useState<KnowledgeDocument[]>([])
   const [selectedKnowledgeBase, setSelectedKnowledgeBase] = useState('')
@@ -75,6 +84,16 @@ function App() {
       const [nextModels, nextAgents, nextBases, nextTools, nextRuns, nextMcpServers] = await Promise.all([api<ModelProfile[]>('/api/models'), api<AgentDefinition[]>('/api/agents'), api<KnowledgeBase[]>('/api/knowledge-bases'), api<ToolDefinition[]>('/api/tools'), api<RunSummary[]>('/api/runs?limit=50'), api<McpServer[]>('/api/mcp/servers')])
       const groups = await Promise.all(nextAgents.map((agent) => api<AgentVersion[]>(`/api/agents/${agent.id}/versions`)))
       setModels(nextModels); setAgents(nextAgents); setVersions(groups.flat()); setKnowledgeBases(nextBases); setTools(nextTools); setRunHistory(nextRuns); setMcpServers(nextMcpServers); setBackendState('online')
+      const assetPairs = await Promise.all(nextMcpServers.map(async (server) => {
+        try { return [server.id, { resources: await api<McpResource[]>(`/api/mcp/servers/${server.id}/resources`), prompts: await api<McpPrompt[]>(`/api/mcp/servers/${server.id}/prompts`) }] as const }
+        catch { return [server.id, { resources: [], prompts: [] }] as const }
+      }))
+      setMcpAssets(Object.fromEntries(assetPairs))
+      const syncPairs = await Promise.all(nextMcpServers.map(async (server) => {
+        try { return [server.id, await api<McpSyncEvent[]>(`/api/mcp/servers/${server.id}/sync-events`)] as const }
+        catch { return [server.id, []] as const }
+      }))
+      setMcpSyncEvents(Object.fromEntries(syncPairs))
       const baseId = selectedKnowledgeBase || nextBases[0]?.id || ''
       setSelectedKnowledgeBase(baseId)
       setDocuments(baseId ? await api<KnowledgeDocument[]>(`/api/knowledge-bases/${baseId}/documents`) : [])
@@ -123,19 +142,41 @@ function App() {
         environment: mcpForm.transport === 'STDIO' ? environment : {} }
       const id = editingMcpId
       const saved = await api<McpServer>(id ? `/api/mcp/servers/${id}` : '/api/mcp/servers', { method: id ? 'PUT' : 'POST', body: JSON.stringify(payload) })
-      setNotice('MCP Server 已保存，正在连接并发现工具……')
+      setNotice('MCP Server 已保存，正在连接并发现工具、资源与提示词……')
       try { await api(`/api/mcp/servers/${saved.id}/sync`, { method: 'POST', body: '{}' }) }
       catch (error) { await refresh(); throw error }
       setEditingMcpId(undefined); setMcpForm(emptyMcp); await refresh()
-      setNotice('MCP 连接成功，发现的工具已进入 Agent Builder；首次绑定仍需发布新版本。')
+      setNotice('MCP 连接成功：工具已进入 Agent Builder，资源与提示词已进入下方目录。')
     })
   }
 
   async function syncMcpServer(id: string) {
     await perform(async () => {
-      const result = await api<{ toolCount: number; remoteServerName: string; added: number; removed: number; unchanged: number }>(`/api/mcp/servers/${id}/sync`, { method: 'POST', body: '{}' })
-      await refresh(); setNotice(`MCP 同步完成：共 ${result.toolCount} 个工具，新增 ${result.added}、下线 ${result.removed}、未变化 ${result.unchanged}。`)
+      const result = await api<{ toolCount: number; resourceCount: number; promptCount: number; remoteServerName: string; added: number; removed: number; unchanged: number }>(`/api/mcp/servers/${id}/sync`, { method: 'POST', body: '{}' })
+      await refresh(); setNotice(`MCP 同步完成：${result.toolCount} 个工具、${result.resourceCount} 个资源、${result.promptCount} 个提示词；工具新增 ${result.added}、下线 ${result.removed}、未变化 ${result.unchanged}。`)
     })
+  }
+
+  async function exportMcpConfiguration(server: McpServer) {
+    await perform(async () => {
+      const configuration = await api<McpConfiguration>(`/api/mcp/servers/${server.id}/configuration`)
+      const blob = new Blob([JSON.stringify(configuration, null, 2)], { type: 'application/json' })
+      const link = document.createElement('a'); link.href = URL.createObjectURL(blob)
+      link.download = `${server.name.replace(/[^\w\u4e00-\u9fff-]+/g, '_')}-mcp.json`; link.click()
+      URL.revokeObjectURL(link.href); setNotice('MCP 配置已导出；文件只包含环境变量名，不包含密钥值。')
+    })
+  }
+
+  async function importMcpConfiguration(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    if (!file) return
+    await perform(async () => {
+      const configuration = JSON.parse(await file.text()) as McpConfiguration
+      const server = await api<McpServer>('/api/mcp/servers/import', { method: 'POST', body: JSON.stringify(configuration) })
+      try { await api(`/api/mcp/servers/${server.id}/sync`, { method: 'POST', body: '{}' }) } catch { /* 保留配置与失败记录供排查 */ }
+      await refresh(); setNotice('MCP 配置已导入，并已尝试连接同步。')
+    })
+    event.target.value = ''
   }
 
   function editMcpServer(server: McpServer) {
@@ -157,6 +198,45 @@ function App() {
     const next = { enabled: changes.enabled ?? tool.enabled, capability: tool.capability, riskLevel: changes.riskLevel ?? tool.riskLevel, timeoutSeconds: changes.timeoutSeconds ?? tool.timeoutSeconds }
     if (tool.riskLevel === 'HIGH' && next.riskLevel === 'LOW' && !window.confirm('降为低风险后将不再要求逐次审批，确认信任这个工具？')) return
     await perform(async () => { await api(`/api/mcp/servers/tools/${tool.publicName}/policy`, { method: 'PUT', body: JSON.stringify(next) }); await refresh(); setNotice('MCP 工具策略已更新；已发布 Agent 版本中的工具名称不变。') })
+  }
+
+  async function loadMcpAssets(serverId: string) {
+    await perform(async () => {
+      const [resources, prompts] = await Promise.all([api<McpResource[]>(`/api/mcp/servers/${serverId}/resources`), api<McpPrompt[]>(`/api/mcp/servers/${serverId}/prompts`)])
+      setMcpAssets((current) => ({ ...current, [serverId]: { resources: resources.filter((item) => item.active), prompts: prompts.filter((item) => item.active) } }))
+      setNotice(`已加载 ${resources.filter((item) => item.active).length} 个资源和 ${prompts.filter((item) => item.active).length} 个提示词。`)
+    })
+  }
+
+  async function previewMcpResource(serverId: string, resource: McpResource) {
+    await perform(async () => {
+      const contents = await api<{ uri: string; mimeType?: string; text?: string; blob?: string }[]>(`/api/mcp/servers/${serverId}/resources/${resource.publicId}`)
+      const content = contents.map((item) => item.text ?? (item.blob ? `[二进制内容：约 ${Math.round(item.blob.length * .75)} 字节]` : '[空内容]')).join('\n\n')
+      setMcpPreview({ title: resource.displayName, content })
+    })
+  }
+
+  async function importMcpResource(serverId: string, resource: McpResource) {
+    if (!selectedKnowledgeBase) { setNotice('请先在知识库页面创建并选择一个知识库。'); return }
+    await perform(async () => {
+      await api(`/api/mcp/servers/${serverId}/resources/${resource.publicId}/import`, { method: 'POST', body: JSON.stringify({ knowledgeBaseId: selectedKnowledgeBase, fileName: null }) })
+      await chooseKnowledgeBase(selectedKnowledgeBase); setNotice(`“${resource.displayName}”已读取、解析并写入当前知识库。`)
+    })
+  }
+
+  async function getMcpPrompt(serverId: string, prompt: McpPrompt) {
+    const argumentsMap: Record<string, string> = {}
+    for (const argument of prompt.arguments) {
+      const value = window.prompt(`${argument.name}${argument.required ? '（必填）' : '（可选）'}\n${argument.description}`, '')
+      if (value === null) return
+      if (argument.required && !value.trim()) { setNotice(`缺少必填参数：${argument.name}`); return }
+      if (value.trim()) argumentsMap[argument.name] = value.trim()
+    }
+    await perform(async () => {
+      const result = await api<McpPromptResult>(`/api/mcp/servers/${serverId}/prompts/${prompt.publicName}`, { method: 'POST', body: JSON.stringify({ arguments: argumentsMap }) })
+      const content = result.messages.map((message) => `[${message.role}]\n${typeof message.content === 'object' && message.content && 'text' in message.content ? String((message.content as { text: unknown }).text) : JSON.stringify(message.content, null, 2)}`).join('\n\n')
+      setMcpPreview({ title: prompt.displayName, content })
+    })
   }
 
   async function chooseKnowledgeBase(id: string) {
@@ -319,7 +399,8 @@ function App() {
           <button className="primary" disabled={busy}>保存模型配置</button>
         </form>
         <div className="panel list-panel"><h2>已配置模型 <small>{models.length}</small></h2>{models.length === 0 ? <Empty text="尚无模型配置" /> : models.map((model) => <article className="model-card" key={model.id}><div><strong>{model.name}</strong><span>{model.modelName}</span></div><code>{model.baseUrl}</code><p>密钥：{model.apiKeyEnv} · 温度 {model.temperature}</p></article>)}</div>
-      </div></section>}
+      </div>
+      </section>}
       {view === 'knowledge' && <section><PageHeader number="02" title="知识库" description="文档保存在本机，切分结果写入 pgvector；删除操作会同步清理文件和向量。" /><div className="two-column">
         <div className="panel-stack">
           <form className="panel form" onSubmit={submitKnowledgeBase}><h2>新建知识库</h2>
@@ -338,7 +419,7 @@ function App() {
         <div className="panel list-panel"><h2>文档 <small>{documents.length}</small></h2>{documents.length === 0 ? <Empty text="选择知识库并上传第一份文档" /> : documents.map((document) => <article className="document-card" key={document.id}><div><div><strong>{document.fileName}</strong><p>{formatBytes(document.fileSize)} · {document.chunkCount} chunks</p></div><span className={`badge badge--${document.status.toLowerCase()}`}>{document.status}</span></div>{document.errorMessage && <p className="error-text">{document.errorMessage}</p>}<button className="danger" onClick={() => void deleteDocument(document.id)}>删除</button></article>)}</div>
       </div></section>}
       {view === 'mcp' && <section><PageHeader number="03" title="MCP 连接" description="连接远程 HTTP 或本机 stdio MCP Server，并统一管理发现、权限、审批、超时和审计。" /><div className="two-column">
-        <form className="panel form" onSubmit={submitMcpServer}><h2>{editingMcpId ? '编辑 MCP Server' : '新增 MCP Server'}</h2>
+        <form className="panel form" onSubmit={submitMcpServer}><div className="section-head"><h2>{editingMcpId ? '编辑 MCP Server' : '新增 MCP Server'}</h2><label className="file-action">导入配置<input type="file" accept="application/json,.json" onChange={(event) => void importMcpConfiguration(event)} /></label></div>
           {editingMcpId && <p className="edit-hint">修改连接配置后会自动重新同步；历史运行和已发布版本不会被改写。</p>}
           <Field label="连接方式"><select value={mcpForm.transport} onChange={(e) => setMcpForm({ ...mcpForm, transport: e.target.value as 'STREAMABLE_HTTP' | 'STDIO' })}><option value="STREAMABLE_HTTP">Streamable HTTP</option><option value="STDIO">本机 stdio 子进程</option></select></Field>
           <Field label="显示名称"><input required value={mcpForm.name} onChange={(e) => setMcpForm({ ...mcpForm, name: e.target.value })} placeholder="例如：本地研发工具" /></Field>
@@ -355,8 +436,20 @@ function App() {
           </>}
           <div className="form-actions"><button className="primary" disabled={busy}>{editingMcpId ? '保存并重新同步' : '保存、连接并发现工具'}</button>{editingMcpId && <button className="ghost" type="button" onClick={() => { setEditingMcpId(undefined); setMcpForm(emptyMcp) }}>取消编辑</button>}</div>
         </form>
-        <div className="panel list-panel"><h2>MCP Server <small>{mcpServers.length}</small></h2>{mcpServers.length === 0 ? <Empty text="尚未连接 MCP Server" /> : mcpServers.map((server) => <article className={`mcp-card ${server.enabled ? '' : 'mcp-card--disabled'}`} key={server.id}><div className="card-head"><div><strong>{server.name}</strong><p>{server.remoteServerName ? `${server.remoteServerName} · ${server.remoteServerVersion ?? '未知版本'}` : server.transport === 'STDIO' ? '本机 stdio' : server.endpointUrl}</p></div><span className={`badge badge--${server.status.toLowerCase()}`}>{server.enabled ? server.status : 'DISABLED'}</span></div><code>{server.transport === 'STDIO' ? [server.command, ...(server.arguments ?? [])].join(' ') : server.endpointUrl}</code><p className="hint">{server.transport === 'STDIO' ? '本机子进程' : 'Streamable HTTP'} · 协议 {server.protocolVersion ?? '尚未协商'}{server.apiKeyEnv ? ` · 凭据 ${server.apiKeyEnv}` : ''}</p>{server.lastError && <p className="error-text">{server.lastError}</p>}<div className="mcp-tools">{server.tools.filter((tool) => tool.active).map((tool) => <details key={tool.publicName}><summary>{tool.displayName}<span>{tool.enabled ? tool.riskLevel : 'OFF'}</span></summary><p>{tool.description}</p><code>{tool.publicName}</code><div className="tool-policy"><label><input type="checkbox" checked={tool.enabled} onChange={(e) => void updateMcpTool(tool, { enabled: e.target.checked })} />允许 Agent 使用</label><label>风险<select value={tool.riskLevel} onChange={(e) => void updateMcpTool(tool, { riskLevel: e.target.value })}><option value="HIGH">高风险（逐次审批）</option><option value="LOW">低风险（直接执行）</option></select></label><label>超时（秒）<input type="number" min="1" max="300" value={tool.timeoutSeconds} onChange={(e) => void updateMcpTool(tool, { timeoutSeconds: Number(e.target.value) })} /></label></div></details>)}</div><div className="card-actions"><small>{server.lastSyncedAt ? `上次同步 ${new Date(server.lastSyncedAt).toLocaleString()}` : '尚未同步'}</small><button className="ghost" disabled={busy} onClick={() => editMcpServer(server)}>编辑</button><button className="ghost" disabled={busy} onClick={() => void toggleMcpServer(server)}>{server.enabled ? '停用' : '启用'}</button><button className="secondary" disabled={busy || !server.enabled} onClick={() => void syncMcpServer(server.id)}>测试并同步</button><button className="danger compact" disabled={busy} onClick={() => void deleteMcpServer(server)}>删除</button></div></article>)}</div>
-      </div></section>}
+        <div className="panel list-panel"><h2>MCP Server <small>{mcpServers.length}</small></h2>{mcpServers.length === 0 ? <Empty text="尚未连接 MCP Server" /> : mcpServers.map((server) => <article className={`mcp-card ${server.enabled ? '' : 'mcp-card--disabled'}`} key={server.id}><div className="card-head"><div><strong>{server.name}</strong><p>{server.remoteServerName ? `${server.remoteServerName} · ${server.remoteServerVersion ?? '未知版本'}` : server.transport === 'STDIO' ? '本机 stdio' : server.endpointUrl}</p></div><span className={`badge badge--${server.status.toLowerCase()}`}>{server.enabled ? server.status : 'DISABLED'}</span></div><code>{server.transport === 'STDIO' ? [server.command, ...(server.arguments ?? [])].join(' ') : server.endpointUrl}</code><p className="hint">{server.transport === 'STDIO' ? '本机子进程' : 'Streamable HTTP'} · 协议 {server.protocolVersion ?? '尚未协商'}{server.apiKeyEnv ? ` · 凭据 ${server.apiKeyEnv}` : ''}</p>{server.lastError && <p className="error-text">{server.lastError}</p>}<div className="mcp-tools">{server.tools.filter((tool) => tool.active).map((tool) => <details key={tool.publicName}><summary>{tool.displayName}<span>{tool.enabled ? tool.riskLevel : 'OFF'}</span></summary><p>{tool.description}</p><code>{tool.publicName}</code><div className="tool-policy"><label><input type="checkbox" checked={tool.enabled} onChange={(e) => void updateMcpTool(tool, { enabled: e.target.checked })} />允许 Agent 使用</label><label>风险<select value={tool.riskLevel} onChange={(e) => void updateMcpTool(tool, { riskLevel: e.target.value })}><option value="HIGH">高风险（逐次审批）</option><option value="LOW">低风险（直接执行）</option></select></label><label>超时（秒）<input type="number" min="1" max="300" value={tool.timeoutSeconds} onChange={(e) => void updateMcpTool(tool, { timeoutSeconds: Number(e.target.value) })} /></label></div></details>)}</div>{(mcpSyncEvents[server.id]?.length ?? 0) > 0 && <details className="sync-history"><summary>最近同步记录</summary>{mcpSyncEvents[server.id].slice(0, 5).map((item) => <p key={item.id}><span className={`badge badge--${item.status.toLowerCase()}`}>{item.status}</span>{new Date(item.createdAt).toLocaleString()} · T/R/P {item.toolCount}/{item.resourceCount}/{item.promptCount}{item.errorMessage ? ` · ${item.errorMessage}` : ''}</p>)}</details>}<div className="card-actions"><small>{server.lastSyncedAt ? `上次同步 ${new Date(server.lastSyncedAt).toLocaleString()}` : '尚未同步'}</small><button className="ghost" disabled={busy} onClick={() => void exportMcpConfiguration(server)}>导出</button><button className="ghost" disabled={busy} onClick={() => editMcpServer(server)}>编辑</button><button className="ghost" disabled={busy} onClick={() => void toggleMcpServer(server)}>{server.enabled ? '停用' : '启用'}</button><button className="secondary" disabled={busy || !server.enabled} onClick={() => void syncMcpServer(server.id)}>测试并同步</button><button className="danger compact" disabled={busy} onClick={() => void deleteMcpServer(server)}>删除</button></div></article>)}</div>
+      </div>
+        <div className="panel mcp-library"><div className="section-head"><h2>Resources 与 Prompts</h2><button className="ghost" disabled={busy} onClick={() => void Promise.all(mcpServers.map((server) => loadMcpAssets(server.id)))}>刷新目录</button></div>
+          <p className="hint">Resource 可以预览或导入当前选中的知识库；Prompt 由你主动选择并填写参数，不会被模型自动执行。</p>
+          {mcpPreview && <aside className="mcp-preview"><div><strong>{mcpPreview.title}</strong><button className="ghost" onClick={() => setMcpPreview(undefined)}>关闭</button></div><pre>{mcpPreview.content}</pre></aside>}
+          {mcpServers.flatMap((server) => {
+            const assets = mcpAssets[server.id] ?? { resources: [], prompts: [] }
+            return [...assets.resources.filter((item) => item.active).map((resource) => <article className="mcp-asset" key={resource.publicId}><div><b>{resource.displayName}</b><small>RESOURCE · {server.name} · {resource.mimeType ?? '未知类型'}</small><p>{resource.description || resource.uri}</p></div><div><button className="ghost" onClick={() => void previewMcpResource(server.id, resource)}>预览</button><button className="secondary" onClick={() => void importMcpResource(server.id, resource)}>导入知识库</button></div></article>), ...assets.prompts.filter((item) => item.active).map((prompt) => <article className="mcp-asset" key={prompt.publicName}><div><b>{prompt.displayName}</b><small>PROMPT · {server.name} · {prompt.arguments.length} 个参数</small><p>{prompt.description || prompt.remoteName}</p></div><button className="secondary" onClick={() => void getMcpPrompt(server.id, prompt)}>填写参数并生成</button></article>)]
+          }).length === 0 ? <Empty text="同步支持 resources 或 prompts 的 MCP Server 后会显示在这里" /> : mcpServers.flatMap((server) => {
+            const assets = mcpAssets[server.id] ?? { resources: [], prompts: [] }
+            return [...assets.resources.filter((item) => item.active).map((resource) => <article className="mcp-asset" key={resource.publicId}><div><b>{resource.displayName}</b><small>RESOURCE · {server.name} · {resource.mimeType ?? '未知类型'}</small><p>{resource.description || resource.uri}</p></div><div><button className="ghost" onClick={() => void previewMcpResource(server.id, resource)}>预览</button><button className="secondary" onClick={() => void importMcpResource(server.id, resource)}>导入知识库</button></div></article>), ...assets.prompts.filter((item) => item.active).map((prompt) => <article className="mcp-asset" key={prompt.publicName}><div><b>{prompt.displayName}</b><small>PROMPT · {server.name} · {prompt.arguments.length} 个参数</small><p>{prompt.description || prompt.remoteName}</p></div><button className="secondary" onClick={() => void getMcpPrompt(server.id, prompt)}>填写参数并生成</button></article>)]
+          })}
+        </div>
+      </section>}
       {view === 'agents' && <section><PageHeader number="04" title="Agent Builder" description="编辑草稿，然后发布不可变版本；历史运行始终绑定原版本。" /><div className="two-column">
         <form className="panel form" onSubmit={submitAgent}><h2>{editingAgentId ? '编辑 Agent 草稿' : '创建 Agent 草稿'}</h2>
           {editingAgentId && <p className="edit-hint">保存只会更新草稿，已发布版本不会改变。</p>}

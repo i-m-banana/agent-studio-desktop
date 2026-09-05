@@ -10,6 +10,7 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -35,6 +36,71 @@ public class McpService {
     }
 
     public List<McpServer> listServers() { return repository.findServers(); }
+
+    public List<McpCatalogResource> listResources(String serverId) {
+        requireServer(serverId);
+        return repository.findResources(serverId);
+    }
+
+    public List<McpCatalogPrompt> listPrompts(String serverId) {
+        requireServer(serverId);
+        return repository.findPrompts(serverId);
+    }
+
+    public List<McpSyncEvent> listSyncEvents(String serverId) {
+        requireServer(serverId);
+        return repository.findSyncEvents(serverId, 20);
+    }
+
+    public McpServerRequest configuration(String serverId) {
+        var server = requireServer(serverId);
+        return new McpServerRequest(server.name(), server.transport(), server.endpointUrl(), server.apiKeyEnv(),
+                server.command(), server.arguments(), server.workingDirectory(), server.environment());
+    }
+
+    public McpCatalogResource requireResource(String serverId, String publicId) {
+        requireServer(serverId);
+        return repository.findResource(publicId)
+                .filter(item -> item.serverId().equals(serverId) && item.active())
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "MCP Resource 不存在或已下线"));
+    }
+
+    public List<McpResourceContent> readResource(String serverId, String publicId) {
+        var server = requireUsableServer(serverId);
+        var resource = requireResource(serverId, publicId);
+        try {
+            var contents = client(server).readResource(server, resource.uri());
+            long estimated = 0;
+            for (var content : contents) {
+                if (content.text() != null) estimated += content.text().getBytes(StandardCharsets.UTF_8).length;
+                if (content.blob() != null) estimated += (long) content.blob().length() * 3 / 4;
+            }
+            if (estimated > 20L * 1024 * 1024) throw new IllegalStateException("MCP Resource 超过 20 MB 上限");
+            return contents;
+        } catch (Exception exception) {
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "读取 MCP Resource 失败：" + safeMessage(exception));
+        }
+    }
+
+    public McpPromptResult getPrompt(String serverId, String publicName, Map<String, String> arguments) {
+        var server = requireUsableServer(serverId);
+        var prompt = repository.findPrompt(publicName)
+                .filter(item -> item.serverId().equals(serverId) && item.active())
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "MCP Prompt 不存在或已下线"));
+        var values = new HashMap<String, String>();
+        if (arguments != null) arguments.forEach((key, value) -> {
+            if (key != null && value != null) values.put(key, value);
+        });
+        for (var argument : prompt.arguments()) {
+            if (argument.required() && (values.get(argument.name()) == null || values.get(argument.name()).isBlank())) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "缺少 Prompt 参数：" + argument.name());
+            }
+        }
+        try { return client(server).getPrompt(server, prompt.remoteName(), values); }
+        catch (Exception exception) {
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "获取 MCP Prompt 失败：" + safeMessage(exception));
+        }
+    }
 
     public List<ToolDescriptor> activeDescriptors() {
         return repository.findActiveTools().stream().map(McpCatalogTool::descriptor).toList();
@@ -138,7 +204,9 @@ public class McpService {
             var before = server.tools().stream().filter(McpCatalogTool::active)
                     .map(McpCatalogTool::publicName).collect(Collectors.toSet());
             var discovery = client(server).discover(server);
-            if (discovery.tools().isEmpty()) throw new IllegalStateException("MCP Server 未返回任何工具");
+            if (discovery.tools().isEmpty() && discovery.resources().isEmpty() && discovery.prompts().isEmpty()) {
+                throw new IllegalStateException("MCP Server 未返回 tools、resources 或 prompts");
+            }
             var now = Instant.now();
             repository.deactivateTools(serverId);
             for (var remote : discovery.tools()) {
@@ -153,17 +221,40 @@ public class McpService {
                 repository.upsertTool(new McpCatalogTool(publicName, serverId, remote.name(), displayName,
                         description, remote.inputSchema(), "EXECUTE", "HIGH", 30, true, true, fingerprint, now));
             }
+            for (var remote : discovery.resources()) {
+                var uriHash = sha256(remote.uri());
+                var displayName = truncate(remote.title().isBlank() ? remote.name() : remote.title(), 240);
+                repository.upsertResource(new McpCatalogResource("mcpres_" + serverId.replace("-", "").substring(0, 8)
+                        + "_" + uriHash.substring(0, 12), serverId, remote.uri(), truncate(remote.name(), 240),
+                        displayName, truncate(remote.description(), 2000), remote.mimeType(), remote.size(), true, now), uriHash);
+            }
+            for (var remote : discovery.prompts()) {
+                var argumentJson = objectMapper.writeValueAsString(remote.arguments());
+                var fingerprint = sha256(remote.name() + "\n" + remote.title() + "\n" + remote.description() + "\n" + argumentJson);
+                repository.upsertPrompt(new McpCatalogPrompt(publicName(serverId, remote.name(), fingerprint), serverId,
+                        remote.name(), truncate(remote.title().isBlank() ? remote.name() : remote.title(), 240),
+                        truncate(remote.description(), 2000), remote.arguments(), true, fingerprint, now));
+            }
             repository.markSyncSuccess(serverId, discovery, now);
             var after = repository.findTools(serverId).stream().filter(McpCatalogTool::active)
                     .map(McpCatalogTool::publicName).collect(Collectors.toSet());
             var added = after.stream().filter(name -> !before.contains(name)).count();
             var removed = before.stream().filter(name -> !after.contains(name)).count();
-            return new McpSyncResult(serverId, "READY", discovery.protocolVersion(), discovery.serverName(),
-                    discovery.tools().size(), Math.toIntExact(added), Math.toIntExact(removed),
+            var result = new McpSyncResult(serverId, "READY", discovery.protocolVersion(), discovery.serverName(),
+                    discovery.tools().size(), discovery.resources().size(), discovery.prompts().size(),
+                    Math.toIntExact(added), Math.toIntExact(removed),
                     after.size() - Math.toIntExact(added));
+            repository.insertSyncEvent(new McpSyncEvent(UUID.randomUUID().toString(), serverId, "READY",
+                    discovery.protocolVersion(), result.toolCount(), result.resourceCount(), result.promptCount(),
+                    result.added(), result.removed(), result.unchanged(), null, now));
+            return result;
         } catch (Exception exception) {
             var message = safeMessage(exception);
-            repository.markSyncFailure(serverId, truncate(message, 1000), Instant.now());
+            var now = Instant.now();
+            var safe = truncate(message, 1000);
+            repository.markSyncFailure(serverId, safe, now);
+            repository.insertSyncEvent(new McpSyncEvent(UUID.randomUUID().toString(), serverId, "FAILED",
+                    null, 0, 0, 0, 0, 0, 0, safe, now));
             throw new ApiException(HttpStatus.BAD_GATEWAY, "MCP 连接或工具同步失败：" + message);
         }
     }
@@ -233,6 +324,14 @@ public class McpService {
 
     private McpServer requireServer(String id) {
         return repository.findServer(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "MCP Server 不存在"));
+    }
+
+    private McpServer requireUsableServer(String id) {
+        var server = requireServer(id);
+        if (!server.enabled() || !"READY".equals(server.status())) {
+            throw new ApiException(HttpStatus.CONFLICT, "MCP Server 当前不可用，请先启用并同步");
+        }
+        return server;
     }
 
     private String validateEndpoint(String value) {

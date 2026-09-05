@@ -42,7 +42,7 @@ const server = http.createServer(async (request, reply) => {
   if (message.method === 'notifications/initialized') { reply.writeHead(202); reply.end(); return }
   if (message.method === 'initialize') {
     send(reply, response(message.id, {
-      protocolVersion: '2025-06-18', capabilities: { tools: { listChanged: false } },
+      protocolVersion: '2025-06-18', capabilities: { tools: { listChanged: false }, resources: { listChanged: false }, prompts: { listChanged: false } },
       serverInfo: { name: 'agent-studio-fixture', version: '1.0.0' }
     }))
     return
@@ -51,6 +51,20 @@ const server = http.createServer(async (request, reply) => {
     send(reply, error(message.id, -32600, 'Missing or unsupported MCP-Protocol-Version')); return
   }
   if (message.method === 'tools/list') { send(reply, response(message.id, { tools })); return }
+  if (message.method === 'resources/list') {
+    send(reply, response(message.id, { resources: [{ uri: 'project://agent-studio/acceptance', name: 'agent-studio-acceptance', title: 'Agent Studio MCP 验收说明', description: '可预览或直接导入知识库的 HTTP MCP 文档', mimeType: 'text/markdown' }] })); return
+  }
+  if (message.method === 'resources/read' && message.params?.uri === 'project://agent-studio/acceptance') {
+    send(reply, response(message.id, { contents: [{ uri: message.params.uri, mimeType: 'text/markdown', text: '# HTTP MCP 验收\n\n该文档由 Streamable HTTP MCP Resource 提供，可在管理台预览并导入知识库。' }] })); return
+  }
+  if (message.method === 'prompts/list') {
+    send(reply, response(message.id, { prompts: [{ name: 'acceptance_plan', title: '生成验收计划', description: '按模块生成一条用户可主动使用的验收提示词', arguments: [{ name: 'module', description: '待验收模块，例如 MCP', required: true }] }] })); return
+  }
+  if (message.method === 'prompts/get' && message.params?.name === 'acceptance_plan') {
+    const moduleName = String(message.params.arguments?.module ?? '').trim()
+    if (!moduleName) { send(reply, error(message.id, -32602, 'module is required')); return }
+    send(reply, response(message.id, { description: '模块验收提示词', messages: [{ role: 'user', content: { type: 'text', text: `请从用户角度验收 ${moduleName} 模块，并分别记录成功路径、拒绝路径和失败诊断。` } }] })); return
+  }
   if (message.method !== 'tools/call') { send(reply, error(message.id, -32601, 'Method not found')); return }
   const { name, arguments: args = {} } = message.params ?? {}
   if (name === 'project_milestone') {

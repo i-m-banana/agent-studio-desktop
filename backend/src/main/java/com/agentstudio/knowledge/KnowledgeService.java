@@ -67,9 +67,19 @@ public class KnowledgeService {
     public KnowledgeDocument upload(String knowledgeBaseId, MultipartFile file) {
         getBase(knowledgeBaseId);
         if (file.isEmpty()) throw new ApiException(HttpStatus.BAD_REQUEST, "上传文件为空");
-        var originalName = safeFileName(file.getOriginalFilename());
         try {
-            var bytes = file.getBytes();
+            return importContent(knowledgeBaseId, file.getOriginalFilename(), file.getContentType(), file.getBytes());
+        } catch (IOException exception) {
+            throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "读取上传文件失败");
+        }
+    }
+
+    public KnowledgeDocument importContent(String knowledgeBaseId, String fileName, String mediaType, byte[] bytes) {
+        getBase(knowledgeBaseId);
+        if (bytes == null || bytes.length == 0) throw new ApiException(HttpStatus.BAD_REQUEST, "导入内容为空");
+        if (bytes.length > 20L * 1024 * 1024) throw new ApiException(HttpStatus.BAD_REQUEST, "导入内容超过 20 MB");
+        var originalName = safeFileName(fileName);
+        try {
             var id = UUID.randomUUID().toString();
             var directory = checkedPath(dataRoot.resolve("knowledge").resolve(knowledgeBaseId));
             Files.createDirectories(directory);
@@ -77,12 +87,12 @@ public class KnowledgeService {
             Files.write(storedFile, bytes);
             var now = Instant.now();
             var document = new KnowledgeDocument(id, knowledgeBaseId, originalName,
-                    file.getContentType() == null ? "application/octet-stream" : file.getContentType(),
+                    mediaType == null ? "application/octet-stream" : mediaType,
                     bytes.length, sha256(bytes), storedFile.toString(), "PROCESSING", 0, null, now, now);
             metadata.insertDocument(document);
             return ingest(document, bytes);
         } catch (IOException exception) {
-            throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "保存上传文件失败");
+            throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "保存导入内容失败");
         }
     }
 

@@ -33,4 +33,4 @@
 
 阶段 0 的骨架为本次新建，尚未复制三个来源项目的业务代码。未来任何迁移都应在提交和验证记录中标明来源、改造内容与许可依据。
 
-MCP 适配器为本工程新增实现，协议行为依据 Model Context Protocol 官方 `2025-06-18` 生命周期、Streamable HTTP 与 Tools 规范；没有复制来源项目中的 MCP 客户端代码。官方参考地址记录在 ADR 0009。
+MCP 适配器为本工程新增实现，协议行为依据 Model Context Protocol 官方 `2025-06-18` 生命周期、Streamable HTTP、Tools、Resources、Prompts 与 Authorization 规范；没有复制来源项目中的 MCP 客户端代码。官方参考地址记录在 ADR 0009、0010 和 0011。

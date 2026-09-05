@@ -16,3 +16,5 @@ Streamable HTTP 能连接常驻服务，但大量桌面 MCP Server 通过 stdio 
 ## 结果与限制
 
 本机 stdio 和远程 HTTP 共用版本绑定、Schema 校验、审批、取消、运行步骤和审计。当前仍不是完整 MCP Host：没有 OAuth、resources、prompts、sampling、roots、elicitation、list_changed 订阅或长 session 池。stdio 进程由用户配置并以当前后端用户权限运行，尚无 OS 沙箱、资源配额或签名白名单，因此只适合用户明确信任的本地 Server。
+
+后续状态：Resources 与 Prompts 已在 ADR 0011 对应阶段实现；其余限制继续成立。本段保留阶段 10 当时的决策背景，不应作为当前功能清单使用。

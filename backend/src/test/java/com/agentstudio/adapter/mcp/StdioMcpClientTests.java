@@ -29,6 +29,15 @@ class StdioMcpClientTests {
         assertThat(discovery.serverName()).isEqualTo("agent-studio-stdio-fixture");
         assertThat(discovery.tools()).singleElement().extracting(McpRemoteTool::name)
                 .isEqualTo("local_project_status");
+        assertThat(discovery.resources()).singleElement().extracting(McpRemoteResource::uri)
+                .isEqualTo("project://mcp/acceptance");
+        assertThat(discovery.prompts()).singleElement().extracting(McpRemotePrompt::name)
+                .isEqualTo("mcp_acceptance");
+
+        assertThat(client.readResource(server, "project://mcp/acceptance"))
+                .singleElement().extracting(McpResourceContent::text).asString().contains("集中验收");
+        assertThat(client.getPrompt(server, "mcp_acceptance", Map.of("module", "MCP")))
+                .extracting(McpPromptResult::description).isEqualTo("MCP 验收提示词");
 
         var remote = discovery.tools().getFirst();
         var catalog = new McpCatalogTool("mcp_stdio_status", server.id(), remote.name(), remote.title(),

@@ -36,7 +36,7 @@ class StreamableHttpMcpClientTests {
     void stopServer() { httpServer.stop(0); }
 
     @Test
-    void negotiatesSessionDiscoversAndCallsTool() throws Exception {
+    void negotiatesSessionDiscoversAllPrimitivesAndCallsThem() throws Exception {
         var server = server();
         var discovery = client.discover(server);
         assertThat(discovery.protocolVersion()).isEqualTo("2025-06-18");
@@ -45,12 +45,22 @@ class StreamableHttpMcpClientTests {
             assertThat(tool.name()).isEqualTo("echo");
             assertThat(tool.inputSchema()).containsKey("properties");
         });
+        assertThat(discovery.resources()).singleElement().extracting(McpRemoteResource::uri)
+                .isEqualTo("project://fixture/readme");
+        assertThat(discovery.prompts()).singleElement().extracting(McpRemotePrompt::name)
+                .isEqualTo("summarize_project");
+
+        assertThat(client.readResource(server, "project://fixture/readme"))
+                .singleElement().extracting(McpResourceContent::text).isEqualTo("fixture resource");
+        assertThat(client.getPrompt(server, "summarize_project", Map.of("topic", "MCP")))
+                .satisfies(result -> assertThat(result.messages()).singleElement()
+                        .satisfies(message -> assertThat(message.content().path("text").asText()).isEqualTo("summarize MCP")));
 
         var catalog = new McpCatalogTool("mcp_fixture_echo", server.id(), "echo", "Echo", "Echo text",
                 discovery.tools().getFirst().inputSchema(), "EXECUTE", "HIGH", 5, true, "hash", Instant.now());
         assertThat(client.call(server, catalog, objectMapper.readTree("{\"text\":\"hello\"}")))
                 .isEqualTo("echo: hello");
-        assertThat(initialized.get()).isEqualTo(2);
+        assertThat(initialized.get()).isEqualTo(4);
     }
 
     @Test
@@ -69,7 +79,8 @@ class StreamableHttpMcpClientTests {
             var method = body.path("method").asText();
             if ("initialize".equals(method)) {
                 json(exchange, 200, Map.of("jsonrpc", "2.0", "id", body.path("id").asText(), "result", Map.of(
-                        "protocolVersion", "2025-06-18", "capabilities", Map.of("tools", Map.of()),
+                        "protocolVersion", "2025-06-18", "capabilities", Map.of(
+                                "tools", Map.of(), "resources", Map.of(), "prompts", Map.of()),
                         "serverInfo", Map.of("name", "fixture-server", "version", "1.0"))), true);
             } else if ("notifications/initialized".equals(method)) {
                 assertThat(exchange.getRequestHeaders().getFirst("Mcp-Session-Id")).isEqualTo("fixture-session");
@@ -82,6 +93,24 @@ class StreamableHttpMcpClientTests {
                         "inputSchema", schema);
                 json(exchange, 200, Map.of("jsonrpc", "2.0", "id", body.path("id").asText(),
                         "result", Map.of("tools", List.of(tool))), false);
+            } else if ("resources/list".equals(method)) {
+                json(exchange, 200, Map.of("jsonrpc", "2.0", "id", body.path("id").asText(),
+                        "result", Map.of("resources", List.of(Map.of("uri", "project://fixture/readme",
+                                "name", "Fixture README", "mimeType", "text/plain")))), false);
+            } else if ("resources/read".equals(method)) {
+                json(exchange, 200, Map.of("jsonrpc", "2.0", "id", body.path("id").asText(),
+                        "result", Map.of("contents", List.of(Map.of("uri", "project://fixture/readme",
+                                "mimeType", "text/plain", "text", "fixture resource")))), false);
+            } else if ("prompts/list".equals(method)) {
+                json(exchange, 200, Map.of("jsonrpc", "2.0", "id", body.path("id").asText(),
+                        "result", Map.of("prompts", List.of(Map.of("name", "summarize_project",
+                                "description", "Summarize a topic", "arguments", List.of(Map.of(
+                                        "name", "topic", "description", "Topic", "required", true)))))), false);
+            } else if ("prompts/get".equals(method)) {
+                var text = "summarize " + body.path("params").path("arguments").path("topic").asText();
+                json(exchange, 200, Map.of("jsonrpc", "2.0", "id", body.path("id").asText(),
+                        "result", Map.of("description", "Summary prompt", "messages", List.of(Map.of(
+                                "role", "user", "content", Map.of("type", "text", "text", text))))), false);
             } else if ("tools/call".equals(method) && "echo".equals(body.path("params").path("name").asText())) {
                 json(exchange, 200, Map.of("jsonrpc", "2.0", "id", body.path("id").asText(), "result", Map.of(
                         "content", List.of(Map.of("type", "text", "text", "echo: "

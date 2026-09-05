@@ -26,12 +26,23 @@ class McpServiceIntegrationTests {
         when(client.discover(any())).thenReturn(new McpDiscovery("2025-06-18", "test-server", "1.0", List.of(
                 new McpRemoteTool("lookup.issue", "Lookup issue", "Read issue by id",
                         Map.of("type", "object", "properties", Map.of("id", Map.of("type", "string")),
-                                "required", List.of("id"), "additionalProperties", false)))));
+                                "required", List.of("id"), "additionalProperties", false))),
+                List.of(new McpRemoteResource("project://test/readme", "README", "Project README",
+                        "Project facts", "text/markdown", 128L)),
+                List.of(new McpRemotePrompt("explain", "Explain", "Explain a module",
+                        List.of(new McpPromptArgument("module", "Module name", true))))));
         when(client.call(any(), any(), any())).thenReturn("issue result");
+        when(client.readResource(any(), any())).thenReturn(List.of(new McpResourceContent(
+                "project://test/readme", "text/markdown", "# Project facts", null)));
+        when(client.getPrompt(any(), any(), any())).thenReturn(new McpPromptResult("Explain",
+                List.of(new McpPromptMessage("user", new com.fasterxml.jackson.databind.ObjectMapper()
+                        .readTree("{\"type\":\"text\",\"text\":\"Explain MCP\"}")))));
         var server = service.create(new McpServerRequest("mcp-" + UUID.randomUUID(), "http://localhost:39999/mcp", null));
         var result = service.sync(server.id());
         assertThat(result.status()).isEqualTo("READY");
         assertThat(result.toolCount()).isEqualTo(1);
+        assertThat(result.resourceCount()).isEqualTo(1);
+        assertThat(result.promptCount()).isEqualTo(1);
         assertThat(result.added()).isEqualTo(1);
         var descriptor = tools.descriptors().stream().filter(tool -> "MCP".equals(tool.source())).findFirst().orElseThrow();
         assertThat(descriptor).satisfies(tool -> {
@@ -42,11 +53,20 @@ class McpServiceIntegrationTests {
         });
         assertThat(tools.targetEnvironment(descriptor.name())).startsWith("MCP:").endsWith("@localhost");
         assertThat(tools.execute(descriptor.name(), "{\"id\":\"ISSUE-1\"}").output()).isEqualTo("issue result");
+        var resource = service.listResources(server.id()).getFirst();
+        assertThat(service.readResource(server.id(), resource.publicId())).singleElement()
+                .extracting(McpResourceContent::text).isEqualTo("# Project facts");
+        var prompt = service.listPrompts(server.id()).getFirst();
+        assertThat(service.getPrompt(server.id(), prompt.publicName(), Map.of("module", "MCP")).messages())
+                .singleElement().extracting(McpPromptMessage::role).isEqualTo("user");
 
         var secondSync = service.sync(server.id());
         assertThat(secondSync.added()).isZero();
         assertThat(secondSync.removed()).isZero();
         assertThat(secondSync.unchanged()).isEqualTo(1);
+        assertThat(service.listSyncEvents(server.id())).hasSize(2)
+                .allMatch(event -> "READY".equals(event.status()));
+        assertThat(service.configuration(server.id()).name()).isEqualTo(server.name());
         service.updateToolPolicy(descriptor.name(), new McpToolPolicyRequest(false, "READ", "LOW", 12));
         assertThat(service.activeDescriptors()).noneMatch(tool -> tool.name().equals(descriptor.name()));
         service.setEnabled(server.id(), false);

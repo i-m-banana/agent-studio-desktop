@@ -26,6 +26,8 @@
 
 MCP 不改变这条 ReAct 主链。模型看到的是同步后持久化的 MCP ToolDescriptor，返回的平台工具名由 ToolRegistry 解析到具体 Server 和远端工具名。SafeExecutionGateway 在批准后才允许适配器建立短生命周期 MCP session、发送 tools/call，并把 content 与 structuredContent 转成 Observation。审批卡目标从内置工具的 LOCAL 变为 `MCP:<配置名>@<host>`，用户能确认副作用将发生在哪里。
 
+Resources 与 Prompts 不塞入这条模型自动工具链。Resource 是应用控制的上下文：用户先预览，确认后才导入某个知识库；Prompt 是用户控制的模板：用户选择模板、填写必填参数，再查看 Server 返回的 role/content 消息。这个区分避免外部 Server 在没有可见操作的情况下改变 Agent 系统提示词或知识库内容。
+
 ## 为什么选 SSE
 
 当前输出方向仍是服务端到浏览器，因此 SSE 足够。审批决定本身是一次普通 HTTP POST，不需要为了偶发的用户动作把整条链路改成 WebSocket。SSE 承载 run、sources、step、approval_required、delta、done 和 error；只有未来需要高频双向控制时才有必要考虑 WebSocket。

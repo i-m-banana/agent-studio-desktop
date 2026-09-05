@@ -233,3 +233,19 @@
 - 后端 20 个测试通过，0 失败、0 错误；前端 TypeScript 与 Vite 生产构建通过。
 
 尚待真实环境验证：用户重启后端后由 MySQL 执行 V5，并分别运行一次 current_time 和 write_workspace_note，确认历史详情出现安全审计。当前审计没有用户身份、审批人、签名防篡改、租户隔离和保留策略，只能称为本地结构化审计。
+
+## 阶段 11：MCP Resources、Prompts 与集中收口（2026-09-05）
+
+- Flyway V8 增加 Resource 与 Prompt 目录，分别保存 URI、媒体类型、大小、参数描述、active 状态和稳定标识；V9 增加 MCP 同步历史；
+- Streamable HTTP 与 stdio 都按协商 capability 分页发现 tools、resources 和 prompts，不要求 Server 同时支持三者；
+- Resource 支持按需读取、预览及导入当前知识库。导入复用 20 MB 限制、Tika、切块、EmbeddingGateway 和 pgvector；多段文本合并，混合或多段二进制拒绝；
+- Prompt 支持必填参数校验和 `prompts/get`，保留 Server 返回的角色与内容；它只由用户主动使用，不会自动替换 Agent 系统提示词；
+- 每次同步保存 READY/FAILED、协议版本、三类能力数量、工具差异与错误；管理台可查看最近记录；
+- Server 配置支持 JSON 导入导出，只包含 Bearer Token 环境变量名或 stdio 环境变量名称映射，不包含密钥值；
+- HTTP 与 stdio 的零依赖 fixture 均提供工具、Resource 和 Prompt，集中人工验收不依赖第三方 MCP 服务。
+
+自动化证据：H2 从空库成功执行 V1–V9；HTTP 协议测试在独立短 session 中完成三类目录发现、resources/read、prompts/get 和 tools/call；stdio 测试真实启动 Node 子进程完成同一组能力；服务集成测试验证目录持久化、读取委托、Prompt 参数、同步历史和安全配置导出。全量后端 24 个测试全部通过，前端 TypeScript 与 Vite 生产构建通过。
+
+尚待集中人工验收：用户本机 MySQL 从 V7 迁移到 V9，页面分别连接 HTTP/stdio fixture，完成 Resource 预览与知识库导入、Prompt 参数生成、工具批准/拒绝、同步历史和配置导入导出。当前仍不支持 OAuth 授权码/PKCE 与安全令牌存储、sampling、elicitation、roots、resource templates、subscriptions/list_changed、旧版 HTTP+SSE 或长 session 池；stdio 仍无 OS 级沙箱。以上是明确的扩展边界，不能描述为“兼容全部 MCP Server”。
+
+知识包同步回归：冻结的 00–10 为 11 份文档、42 个 chunk，语料 SHA-256 `35639a984b8a9607645ea4b7447d4643dd63161431b7a66e0c2026ebdae5e3a8`。LocalHash Recall@5 87.50%、MRR 0.6507、改写题 MRR 0.5903、p95 0.296 ms；Qwen Recall@5 100%、MRR 0.8542、原题 MRR 0.9167、改写题 MRR 0.7917、p95 275.724 ms。两者无答案误召回率仍为 100%。结果保存在 `local-hash-after-mcp-primitives.json` 和 `qwen3-embedding-0.6b-after-mcp-primitives.json`；知识扩充后 Qwen 仍保持全召回，但无答案判断依旧是明确短板。

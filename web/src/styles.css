@@ -144,6 +144,22 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .composer-actions { display: grid; gap: 8px; }
 .composer-actions .danger { min-width: 100px; margin: 0; }
 .section-head { display: flex; justify-content: space-between; align-items: start; }
+.section-head h2 { margin-bottom: 0; }
+.file-action { padding: 8px 12px; color: #8fb9a4; border: 1px solid #355045; border-radius: 9px; cursor: pointer; font-size: 11px; }
+.file-action input { display: none; }
+.sync-history { margin: 12px 0 18px; padding: 10px 12px; border: 1px solid #2c4137; border-radius: 8px; }
+.sync-history summary { color: #91a299; cursor: pointer; font-size: 11px; }
+.sync-history p { margin: 9px 0 0; color: #71847a; font-size: 10px; overflow-wrap: anywhere; }
+.sync-history .badge { margin-right: 8px; }
+.mcp-library { display: grid; gap: 14px; margin-top: 22px; padding: 28px; }
+.mcp-preview { padding: 16px; border: 1px solid #3c5c4d; border-radius: 10px; background: #0a1511; }
+.mcp-preview > div { display: flex; justify-content: space-between; align-items: center; }
+.mcp-preview pre { max-height: 360px; margin: 14px 0 0; color: #b7c8bf; overflow: auto; white-space: pre-wrap; }
+.mcp-asset { display: flex; justify-content: space-between; gap: 18px; align-items: center; padding: 14px 0; border-top: 1px solid #263a31; }
+.mcp-asset > div:first-child { display: grid; gap: 5px; }
+.mcp-asset > div:last-child { display: flex; gap: 8px; }
+.mcp-asset small { color: #68b990; font: 9px ui-monospace, monospace; }
+.mcp-asset p { margin: 0; color: #7f9087; font-size: 11px; }
 .run-history-layout { grid-template-columns: minmax(300px, .72fr) minmax(440px, 1.28fr); }
 .run-card { width: 100%; display: grid; gap: 7px; padding: 14px 0; color: #aebbb4; text-align: left; border: 0; border-top: 1px solid #263a31; background: transparent; }
 .run-card:first-of-type { border-top: 0; }
