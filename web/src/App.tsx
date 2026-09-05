@@ -131,7 +131,8 @@ function App() {
     event.preventDefault()
     await perform(async () => {
       const editing = editingAgentId
-      await api(editing ? `/api/agents/${editing}` : '/api/agents', { method: editing ? 'PUT' : 'POST', body: JSON.stringify(agentForm) })
+      const payload = { ...agentForm, knowledgeBaseId: agentForm.knowledgeBaseId || null }
+      await api(editing ? `/api/agents/${editing}` : '/api/agents', { method: editing ? 'PUT' : 'POST', body: JSON.stringify(payload) })
       setEditingAgentId(undefined); setAgentForm({ ...emptyAgent, modelProfileId: models[0]?.id ?? '' }); await refresh()
       setNotice(editing ? 'Agent 草稿已更新；请发布新版本使修改生效。' : 'Agent 草稿已创建。发布后会生成不可变版本。')
     })

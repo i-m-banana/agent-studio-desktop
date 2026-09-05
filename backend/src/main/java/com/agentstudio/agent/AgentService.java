@@ -47,11 +47,12 @@ public class AgentService {
         var name = request.name().trim();
         validateUniqueName(name, null);
         modelProfiles.get(request.modelProfileId());
-        validateKnowledgeBase(request.knowledgeBaseId());
+        var knowledgeBaseId = normalizedOptionalId(request.knowledgeBaseId());
+        validateKnowledgeBase(knowledgeBaseId);
         var toolNames = normalizedTools(request.toolNames());
         var now = Instant.now();
         var definition = new AgentDefinition(UUID.randomUUID().toString(), name,
-                text(request.description()), request.modelProfileId(), request.knowledgeBaseId(), request.systemPrompt().trim(),
+                text(request.description()), request.modelProfileId(), knowledgeBaseId, request.systemPrompt().trim(),
                 toolNames, 0, now, now);
         repository.insert(definition);
         repository.replaceDraftTools(definition.id(), toolNames);
@@ -64,10 +65,11 @@ public class AgentService {
         var name = request.name().trim();
         validateUniqueName(name, id);
         modelProfiles.get(request.modelProfileId());
-        validateKnowledgeBase(request.knowledgeBaseId());
+        var knowledgeBaseId = normalizedOptionalId(request.knowledgeBaseId());
+        validateKnowledgeBase(knowledgeBaseId);
         var toolNames = normalizedTools(request.toolNames());
         var updated = new AgentDefinition(existing.id(), name, text(request.description()),
-                request.modelProfileId(), request.knowledgeBaseId(), request.systemPrompt().trim(), toolNames,
+                request.modelProfileId(), knowledgeBaseId, request.systemPrompt().trim(), toolNames,
                 existing.latestVersionNumber(),
                 existing.createdAt(), Instant.now());
         repository.updateDraft(updated);
@@ -101,9 +103,13 @@ public class AgentService {
     }
 
     private void validateKnowledgeBase(String knowledgeBaseId) {
-        if (knowledgeBaseId != null && !knowledgeBaseId.isBlank()) {
+        if (knowledgeBaseId != null) {
             knowledge.getBase(knowledgeBaseId);
         }
+    }
+
+    private String normalizedOptionalId(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 
     private List<String> normalizedTools(List<String> requested) {

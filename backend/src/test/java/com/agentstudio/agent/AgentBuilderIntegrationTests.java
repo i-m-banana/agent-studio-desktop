@@ -29,7 +29,9 @@ class AgentBuilderIntegrationTests {
                 "model-" + suffix, "OPENAI_COMPATIBLE", "https://example.com/v1",
                 "model-a", "TEST_MODEL_KEY", new BigDecimal("0.4")));
         var agent = agents.create(new AgentDefinitionRequest(
-                "agent-" + suffix, "test", model.id(), null, "prompt-v1", List.of("current_time")));
+                "agent-" + suffix, "test", model.id(), "", "prompt-v1", List.of("current_time")));
+
+        assertThat(agent.draftKnowledgeBaseId()).isNull();
 
         assertThatThrownBy(() -> agents.create(new AgentDefinitionRequest(
                 agent.name(), "duplicate", model.id(), null, "prompt", List.of())))
