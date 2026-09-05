@@ -12,6 +12,7 @@
 - Agent 草稿可绑定内置工具，发布时把工具集合快照到不可变版本；
 - 显式 ReAct 工具循环、AgentRun/RunStep 持久化和前端运行步骤展示；
 - 高风险工具审批：展示原始参数、参数摘要、过期时间，并支持批准一次或拒绝；
+- MCP Streamable HTTP：网页配置 Server、连接测试、工具发现、Agent 绑定、调用与安全审计；
 - 统一安全执行网关：通用参数 Schema 校验、风险判断、审批、限时执行和结构化审计；
 - AgentRun 主动取消、120 秒总时限、遗留运行关闭和运行历史详情；
 - OpenAI Chat Completions 兼容接口及 SSE 流式返回；
@@ -21,7 +22,7 @@
 
 ## 当前边界
 
-当前默认通过本机 Ollama 的 `qwen3-embedding:0.6b` 生成 1024 维语义向量，并保留 384 维词法哈希作为可配置回退。工具能力已包含 LOW/READ 的 `current_time` 和 HIGH/WRITE 的 `write_workspace_note`；所有工具统一经过 Schema 校验、安全执行网关和 AuditEvent，HIGH 调用还必须经过参数绑定、限时、一次性审批。运行支持主动取消和总超时，重启会关闭遗留状态但不会断点续跑。MCP、SSH、Coding、身份体系和真正的崩溃续跑尚未实现；无答案拒答仍是已知限制。
+当前默认通过本机 Ollama 的 `qwen3-embedding:0.6b` 生成 1024 维语义向量，并保留 384 维词法哈希作为可配置回退。工具能力已包含 LOW/READ 的 `current_time`、HIGH/WRITE 的 `write_workspace_note` 和动态 MCP 工具；所有工具统一经过 Schema 校验、安全执行网关和 AuditEvent，HIGH 调用还必须经过参数绑定、限时、一次性审批。运行支持主动取消和总超时，重启会关闭遗留状态但不会断点续跑。MCP 首版支持 `2025-06-18` Streamable HTTP 的工具发现与调用，stdio、OAuth、resources/prompts、SSH、Coding、身份体系和真正的崩溃续跑尚未实现；无答案拒答仍是已知限制。
 
 ## 本地启动
 
@@ -60,6 +61,10 @@ npm run dev
 运行开始后，对话输入区会出现“停止运行”。默认总时限为 120 秒，可用 `AGENT_RUN_TIMEOUT` 调整。运行结束后可在“运行记录”查看最终状态、错误和完整步骤；应用重启会把上一进程遗留的运行标为 `INTERRUPTED`，不会自动续跑。
 
 工具运行完成后，在“运行记录”选择对应运行可以查看“安全审计”。审计展示参数校验、审批决定、执行开始、完成、跳过或失败，但只保存参数摘要和结果概况，不复制原始参数及完整输出。
+
+## MCP 本机验收
+
+另开终端运行 `node examples/mcp-fixture-server/server.mjs`，然后在“03 MCP 连接”新增 `http://127.0.0.1:3001/mcp`。连接成功后，MCP 工具会出现在 Agent Builder；编辑草稿、勾选工具并发布新版本，即可在对话台验证审批、远端调用和审计。完整步骤见 `examples/mcp-fixture-server/README.md`。
 
 已有知识库从旧 384 维索引升级时，在知识库页面点击“使用当前模型重建索引”。新索引使用 `qwen3-0.6b-v1` 版本，与旧表隔离。需要离线回退时，可在启动后端前设置 `$env:EMBEDDING_PROVIDER="local-hash"`，并重新构建对应知识库索引。
 

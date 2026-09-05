@@ -8,6 +8,7 @@
 - `decisions/0006-bound-high-risk-tool-approval.md`：高风险调用的参数绑定、过期和一次性审批；
 - `decisions/0007-cooperative-run-control.md`：主动取消、总时限、遗留状态关闭和运行历史；
 - `decisions/0008-safe-execution-audit-gateway.md`：统一 Schema 校验、风险审批、工具执行和结构化审计；
+- `decisions/0009-mcp-streamable-http-adapter.md`：MCP 动态发现、稳定命名、版本修订与统一安全入口；
 - `SOURCE_REFERENCES.md`：三个来源项目的版本、状态、许可证口径和参考边界；
 - `VERIFICATION.md`：每阶段的实际验证证据与未验证项。
 - `../examples/project-knowledge-pack`：可逐份上传的项目知识、开发复盘、面试讲述与 RAG 盲测题库。

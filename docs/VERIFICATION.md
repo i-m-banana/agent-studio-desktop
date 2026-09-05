@@ -185,6 +185,22 @@
 
 当前限制：Java 中断是协作式取消；第三方工具仍需提供自己的取消能力。系统按单实例设计，多实例共享数据库前需要实例租约。客户端直接断开还不会自动提交取消，应用重启也不会从 RunStep 继续。
 
+## 阶段 9：MCP Streamable HTTP 核心闭环（2026-09-05）
+
+- 新增 Flyway V6，持久化 MCP Server、协议协商结果、同步错误和带描述指纹的工具目录；
+- 实现 MCP `2025-06-18` initialize/initialized、tools/list 分页和 tools/call，支持 application/json 与 POST 返回的 text/event-stream，并传递 session id 和协议版本头；
+- 工具生成平台稳定名称，避免跨 Server 重名；描述或 Schema 改变产生新修订，旧记录不覆盖；
+- 动态 MCP 工具进入原 ToolRegistry，并继续经过 Schema 校验、HIGH 一次性审批、目标绑定、单工具超时、运行取消和 AuditEvent；
+- MCP 凭据只保存环境变量名。HTTP 仅允许回环地址，远程 Endpoint 强制 HTTPS；
+- 前端新增 MCP 连接页，支持保存并连接、失败原因、重新同步和发现工具展示；
+- 随项目新增零依赖 Node.js fixture Server，可人工验证完整链路。
+
+自动化证据：H2 成功应用 V1 至 V6；协议测试覆盖有状态初始化、协议版本头、工具发现、tools/call 和 JSON-RPC 错误；集成测试覆盖动态工具进入统一注册表、稳定命名、HIGH 风险、目标环境和执行委托。全量后端共 23 个测试通过，前端生产构建通过。
+
+尚待人工验证：用户本机 MySQL 的 V6 迁移，以及 DeepSeek 对动态 MCP 工具的真实 tool_call、批准和拒绝分支。当前不支持 stdio、OAuth、resources、prompts、sampling、通知订阅或 MCP session 复用。
+
+知识包加入 MCP 材料后再次执行冻结 30 题回归：00–10 为 11 份文档、35 个 chunk，语料 SHA-256 `a1970fceb87a09ad2044ef027b1de0cd3086b510842f3d8817e0ab79bac46259`。LocalHash Recall@5 87.50%、MRR 0.6854；Qwen Recall@5 100%、MRR 0.8278、改写题 MRR 0.8361、p95 233.375 ms。两者无答案误召回率仍为 100%，MCP 文档扩充没有解决证据充分性判断。结果 JSON 保存每份文档哈希；后续文字修订应以新快照复测，不能把本段哈希当作始终不变的目录标识。
+
 知识包同步回归：
 
 - 00–10 扩充为 11 份文档、32 个 chunk，SHA-256 `954f15a497955490510433e99c0878eb21df9975dba56644a506648f6aabb482`；

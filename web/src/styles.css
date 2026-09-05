@@ -57,6 +57,16 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .ghost { padding: 8px 12px; color: #84958c; border: 0; background: transparent; }
 .list-panel { padding: 28px; }
 .model-card, .agent-card { padding: 18px 0; border-top: 1px solid #263a31; }
+.mcp-card { padding: 20px 0; border-top: 1px solid #263a31; }
+.mcp-card:first-of-type { border-top: 0; }
+.mcp-card > code { display: block; margin: -8px 0 10px; color: #79b99a; font-size: 11px; overflow-wrap: anywhere; }
+.mcp-card .card-actions small { margin-right: auto; color: #75867d; font-size: 10px; }
+.mcp-tools { display: grid; gap: 7px; margin: 16px 0; }
+.mcp-tools details { padding: 10px 12px; border: 1px solid #2c4137; border-radius: 8px; background: #0d1713; }
+.mcp-tools summary { display: flex; justify-content: space-between; gap: 12px; color: #c9d8d0; cursor: pointer; font-size: 12px; }
+.mcp-tools summary span { color: #e4b966; font: 9px ui-monospace, monospace; }
+.mcp-tools p { color: #84958c; font-size: 11px; line-height: 1.5; }
+.mcp-tools code { color: #6daf91; font-size: 9px; overflow-wrap: anywhere; }
 .document-card { padding: 18px 0; border-top: 1px solid #263a31; }
 .document-card > div { display: flex; justify-content: space-between; gap: 16px; }
 .document-card p { margin: 6px 0 0; color: #829189; font-size: 12px; }
@@ -147,5 +157,5 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .audit-events article > div { display: flex; justify-content: space-between; gap: 12px; }
 .audit-events article small, .audit-events article code, .audit-events article p { margin: 0; color: #83968c; font-size: 10px; overflow-wrap: anywhere; }
 .audit-events article code { color: #72b795; }
-@media (max-width: 900px) { .app-shell { grid-template-columns: 1fr; } .sidebar { position: static; height: auto; display: grid; grid-template-columns: 1fr auto; gap: 26px; } .sidebar h1 { font-size: 34px; } .sidebar nav { grid-column: 1 / -1; grid-template-columns: repeat(5, 1fr); } .connection { grid-column: 2; grid-row: 1; } .two-column { grid-template-columns: 1fr; } }
+@media (max-width: 900px) { .app-shell { grid-template-columns: 1fr; } .sidebar { position: static; height: auto; display: grid; grid-template-columns: 1fr auto; gap: 26px; } .sidebar h1 { font-size: 34px; } .sidebar nav { grid-column: 1 / -1; grid-template-columns: repeat(3, 1fr); } .connection { grid-column: 2; grid-row: 1; } .two-column { grid-template-columns: 1fr; } }
 @media (max-width: 620px) { .sidebar { padding: 24px 18px; } .sidebar nav { grid-template-columns: 1fr; } .workspace { padding: 36px 16px; } .chat-toolbar { align-items: stretch; flex-direction: column; } .composer { grid-template-columns: 1fr; } .message { grid-template-columns: 1fr; gap: 5px; } }

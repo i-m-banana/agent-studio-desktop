@@ -24,6 +24,8 @@
 
 绑定工具时使用非流式 Chat Completions 获取一轮完整的 assistant 消息和 tool_calls。平台把已绑定工具请求交给 SafeExecutionGateway，完成 Schema 校验、风险审批、取消检查、限时执行和审计，再把 Observation 加入消息后调用模型，直到得到最终文本或达到最大轮数。每一轮产生 step 事件。遇到 HIGH 工具时，服务发送 `approval_required` 并把运行标为 WAITING_APPROVAL；事件除原始参数与 SHA-256 外，还展示能力、风险和目标环境。前端调用独立的 approve 或 reject 接口，服务再发送 APPROVAL_RESULT。批准只对界面展示的原始参数有效，拒绝和超时作为 Observation 返回模型。工具版最终文本当前以一个 delta 事件返回；未绑定工具的路径仍然逐 token 转发多个 delta。
 
+MCP 不改变这条 ReAct 主链。模型看到的是同步后持久化的 MCP ToolDescriptor，返回的平台工具名由 ToolRegistry 解析到具体 Server 和远端工具名。SafeExecutionGateway 在批准后才允许适配器建立短生命周期 MCP session、发送 tools/call，并把 content 与 structuredContent 转成 Observation。审批卡目标从内置工具的 LOCAL 变为 `MCP:<配置名>@<host>`，用户能确认副作用将发生在哪里。
+
 ## 为什么选 SSE
 
 当前输出方向仍是服务端到浏览器，因此 SSE 足够。审批决定本身是一次普通 HTTP POST，不需要为了偶发的用户动作把整条链路改成 WebSocket。SSE 承载 run、sources、step、approval_required、delta、done 和 error；只有未来需要高频双向控制时才有必要考虑 WebSocket。

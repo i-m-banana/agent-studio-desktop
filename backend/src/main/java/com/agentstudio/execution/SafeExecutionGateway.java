@@ -43,7 +43,8 @@ public class SafeExecutionGateway {
         com.agentstudio.approval.ApprovalRequest approval = null;
         com.agentstudio.approval.ApprovalOutcome outcome = null;
         if ("HIGH".equals(descriptor.riskLevel())) {
-            approval = approvals.request(runId, conversationId, agentVersionId, call, descriptor, "LOCAL");
+            approval = approvals.request(runId, conversationId, agentVersionId, call, descriptor,
+                    tools.targetEnvironment(call.name()));
             audit(runId, conversationId, agentVersionId, "APPROVAL_REQUIRED", descriptor,
                     "WAITING", argumentsHash, "等待参数绑定的一次性审批");
             approvalListener.requested(approval);

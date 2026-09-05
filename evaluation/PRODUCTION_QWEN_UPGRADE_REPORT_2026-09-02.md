@@ -1,32 +1,32 @@
 # Qwen 语义向量生产升级报告
 
-- 最后刷新：2026-09-05（加入运行取消、总时限和历史详情材料后重跑同语料评测）
+- 最后刷新：2026-09-05（加入 MCP 核心模块材料后重跑同语料评测）
 - 模型：本机 Ollama `qwen3-embedding:0.6b`
 - 维度：1024
 - 索引版本：`qwen3-0.6b-v1`
 - 生产表：`knowledge_chunk_v2`
-- Qwen 原始结果：`evaluation/results/qwen3-embedding-0.6b-production.json`
-- 同语料 LocalHash 结果：`evaluation/results/local-hash-after-run-control-docs.json`
-- 语料：00–10，共 11 份文档、32 个 chunk，SHA-256 `954f15a497955490510433e99c0878eb21df9975dba56644a506648f6aabb482`
+- Qwen 最新结果：`evaluation/results/qwen3-embedding-0.6b-after-mcp-docs.json`
+- 同语料 LocalHash 结果：`evaluation/results/local-hash-after-mcp-docs.json`
+- 语料：00–10，共 11 份文档、35 个 chunk，SHA-256 `a1970fceb87a09ad2044ef027b1de0cd3086b510842f3d8817e0ab79bac46259`
 
 ## 冻结题集结果
 
 | 指标 | LocalHash | Qwen 生产配置 | 变化 |
 |---|---:|---:|---:|
-| Recall@5 | 79.17% | 100.00% | +20.83 个百分点 |
-| MRR | 0.6333 | 0.8542 | +0.2208 |
-| 原题 Recall@5 | 91.67% | 100.00% | +8.33 个百分点 |
-| 原题 MRR | 0.7083 | 0.9028 | +0.1944 |
-| 改写题 Recall@5 | 66.67% | 100.00% | +33.33 个百分点 |
-| 改写题 MRR | 0.5583 | 0.8056 | +0.2472 |
+| Recall@5 | 87.50% | 100.00% | +12.50 个百分点 |
+| MRR | 0.6854 | 0.8278 | +0.1424 |
+| 原题 Recall@5 | 100.00% | 100.00% | 无变化 |
+| 原题 MRR | 0.7458 | 0.8194 | +0.0736 |
+| 改写题 Recall@5 | 75.00% | 100.00% | +25.00 个百分点 |
+| 改写题 MRR | 0.6250 | 0.8361 | +0.2111 |
 | 无答案误召回率 | 100.00% | 100.00% | 无改善 |
-| p95 查询延迟 | 0.284 ms | 244.784 ms | 增加约 244 ms |
+| p95 查询延迟 | 0.213 ms | 233.375 ms | 增加约 233 ms |
 
-延迟包含本机 Ollama HTTP query embedding 和 32 个 chunk 的内存精确排序，不是完整聊天延迟。知识包加入安全执行网关材料后，LocalHash 和 Qwen 都在同一新语料上重新运行，不能直接拿历史报告数值作当前对照。
+延迟包含本机 Ollama HTTP query embedding 和 35 个 chunk 的内存精确排序，不是完整聊天延迟。知识包加入 MCP 材料后，LocalHash 和 Qwen 都在同一新语料上重新运行，不能直接拿历史报告数值作当前对照。
 
 ## 查询指令消融
 
-生产接入最初配置了统一中文检索指令。在知识包扩充前的同一冻结语料消融中，Recall@5 仍为 100%，但 MRR 从无前缀的 0.8160 下降到 0.6917。因此最终默认不添加 query instruction，只保留环境变量配置能力；本次扩充语料的无前缀 MRR 为 0.8542。
+生产接入最初配置了统一中文检索指令。在知识包扩充前的同一冻结语料消融中，Recall@5 仍为 100%，但 MRR 从无前缀的 0.8160 下降到 0.6917。因此最终默认不添加 query instruction，只保留环境变量配置能力；本次加入 MCP 材料后的无前缀 MRR 为 0.8278。
 
 ## 真实存储验收
 
@@ -34,4 +34,4 @@
 
 ## 结论
 
-语义 embedding 继续保持 Recall@5 100%，并在 Recall、整体 MRR 和改写题 MRR 上优于 LocalHash，MRR 为 0.8542，p95 低于 400 ms 预算。它仍略低于 27 个 chunk 时的历史 MRR 0.8854，说明语料扩充会改变切块和排序，后续仍应评估结构化切块与 rerank，而不能沿用旧指标。无答案拒答仍未通过。
+语义 embedding 继续保持 Recall@5 100%，并在 Recall、整体 MRR 和改写题 MRR 上优于 LocalHash，MRR 为 0.8278，p95 低于 400 ms 预算。它仍低于 27 个 chunk 时的历史 MRR 0.8854，说明语料扩充会改变切块和排序，后续仍应评估结构化切块与 rerank，而不能沿用旧指标。无答案拒答仍未通过。

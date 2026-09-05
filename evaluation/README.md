@@ -37,7 +37,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File evaluation/run-rag-baseline.
   -Output evaluation/results/qwen3-embedding-0.6b-candidate.json
 ```
 
-生产默认配置使用同一模型和维度，最终冻结结果保存在 `results/qwen3-embedding-0.6b-production.json`，总结见 `PRODUCTION_QWEN_UPGRADE_REPORT_2026-09-02.md`。评测工具的 query instruction 默认与生产一致为空；如需做指令消融，可通过 Maven 系统属性 `rag.eval.queryInstruction` 单独传入，不能把消融结果覆盖为生产结论。
+生产默认配置使用同一模型和维度；加入 MCP 材料后的最新冻结结果保存在 `results/qwen3-embedding-0.6b-after-mcp-docs.json`，LocalHash 对照为 `results/local-hash-after-mcp-docs.json`，总结见 `PRODUCTION_QWEN_UPGRADE_REPORT_2026-09-02.md`。评测工具的 query instruction 默认与生产一致为空；如需做指令消融，可通过 Maven 系统属性 `rag.eval.queryInstruction` 单独传入，不能把消融结果覆盖为生产结论。
 
 本地基线直接复用生产代码中的 Apache Tika 解析、`TextChunker` 和 `LocalHashEmbedding`。Ollama 评测模式复用前两者，以 `/api/embed` 替换向量生成，确认维度后按同一余弦口径取前 5 条并过滤 `score <= 0.05`。两种模式都使用内存精确排序，不经过 pgvector；评测运行不会修改生产索引，生产是否切换由应用配置和显式重建决定。
 
