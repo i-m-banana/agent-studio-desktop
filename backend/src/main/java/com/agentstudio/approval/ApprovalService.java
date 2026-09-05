@@ -12,6 +12,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.agentstudio.model.ModelToolCall;
 import com.agentstudio.system.ApiException;
+import com.agentstudio.tool.ToolDescriptor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -28,10 +29,14 @@ public class ApprovalService {
         this.timeout = timeout;
     }
 
-    public ApprovalRequest request(String runId, ModelToolCall call) {
+    public ApprovalRequest request(String runId, String conversationId, String agentVersionId,
+                                   ModelToolCall call, ToolDescriptor descriptor, String targetEnvironment) {
         var now = Instant.now();
-        var request = new ApprovalRequest(UUID.randomUUID().toString(), runId, call.id(), call.name(),
-                call.argumentsJson(), sha256(call.argumentsJson()), "PENDING", null, now, now.plus(timeout), null);
+        var argumentsJson = call.argumentsJson() == null || call.argumentsJson().isBlank()
+                ? "{}" : call.argumentsJson();
+        var request = new ApprovalRequest(UUID.randomUUID().toString(), runId, conversationId, agentVersionId,
+                call.id(), call.name(), descriptor.capability(), descriptor.riskLevel(), targetEnvironment,
+                argumentsJson, sha256(argumentsJson), "PENDING", null, now, now.plus(timeout), null);
         waiters.put(request.id(), new CompletableFuture<>());
         try {
             repository.insert(request);

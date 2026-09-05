@@ -1,7 +1,7 @@
 {
   "schemaVersion" : "1.0",
-  "generatedAt" : "2026-09-05T07:22:02.407238500Z",
-  "gitCommit" : "3fb2b015787ec75a88f4bfe3a7b5eb2e1fbc1d65",
+  "generatedAt" : "2026-09-05T07:41:37.962486100Z",
+  "gitCommit" : "00bba6214ef85de54c4b0573bcf5ae8f97e23c97",
   "evaluator" : {
     "mode" : "offline-ollama-evaluation",
     "javaVersion" : "21.0.4",
@@ -19,32 +19,32 @@
   },
   "corpus" : {
     "documentCount" : 11,
-    "chunkCount" : 31,
-    "corpusSha256" : "afa570413548ec513d822756af1a044b4153cec8ec65119f1c09a7ac88074794",
+    "chunkCount" : 32,
+    "corpusSha256" : "954f15a497955490510433e99c0878eb21df9975dba56644a506648f6aabb482",
     "documents" : [ {
       "fileName" : "00-入库说明与事实口径.md",
-      "rawSha256" : "cc3bb0e459f85410f9c66ce10148ab7449255bf90eb094d5c6cdfe2b172579bd",
-      "extractedCharacters" : 1271,
+      "rawSha256" : "d80b7986ad6698a86437448e30e9c3b775325e435e9f28493b86a19a729c8f65",
+      "extractedCharacters" : 1329,
       "chunkCount" : 2
     }, {
       "fileName" : "01-项目总览与业务目标.md",
-      "rawSha256" : "39a2db87ef8ad6665e12e6bb2dffe33b76090ad3a3ce1516b3ea63888d5661fb",
-      "extractedCharacters" : 1574,
+      "rawSha256" : "6363aafcd65a4bf740ab6f98999b6142f92820377e6ec2cf68754309be6e394b",
+      "extractedCharacters" : 1589,
       "chunkCount" : 2
     }, {
       "fileName" : "02-架构设计与技术选型.md",
-      "rawSha256" : "f2fe0a84668b65b13704bdf7e3638622ef54e9e28036daa5ab7da57e287c2b97",
-      "extractedCharacters" : 2327,
+      "rawSha256" : "833b19941fe4faae0c8162f0ee5f72d5f7fe8690a8a4503b5bd6088991e1fb19",
+      "extractedCharacters" : 2656,
       "chunkCount" : 3
     }, {
       "fileName" : "03-数据模型与不可变版本.md",
-      "rawSha256" : "44843eeef7e19bb0f1735dbb85a722021e83bd3c5ef80a4536d898187990af5a",
-      "extractedCharacters" : 2082,
+      "rawSha256" : "f41647ca5dd6d58bae08ffd89e1972d2bb42ae2c660d2558ff0cbabd47c214df",
+      "extractedCharacters" : 2293,
       "chunkCount" : 3
     }, {
       "fileName" : "04-模型调用与SSE流式对话.md",
-      "rawSha256" : "05c3dae8de4935c97963b15646bf677cf86f2949cfb7faa7afd6bf59a6dba5a2",
-      "extractedCharacters" : 1781,
+      "rawSha256" : "c08ce784e0fea5f88e5c1b8940d793736e899ce566675946865f8de276b5e451",
+      "extractedCharacters" : 1868,
       "chunkCount" : 2
     }, {
       "fileName" : "05-RAG全链路与检索算法.md",
@@ -53,9 +53,9 @@
       "chunkCount" : 2
     }, {
       "fileName" : "06-开发过程与提交时间线.md",
-      "rawSha256" : "b7a085472e96dc0fcf28e6c626e6577f130a5c6de460f7a05af986e45f9a7643",
-      "extractedCharacters" : 3686,
-      "chunkCount" : 4
+      "rawSha256" : "7a75f60bdfbd427e13cd8099c85000db8bf5fbfabae6a8135b67c30b32724561",
+      "extractedCharacters" : 4169,
+      "chunkCount" : 5
     }, {
       "fileName" : "07-真实故障与排查复盘.md",
       "rawSha256" : "f82f9e55ffa43e7af65949336bd33fea762794904379ae91eeb8548989d2a476",
@@ -63,28 +63,28 @@
       "chunkCount" : 4
     }, {
       "fileName" : "08-测试策略与验收证据.md",
-      "rawSha256" : "a62a279fd6b38279dbce5b46726ae0de868de73cb99a3d7be4220f57057427b8",
-      "extractedCharacters" : 2291,
+      "rawSha256" : "5b2001bfbed6d64c3c6bf8ea30e558af145bde1dcb9150f9676ab75c03dce5d9",
+      "extractedCharacters" : 2537,
       "chunkCount" : 3
     }, {
       "fileName" : "09-安全边界局限与路线图.md",
-      "rawSha256" : "bc9e41db985c40ff012bb41302fa3504849556a4e12bfb9cc3e6ea4bfd69a2ac",
-      "extractedCharacters" : 1443,
+      "rawSha256" : "692c230cc2cf8667f66aae2a078a354a14df823b89d34f839353493b7da0960f",
+      "extractedCharacters" : 1551,
       "chunkCount" : 2
     }, {
       "fileName" : "10-面试讲述与追问准备.md",
-      "rawSha256" : "794d6a6e16841c92d558e4e6188e92e9df2da09d2f995e26da49110d8f197f0a",
-      "extractedCharacters" : 3438,
+      "rawSha256" : "3a82a8c73dd7b2d8f3a8b0b459b180e84d260fe062237c9cb26dd47e589027e6",
+      "extractedCharacters" : 3827,
       "chunkCount" : 4
     } ],
-    "indexingLatencyMs" : 26961.1188
+    "indexingLatencyMs" : 27638.7916
   },
   "metrics" : {
     "totalCases" : 30,
     "answerableCases" : 24,
     "noAnswerCases" : 6,
     "recallAt5" : 1.0,
-    "mrr" : 0.8090277777777778,
+    "mrr" : 0.8541666666666666,
     "noAnswerFalsePositiveRate" : 1.0,
     "byVariant" : {
       "canonical" : {
@@ -92,7 +92,7 @@
         "answerableCases" : 12,
         "noAnswerCases" : 0,
         "recallAt5" : 1.0,
-        "mrr" : 0.8194444444444445,
+        "mrr" : 0.9027777777777778,
         "noAnswerFalsePositiveRate" : null
       },
       "paraphrase" : {
@@ -100,7 +100,7 @@
         "answerableCases" : 12,
         "noAnswerCases" : 0,
         "recallAt5" : 1.0,
-        "mrr" : 0.7986111111111112,
+        "mrr" : 0.8055555555555555,
         "noAnswerFalsePositiveRate" : null
       },
       "negative" : {
@@ -116,67 +116,67 @@
   "thresholdSweep" : [ {
     "threshold" : 0.05,
     "recallAt5" : 1.0,
-    "mrr" : 0.8090277777777777,
+    "mrr" : 0.8541666666666665,
     "noAnswerFalsePositiveRate" : 1.0,
     "meanReturnedChunks" : 5.0
   }, {
     "threshold" : 0.1,
     "recallAt5" : 1.0,
-    "mrr" : 0.8090277777777777,
+    "mrr" : 0.8541666666666665,
     "noAnswerFalsePositiveRate" : 1.0,
     "meanReturnedChunks" : 5.0
   }, {
     "threshold" : 0.2,
     "recallAt5" : 1.0,
-    "mrr" : 0.8090277777777777,
+    "mrr" : 0.8541666666666665,
     "noAnswerFalsePositiveRate" : 1.0,
     "meanReturnedChunks" : 5.0
   }, {
     "threshold" : 0.25,
     "recallAt5" : 1.0,
-    "mrr" : 0.8090277777777777,
+    "mrr" : 0.8541666666666665,
     "noAnswerFalsePositiveRate" : 1.0,
     "meanReturnedChunks" : 5.0
   }, {
     "threshold" : 0.3,
     "recallAt5" : 1.0,
-    "mrr" : 0.8090277777777777,
+    "mrr" : 0.8541666666666665,
     "noAnswerFalsePositiveRate" : 1.0,
     "meanReturnedChunks" : 5.0
   }, {
     "threshold" : 0.35,
     "recallAt5" : 1.0,
-    "mrr" : 0.8090277777777777,
+    "mrr" : 0.8541666666666665,
     "noAnswerFalsePositiveRate" : 1.0,
     "meanReturnedChunks" : 4.933333333333334
   }, {
     "threshold" : 0.4,
     "recallAt5" : 1.0,
-    "mrr" : 0.8090277777777777,
+    "mrr" : 0.8541666666666665,
     "noAnswerFalsePositiveRate" : 0.5,
-    "meanReturnedChunks" : 4.333333333333333
+    "meanReturnedChunks" : 4.3
   }, {
     "threshold" : 0.45,
     "recallAt5" : 0.9166666666666666,
-    "mrr" : 0.7534722222222222,
-    "noAnswerFalsePositiveRate" : 0.3333333333333333,
-    "meanReturnedChunks" : 3.2
+    "mrr" : 0.7708333333333331,
+    "noAnswerFalsePositiveRate" : 0.16666666666666666,
+    "meanReturnedChunks" : 3.1
   }, {
     "threshold" : 0.5,
     "recallAt5" : 0.7083333333333334,
-    "mrr" : 0.6388888888888888,
+    "mrr" : 0.611111111111111,
     "noAnswerFalsePositiveRate" : 0.16666666666666666,
-    "meanReturnedChunks" : 2.1666666666666665
+    "meanReturnedChunks" : 2.0
   }, {
     "threshold" : 0.55,
-    "recallAt5" : 0.5,
-    "mrr" : 0.45138888888888884,
+    "recallAt5" : 0.4583333333333333,
+    "mrr" : 0.38888888888888884,
     "noAnswerFalsePositiveRate" : 0.16666666666666666,
-    "meanReturnedChunks" : 1.4666666666666666
+    "meanReturnedChunks" : 1.3666666666666667
   }, {
     "threshold" : 0.6,
     "recallAt5" : 0.3333333333333333,
-    "mrr" : 0.2847222222222222,
+    "mrr" : 0.2638888888888889,
     "noAnswerFalsePositiveRate" : 0.0,
     "meanReturnedChunks" : 0.6
   }, {
@@ -195,9 +195,9 @@
   "latency" : {
     "measuredQueries" : 30,
     "warmupRounds" : 1,
-    "p50Ms" : 223.4892,
-    "p95Ms" : 234.2348,
-    "maximumMs" : 253.7538
+    "p50Ms" : 225.811,
+    "p95Ms" : 244.7835,
+    "maximumMs" : 268.8381
   },
   "answerMetrics" : {
     "status" : "not_measured",
@@ -221,8 +221,8 @@
     "firstRelevantRank" : 3,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 201.5805,
-    "returnedSources" : [ "01-项目总览与业务目标.md", "10-面试讲述与追问准备.md", "06-开发过程与提交时间线.md", "04-模型调用与SSE流式对话.md", "02-架构设计与技术选型.md" ],
+    "latencyMs" : 221.4613,
+    "returnedSources" : [ "01-项目总览与业务目标.md", "10-面试讲述与追问准备.md", "06-开发过程与提交时间线.md", "02-架构设计与技术选型.md", "04-模型调用与SSE流式对话.md" ],
     "hits" : [ {
       "rank" : 1,
       "fileName" : "01-项目总览与业务目标.md",
@@ -233,7 +233,7 @@
       "rank" : 2,
       "fileName" : "10-面试讲述与追问准备.md",
       "chunkIndex" : 0,
-      "score" : 0.6393646260036443,
+      "score" : 0.6390719371065595,
       "contentPreview" : "# Agent Studio Desktop：面试讲述与追问准备 ## 90 秒项目介绍 我主导做了一个单机优先的智能体搭建工具 Agent Studio Desktop，目标是让用户不改 Java 代码，就能配置 OpenAI 兼容模型、提示词和知识库，发布固定版本的 Agent，并在网页上做流式问答和查看引用来源。后端采用 Java 21 和 Spring Boot 模块化单体，前端是 React + TypeScript，MySQL 保存业务配置，PostgreSQL …"
     }, {
       "rank" : 3,
@@ -243,16 +243,16 @@
       "contentPreview" : "# Agent Studio Desktop：开发过程与提交时间线 ## 阶段 0：独立工程基线 第一个提交是 `de8dd90 chore: establish agent studio desktop baseline`。这一阶段建立独立 Git 仓库、Spring Boot 单体、React + TypeScript + Vite 前端、Docker Compose、健康检查、README、架构决策和来源边界记录。 实际环境确认 Maven 使用 Java 21.0.4…"
     }, {
       "rank" : 4,
+      "fileName" : "02-架构设计与技术选型.md",
+      "chunkIndex" : 2,
+      "score" : 0.5981143281530135,
+      "contentPreview" : "runId 和截止时间。取消接口先把数据库状态改为 CANCEL_REQUESTED，再发送线程中断；ChatService 在检索、模型、审批、工具和持久化边界检查终止信号，最终写为 CANCELLED 或 TIMED_OUT，并增加 RUN_TERMINATION。应用启动会把上一进程遗留的非终态运行标为 INTERRUPTED、待决审批标为 EXPIRED。它解决的是状态收口，不是断点续跑；当前仍不支持登录身份，也不支持多个后端实例共享数据库。 SafeExecutio…"
+    }, {
+      "rank" : 5,
       "fileName" : "04-模型调用与SSE流式对话.md",
       "chunkIndex" : 0,
       "score" : 0.596901471667705,
       "contentPreview" : "# Agent Studio Desktop：模型调用与 SSE 流式对话 ## OpenAI 兼容适配 项目没有直接绑定某个厂商 SDK，而是使用 Java `HttpClient` 调用 OpenAI Chat Completions 兼容接口。网关从 AgentVersion 读取 baseUrl、modelName、temperature 和 apiKeyEnv。如果 baseUrl 没有以 `/chat/completions` 结束，网关自动补齐路径。 请求体包含…"
-    }, {
-      "rank" : 5,
-      "fileName" : "02-架构设计与技术选型.md",
-      "chunkIndex" : 2,
-      "score" : 0.596745919517043,
-      "contentPreview" : "runId 和截止时间。取消接口先把数据库状态改为 CANCEL_REQUESTED，再发送线程中断；ChatService 在检索、模型、审批、工具和持久化边界检查终止信号，最终写为 CANCELLED 或 TIMED_OUT，并增加 RUN_TERMINATION。应用启动会把上一进程遗留的非终态运行标为 INTERRUPTED、待决审批标为 EXPIRED。它解决的是状态收口，不是断点续跑；当前仍不支持登录身份，也不支持多个后端实例共享数据库。 ## 端口与部署 前端默…"
     } ]
   }, {
     "id" : "rag-002",
@@ -264,8 +264,8 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 198.9464,
-    "returnedSources" : [ "05-RAG全链路与检索算法.md", "01-项目总览与业务目标.md", "07-真实故障与排查复盘.md", "02-架构设计与技术选型.md", "08-测试策略与验收证据.md" ],
+    "latencyMs" : 197.608,
+    "returnedSources" : [ "05-RAG全链路与检索算法.md", "01-项目总览与业务目标.md", "10-面试讲述与追问准备.md", "07-真实故障与排查复盘.md", "02-架构设计与技术选型.md" ],
     "hits" : [ {
       "rank" : 1,
       "fileName" : "05-RAG全链路与检索算法.md",
@@ -276,26 +276,26 @@
       "rank" : 2,
       "fileName" : "01-项目总览与业务目标.md",
       "chunkIndex" : 1,
-      "score" : 0.6360908483087702,
+      "score" : 0.6304241328724078,
       "contentPreview" : "## 当前技术栈 - 后端：Java 21、Spring Boot 3.4.3、Maven、Spring JDBC、Flyway； - 前端：React 19、TypeScript、Vite； - 业务数据库：MySQL 8.4； - 向量数据库：PostgreSQL 17 + pgvector； - 文档解析：Apache Tika 3.1.0； - 模型接口：OpenAI Chat Completions 兼容 SSE，已用 DeepSeek 实测； - Embeddin…"
     }, {
       "rank" : 3,
+      "fileName" : "10-面试讲述与追问准备.md",
+      "chunkIndex" : 3,
+      "score" : 0.5869109606499796,
+      "contentPreview" : "和外部调用去重，当前证据不足，所以称为遗留状态收口而不是断点恢复。 问：线程中断能绝对保证立即取消吗？答：不能，它是协作式机制。平台在主要边界反复检查，Java HttpClient 和当前工具会响应中断；未来接入第三方 MCP、SSH 或命令工具时，仍需它们提供自己的取消句柄和进程终止策略。 问：工具版为什么不是逐 token 流式？答：每轮必须先得到完整 tool_calls 才能安全执行，所以第一阶段使用非流式决策请求，最终文本以单个 delta 返回。普通无工具路径仍…"
+    }, {
+      "rank" : 4,
       "fileName" : "07-真实故障与排查复盘.md",
       "chunkIndex" : 1,
       "score" : 0.5724457096223748,
       "contentPreview" : "SQL，业务 `NamedParameterJdbcTemplate` 仍可能连到 PostgreSQL。表现为向 PostgreSQL 执行 `INSERT knowledge_base` 或查询 `model_profile`，然后报 relation does not exist。 根因是 Spring 容器里同时存在多个 DataSource 和 JdbcTemplate，而业务仓储没有足够明确的限定。修复包括：创建带 `@Primary` 和 `@FlywayDat…"
     }, {
-      "rank" : 4,
+      "rank" : 5,
       "fileName" : "02-架构设计与技术选型.md",
       "chunkIndex" : 1,
       "score" : 0.5594705116313149,
       "contentPreview" : "024 维向量并写入 `knowledge_chunk_v2`，记录模型和索引版本；旧 384 维表继续保留。知识库升级必须由用户显式触发重建，启动应用不会自动改写索引。 当前 Qwen 表采用精确 cosine 排序，不建立 HNSW 向量索引。原因是当前语料规模很小，近似索引没有性能必要，反而可能牺牲召回。表上只对 knowledgeBaseId 和 embeddingVersion 建范围索引。 ## 为什么不引入 Redis、MQ 和 MinIO 第一版没有缓存规模、…"
-    }, {
-      "rank" : 5,
-      "fileName" : "08-测试策略与验收证据.md",
-      "chunkIndex" : 2,
-      "score" : 0.5487334208807573,
-      "contentPreview" : "LocalHash 与 Qwen 在同一语料上重新生成带语料哈希的结果，Qwen 的 Recall@5、整体 MRR 和改写题 MRR均优于 LocalHash；最终数字见评测报告与 11 号文档。 ## 为什么自动化和真实验收都要有 自动化测试适合保证版本隔离、协议结构和算法不回归，但无法证明 Docker 端口、真实数据库方言、环境变量继承和外部模型兼容。真实验收能覆盖这些问题，却不适合每次提交都执行。因此项目把两类证据分开记录。 ## 后续应补的测试 当前仍缺少知识库隔…"
     } ]
   }, {
     "id" : "rag-003",
@@ -307,20 +307,20 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 195.1084,
-    "returnedSources" : [ "01-项目总览与业务目标.md", "09-安全边界局限与路线图.md", "06-开发过程与提交时间线.md", "10-面试讲述与追问准备.md", "08-测试策略与验收证据.md" ],
+    "latencyMs" : 200.2706,
+    "returnedSources" : [ "01-项目总览与业务目标.md", "09-安全边界局限与路线图.md", "06-开发过程与提交时间线.md", "02-架构设计与技术选型.md" ],
     "hits" : [ {
       "rank" : 1,
       "fileName" : "01-项目总览与业务目标.md",
       "chunkIndex" : 1,
-      "score" : 0.48862367609452845,
+      "score" : 0.48837790826464167,
       "contentPreview" : "## 当前技术栈 - 后端：Java 21、Spring Boot 3.4.3、Maven、Spring JDBC、Flyway； - 前端：React 19、TypeScript、Vite； - 业务数据库：MySQL 8.4； - 向量数据库：PostgreSQL 17 + pgvector； - 文档解析：Apache Tika 3.1.0； - 模型接口：OpenAI Chat Completions 兼容 SSE，已用 DeepSeek 实测； - Embeddin…"
     }, {
       "rank" : 2,
       "fileName" : "09-安全边界局限与路线图.md",
       "chunkIndex" : 1,
-      "score" : 0.4825124873797598,
-      "contentPreview" : "有最大轮数、单工具超时、总运行超时、主动取消、终止步骤和历史详情；重启时能关闭遗留状态。下一步仍需客户端断开联动取消、真正断点续跑、通用 Schema 校验和更多只读工具。 第三优先级的最小安全审批已经完成：HIGH 请求生成参数绑定的 ApprovalRequest，真实拒绝和批准均已人工通过。下一步不是重新做审批，而是补身份、RBAC、策略规则、并发治理，并把相同执行门用于 EXECUTE、PRIVILEGED 类型工具。 SSH 是优先的垂直样例，先在 OpenSSH …"
+      "score" : 0.4797389224911001,
+      "contentPreview" : "nk，不在当前阶段继续无边界调参。 第二优先级的运行控制已经完成最小闭环：AgentRun 有最大轮数、单工具超时、总运行超时、主动取消、终止步骤和历史详情；重启时能关闭遗留状态。通用 Schema 校验和结构化工具审计也已进入统一网关。下一步仍需客户端断开联动取消、真正断点续跑和更多只读工具。 第三优先级的最小安全审批已经完成：HIGH 请求生成参数绑定的 ApprovalRequest，真实拒绝和批准均已人工通过。所有工具现已统一通过 SafeExecutionGatew…"
     }, {
       "rank" : 3,
       "fileName" : "06-开发过程与提交时间线.md",
@@ -329,16 +329,16 @@
       "contentPreview" : "al workflow`。新增 Flyway V2、知识库与文档元数据、Tika 解析、文本切分、本地 384 维词法向量、pgvector 表和 HNSW 索引、知识库绑定、sources SSE 事件，以及前端知识库页面和来源展示。 真实验收创建了“科研助手验收库”和“科研知识助手”。示例 Markdown 上传后状态 READY，对话返回来源文件、chunk 0 和相似度。删除测试确认 MySQL 元数据、本地文件和向量检索结果同时消失，重新上传后恢复。 ## 开发方法…"
     }, {
       "rank" : 4,
-      "fileName" : "10-面试讲述与追问准备.md",
+      "fileName" : "02-架构设计与技术选型.md",
       "chunkIndex" : 2,
-      "score" : 0.42497375710647645,
-      "contentPreview" : "重放。ApprovalRequest 保存规范化的原始参数和 SHA-256，执行前用同一哈希原子消费 APPROVED 状态；这样批准的是用户看到的这一次具体调用，而不是对工具的永久放行。 问：高风险审批已经等于安全平台了吗？答：不是。当前证明的是单机环境中的参数绑定、拒绝、过期和一次性消费；还没有登录身份、RBAC、策略引擎、跨重启等待恢复和远程执行隔离，不能夸大成企业级治理。 问：运行取消是怎样实现的？答：取消接口先把数据库状态写成 CANCEL_REQUESTED，再…"
+      "score" : 0.45432292905176286,
+      "contentPreview" : "runId 和截止时间。取消接口先把数据库状态改为 CANCEL_REQUESTED，再发送线程中断；ChatService 在检索、模型、审批、工具和持久化边界检查终止信号，最终写为 CANCELLED 或 TIMED_OUT，并增加 RUN_TERMINATION。应用启动会把上一进程遗留的非终态运行标为 INTERRUPTED、待决审批标为 EXPIRED。它解决的是状态收口，不是断点续跑；当前仍不支持登录身份，也不支持多个后端实例共享数据库。 SafeExecutio…"
     }, {
       "rank" : 5,
-      "fileName" : "08-测试策略与验收证据.md",
-      "chunkIndex" : 2,
-      "score" : 0.4233779455668971,
-      "contentPreview" : "LocalHash 与 Qwen 在同一语料上重新生成带语料哈希的结果，Qwen 的 Recall@5、整体 MRR 和改写题 MRR均优于 LocalHash；最终数字见评测报告与 11 号文档。 ## 为什么自动化和真实验收都要有 自动化测试适合保证版本隔离、协议结构和算法不回归，但无法证明 Docker 端口、真实数据库方言、环境变量继承和外部模型兼容。真实验收能覆盖这些问题，却不适合每次提交都执行。因此项目把两类证据分开记录。 ## 后续应补的测试 当前仍缺少知识库隔…"
+      "fileName" : "06-开发过程与提交时间线.md",
+      "chunkIndex" : 3,
+      "score" : 0.4540531213876641,
+      "contentPreview" : "可安全重放的检查点。自动化测试增至 17 个，覆盖阻塞模型调用的主动取消、总超时、terminated SSE、历史摘要和终止步骤。 提交前复核还发现一个并发窗口：取消请求可能恰好发生在最后一次信号检查之后、COMPLETED 写入之前。修复方式不是再加一次普通检查，而是让最终状态更新携带数据库前置条件；COMPLETED/FAILED 不能覆盖 CANCEL_REQUESTED，只有取消/超时/中断收口可以从非终态转为对应终态。这样把正确性落到原子状态迁移上，而不是依赖线程…"
     } ]
   }, {
     "id" : "rag-004",
@@ -350,38 +350,38 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 195.4162,
-    "returnedSources" : [ "03-数据模型与不可变版本.md", "09-安全边界局限与路线图.md", "01-项目总览与业务目标.md", "10-面试讲述与追问准备.md" ],
+    "latencyMs" : 198.1112,
+    "returnedSources" : [ "03-数据模型与不可变版本.md", "09-安全边界局限与路线图.md", "01-项目总览与业务目标.md" ],
     "hits" : [ {
       "rank" : 1,
       "fileName" : "03-数据模型与不可变版本.md",
       "chunkIndex" : 0,
-      "score" : 0.7396692892384238,
+      "score" : 0.722810421662022,
       "contentPreview" : "# Agent Studio Desktop：数据模型与不可变版本 ## 核心实体 `ModelProfile` 保存模型显示名称、供应商、API 地址、模型名、密钥环境变量名和温度。它不保存密钥明文。 `AgentDefinition` 表示可编辑的 Agent 草稿，包含名称、描述、草稿模型标识、可选草稿知识库标识、系统提示词和最新版本号。状态由版本号推导：尚未发布是 DRAFT，至少发布过一次是 PUBLISHED。 草稿工具绑定保存在 `agent_tool_bind…"
     }, {
       "rank" : 2,
       "fileName" : "03-数据模型与不可变版本.md",
       "chunkIndex" : 1,
-      "score" : 0.7077348369826252,
-      "contentPreview" : "onversationId 请求不同版本时，后端返回冲突错误。`Message` 保存 user 和 assistant 消息，并按创建时间恢复上下文。 `KnowledgeBase` 是知识容器。`KnowledgeDocument` 保存文件名、媒体类型、大小、SHA-256、本地路径、处理状态、chunk 数、失败原因和时间。旧向量表 `knowledge_chunk` 保存 384 维 LocalHash；新表 `knowledge_chunk_v2` 保存 1024…"
+      "score" : 0.7143702876235286,
+      "contentPreview" : "gentVersion` 是发布快照。它除了保存关联标识，还复制模型名称、供应商、API 地址、模型名、密钥环境变量名、温度、系统提示词和知识库标识。复制这些字段的目的，是避免后续修改 ModelProfile 或草稿改变历史运行含义。 `Conversation` 在创建时绑定一个 `agentVersionId`。后续使用同一个 conversationId 请求不同版本时，后端返回冲突错误。`Message` 保存 user 和 assistant 消息，并按创建时间恢…"
     }, {
       "rank" : 3,
-      "fileName" : "09-安全边界局限与路线图.md",
-      "chunkIndex" : 0,
-      "score" : 0.580820046662447,
-      "contentPreview" : "# Agent Studio Desktop：安全边界、当前局限与路线图 ## 已有安全边界 模型密钥不进入数据库和 Git，ModelProfile 只保存环境变量名称。后端在模型调用时读取启动进程环境。文件保存路径经过绝对化、规范化和 dataRoot 前缀检查，避免通过文件名写出授权目录。上传大小限制为 20 MB，API 请求使用校验注解，外部模型错误文本会截断。 AgentVersion 不可变，会话固定绑定版本，减少运行中配置漂移。知识库检索按 knowledge…"
+      "fileName" : "03-数据模型与不可变版本.md",
+      "chunkIndex" : 2,
+      "score" : 0.6350170626021543,
+      "contentPreview" : "gentDefinition、AgentVersion 上增加知识库外键。V3 增加工具绑定、版本工具快照、AgentRun 和 RunStep。V4 增加 ApprovalRequest。V5 补齐审批上下文并增加 AuditEvent。应用启动时 Flyway 只迁移 MySQL；pgvector 的 extension、chunk 表和 HNSW 索引由向量初始化器以 `IF NOT EXISTS` 创建，不会在启动时清空数据。 ## 版本机制的面试表达 可以把草稿和版…"
     }, {
       "rank" : 4,
+      "fileName" : "09-安全边界局限与路线图.md",
+      "chunkIndex" : 0,
+      "score" : 0.57858666058114,
+      "contentPreview" : "# Agent Studio Desktop：安全边界、当前局限与路线图 ## 已有安全边界 模型密钥不进入数据库和 Git，ModelProfile 只保存环境变量名称。后端在模型调用时读取启动进程环境。文件保存路径经过绝对化、规范化和 dataRoot 前缀检查，避免通过文件名写出授权目录。上传大小限制为 20 MB，API 请求使用校验注解，外部模型错误文本会截断。 AgentVersion 不可变，会话固定绑定版本，减少运行中配置漂移。知识库检索按 knowledge…"
+    }, {
+      "rank" : 5,
       "fileName" : "01-项目总览与业务目标.md",
       "chunkIndex" : 0,
       "score" : 0.5655818042867129,
       "contentPreview" : "# Agent Studio Desktop：项目总览与业务目标 ## 一句话定位 Agent Studio Desktop 是一个运行在个人电脑上的智能体搭建与调试工具。用户不需要修改 Java 代码，就能配置 OpenAI 兼容模型、系统提示词和知识库，发布一个固定版本的 Agent，并在本地网页中流式对话、查看检索来源。 它不是公网 SaaS，也不是高并发多租户平台。产品的核心价值是让“模型连接、提示词、知识和版本”变成可配置资产，同时让本地开发环境简单、过程可观察、结…"
-    }, {
-      "rank" : 5,
-      "fileName" : "10-面试讲述与追问准备.md",
-      "chunkIndex" : 0,
-      "score" : 0.5586496621317552,
-      "contentPreview" : "# Agent Studio Desktop：面试讲述与追问准备 ## 90 秒项目介绍 我主导做了一个单机优先的智能体搭建工具 Agent Studio Desktop，目标是让用户不改 Java 代码，就能配置 OpenAI 兼容模型、提示词和知识库，发布固定版本的 Agent，并在网页上做流式问答和查看引用来源。后端采用 Java 21 和 Spring Boot 模块化单体，前端是 React + TypeScript，MySQL 保存业务配置，PostgreSQL …"
     } ]
   }, {
     "id" : "rag-005",
@@ -393,8 +393,8 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 209.6056,
-    "returnedSources" : [ "07-真实故障与排查复盘.md", "10-面试讲述与追问准备.md", "05-RAG全链路与检索算法.md" ],
+    "latencyMs" : 207.3532,
+    "returnedSources" : [ "07-真实故障与排查复盘.md", "10-面试讲述与追问准备.md", "08-测试策略与验收证据.md" ],
     "hits" : [ {
       "rank" : 1,
       "fileName" : "07-真实故障与排查复盘.md",
@@ -405,8 +405,8 @@
       "rank" : 2,
       "fileName" : "10-面试讲述与追问准备.md",
       "chunkIndex" : 1,
-      "score" : 0.4555698131788702,
-      "contentPreview" : "为后续。 ## STAR 故事：双数据源问题 情境：加入 pgvector 后，应用同时有 MySQL 和 PostgreSQL 两个数据源。任务：让 Flyway 只迁移 MySQL，业务 CRUD 使用 MySQL，向量读写只使用 PostgreSQL。 行动：我根据异常中的 `relation does not exist` 和连接池日志定位到自动装配选错连接，而不是表迁移缺失。随后显式定义 primary MySQL DataSource、JdbcTemplate 和…"
+      "score" : 0.4662577721741567,
+      "contentPreview" : "TERMINATION；独立页面能回看完整步骤和安全审计，重启会关闭遗留状态。SSH、Coding、身份和真正断点续跑仍如实保留为后续。 ## STAR 故事：双数据源问题 情境：加入 pgvector 后，应用同时有 MySQL 和 PostgreSQL 两个数据源。任务：让 Flyway 只迁移 MySQL，业务 CRUD 使用 MySQL，向量读写只使用 PostgreSQL。 行动：我根据异常中的 `relation does not exist` 和连接池日志定位到…"
     }, {
       "rank" : 3,
       "fileName" : "07-真实故障与排查复盘.md",
@@ -415,16 +415,16 @@
       "contentPreview" : "# Agent Studio Desktop：真实故障与排查复盘 ## 故障一：MySQL 端口连续冲突 现象是 Docker 报 `bind: Only one usage of each socket address` 或 `port is already allocated`。3306 被占用后改到 13306仍冲突，最终选择 23306。 根因不是容器内 MySQL 启动失败，而是 Windows 宿主机端口已经被其他进程或容器占用。修复是在 Compose 中只修改…"
     }, {
       "rank" : 4,
+      "fileName" : "08-测试策略与验收证据.md",
+      "chunkIndex" : 1,
+      "score" : 0.4342896935361446,
+      "contentPreview" : "功集成测试还查询 AuditEvent，确认低风险调用出现 TOOL_REQUEST_VALIDATED 与 TOOL_EXECUTION_COMPLETED，且审计响应没有复制 `Asia/Shanghai` 原参数；高风险拒绝测试确认 APPROVAL_REQUIRED、APPROVAL_DECIDED 和 TOOL_EXECUTION_SKIPPED 都可追溯。 测试环境使用内存 H2 代替 MySQL，并关闭向量数据源，因此启动快、结果稳定。真实 MySQL 和 pg…"
+    }, {
+      "rank" : 5,
       "fileName" : "07-真实故障与排查复盘.md",
       "chunkIndex" : 2,
       "score" : 0.4332784286733942,
       "contentPreview" : "struction-aware 模型的常见建议，为每个问题添加统一中文任务说明。复测后 Recall 没变，但 MRR 降到 0.6917，相关文档更常排在后面。 这不是接口或维度错误，而是提示前缀改变了向量空间中的查询表达。修复是保留 queryInstruction 配置能力但默认置空，并重新运行同一冻结题集，MRR 恢复到 0.8160。知识包扩充后又在新语料上复测，仍采用无前缀方案。经验是 embedding 的 prompt 必须在本领域语料上做消融，而且语料变更后…"
-    }, {
-      "rank" : 5,
-      "fileName" : "05-RAG全链路与检索算法.md",
-      "chunkIndex" : 1,
-      "score" : 0.4305812640304488,
-      "contentPreview" : "1 - cosine distance`。新模型的 0.05 仅保留现有召回行为，不代表有效拒答阈值。 检索结果一方面通过 SSE `sources` 发送给前端，另一方面拼成系统上下文注入模型。这样用户能看到证据，模型也能据此作答。 ## 删除闭环 删除文档时先删除 pgvector 中对应 documentId 的 chunk，再删除 MySQL 文档元数据，最后删除本地文件。验收时确认删除后文档列表为空、本地文件不存在，并且再次提问不再出现 sources；随后重新上传…"
     } ]
   }, {
     "id" : "rag-006",
@@ -433,41 +433,41 @@
     "question" : "本地词法哈希向量有哪些优缺点？",
     "answerable" : true,
     "expectedSources" : [ "05-RAG全链路与检索算法.md", "01-项目总览与业务目标.md", "10-面试讲述与追问准备.md" ],
-    "firstRelevantRank" : 2,
+    "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 203.9689,
-    "returnedSources" : [ "08-测试策略与验收证据.md", "10-面试讲述与追问准备.md", "05-RAG全链路与检索算法.md", "01-项目总览与业务目标.md" ],
+    "latencyMs" : 207.6582,
+    "returnedSources" : [ "05-RAG全链路与检索算法.md", "01-项目总览与业务目标.md", "06-开发过程与提交时间线.md", "08-测试策略与验收证据.md" ],
     "hits" : [ {
       "rank" : 1,
-      "fileName" : "08-测试策略与验收证据.md",
-      "chunkIndex" : 2,
-      "score" : 0.5932774145581567,
-      "contentPreview" : "LocalHash 与 Qwen 在同一语料上重新生成带语料哈希的结果，Qwen 的 Recall@5、整体 MRR 和改写题 MRR均优于 LocalHash；最终数字见评测报告与 11 号文档。 ## 为什么自动化和真实验收都要有 自动化测试适合保证版本隔离、协议结构和算法不回归，但无法证明 Docker 端口、真实数据库方言、环境变量继承和外部模型兼容。真实验收能覆盖这些问题，却不适合每次提交都执行。因此项目把两类证据分开记录。 ## 后续应补的测试 当前仍缺少知识库隔…"
-    }, {
-      "rank" : 2,
-      "fileName" : "10-面试讲述与追问准备.md",
-      "chunkIndex" : 3,
-      "score" : 0.5433975240690081,
-      "contentPreview" : "职责清晰，但跨存储一致性需要后续补偿机制。 问：词法哈希算 embedding 吗？答：它产生固定维度、可做向量距离的数值表示，但不是训练得到的语义 embedding。它是零依赖检索基线，不能夸大语义能力。 问：为什么换了 Qwen 还不把无答案阈值调高？答：阈值扫描显示误召回下降时 Recall 也明显下降，正负样本分数重叠。固定阈值不是充分的相关性判别，需要独立开发集、分数间隔、rerank 或回答阶段证据判断。 问：为什么 Qwen 没有默认加检索 instructi…"
-    }, {
-      "rank" : 3,
       "fileName" : "05-RAG全链路与检索算法.md",
       "chunkIndex" : 0,
       "score" : 0.5056104123455236,
       "contentPreview" : "# Agent Studio Desktop：RAG 全链路与检索算法 ## 上传和元数据 用户在前端选择知识库并上传文档，单文件上限 20 MB。后端先校验知识库和非空文件，清理文件名，读取字节，计算 SHA-256，然后把文件写入 `data/knowledge/{knowledgeBaseId}/{documentId}.{extension}`。所有路径都会归一化并检查必须位于 dataRoot 下，防止路径越界。 MySQL 文档记录最初是 PROCESSING。解…"
     }, {
-      "rank" : 4,
+      "rank" : 2,
       "fileName" : "05-RAG全链路与检索算法.md",
       "chunkIndex" : 1,
       "score" : 0.5020514241849912,
       "contentPreview" : "1 - cosine distance`。新模型的 0.05 仅保留现有召回行为，不代表有效拒答阈值。 检索结果一方面通过 SSE `sources` 发送给前端，另一方面拼成系统上下文注入模型。这样用户能看到证据，模型也能据此作答。 ## 删除闭环 删除文档时先删除 pgvector 中对应 documentId 的 chunk，再删除 MySQL 文档元数据，最后删除本地文件。验收时确认删除后文档列表为空、本地文件不存在，并且再次提问不再出现 sources；随后重新上传…"
     }, {
-      "rank" : 5,
+      "rank" : 3,
       "fileName" : "01-项目总览与业务目标.md",
       "chunkIndex" : 1,
-      "score" : 0.47845889012451415,
+      "score" : 0.4776602663587289,
       "contentPreview" : "## 当前技术栈 - 后端：Java 21、Spring Boot 3.4.3、Maven、Spring JDBC、Flyway； - 前端：React 19、TypeScript、Vite； - 业务数据库：MySQL 8.4； - 向量数据库：PostgreSQL 17 + pgvector； - 文档解析：Apache Tika 3.1.0； - 模型接口：OpenAI Chat Completions 兼容 SSE，已用 DeepSeek 实测； - Embeddin…"
+    }, {
+      "rank" : 4,
+      "fileName" : "06-开发过程与提交时间线.md",
+      "chunkIndex" : 4,
+      "score" : 0.44229256087638236,
+      "contentPreview" : "15ec1cd` 完成 Qwen embedding-only 候选对照。数据证明 Qwen 对低词面重合改写有明显收益，因此生产增加 EmbeddingGateway、1024 维版本化索引和显式重建入口。 实现期间又做了 query instruction 消融：在知识包扩充前的同一语料上，统一中文前缀令 MRR 从 0.8160 降到 0.6917，最终默认关闭。知识包随后补入升级过程与故障复盘，LocalHash 与 Qwen 又在新语料上同时重跑。这个过程体现了项目…"
+    }, {
+      "rank" : 5,
+      "fileName" : "08-测试策略与验收证据.md",
+      "chunkIndex" : 2,
+      "score" : 0.4281567594478763,
+      "contentPreview" : "NCELLED，共 4 步；真实运行 `f72e72ab` 在默认 120 秒截止后为 TIMED_OUT，共 7 步。运行列表分别展示取消和超时原因，证明前端控制、后端中断、截止调度与持久化状态在真实链路上一致。 语义升级又验证了真实 Ollama、pgvector v2 和重建 API：数据库中向量确认为 1024 维、模型为 qwen3、版本为 qwen3-0.6b-v1；改写问题命中正确来源。知识包扩充后，LocalHash 与 Qwen 在同一语料上重新生成带语料哈…"
     } ]
   }, {
     "id" : "rag-007",
@@ -479,7 +479,7 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 211.035,
+    "latencyMs" : 203.0676,
     "returnedSources" : [ "07-真实故障与排查复盘.md", "02-架构设计与技术选型.md", "06-开发过程与提交时间线.md", "08-测试策略与验收证据.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -491,8 +491,8 @@
       "rank" : 2,
       "fileName" : "02-架构设计与技术选型.md",
       "chunkIndex" : 2,
-      "score" : 0.5846452769489052,
-      "contentPreview" : "runId 和截止时间。取消接口先把数据库状态改为 CANCEL_REQUESTED，再发送线程中断；ChatService 在检索、模型、审批、工具和持久化边界检查终止信号，最终写为 CANCELLED 或 TIMED_OUT，并增加 RUN_TERMINATION。应用启动会把上一进程遗留的非终态运行标为 INTERRUPTED、待决审批标为 EXPIRED。它解决的是状态收口，不是断点续跑；当前仍不支持登录身份，也不支持多个后端实例共享数据库。 ## 端口与部署 前端默…"
+      "score" : 0.5049771177760776,
+      "contentPreview" : "runId 和截止时间。取消接口先把数据库状态改为 CANCEL_REQUESTED，再发送线程中断；ChatService 在检索、模型、审批、工具和持久化边界检查终止信号，最终写为 CANCELLED 或 TIMED_OUT，并增加 RUN_TERMINATION。应用启动会把上一进程遗留的非终态运行标为 INTERRUPTED、待决审批标为 EXPIRED。它解决的是状态收口，不是断点续跑；当前仍不支持登录身份，也不支持多个后端实例共享数据库。 SafeExecutio…"
     }, {
       "rank" : 3,
       "fileName" : "06-开发过程与提交时间线.md",
@@ -503,8 +503,8 @@
       "rank" : 4,
       "fileName" : "08-测试策略与验收证据.md",
       "chunkIndex" : 1,
-      "score" : 0.4471699142946303,
-      "contentPreview" : "SQL 和 pgvector 行为通过独立验收补足，不能只依赖 H2。 ## 前端验证 前端运行 `npm run build`，该命令先执行 TypeScript project build，再执行 Vite 生产构建。最终构建成功。浏览器冒烟检查确认五个导航入口、知识库创建表单、上传控件、Agent Builder、对话测试台和运行记录正常渲染。 ## 真实环境验证 Docker Desktop 中 MySQL 为 23306，pgvector 为 15432，二者均 h…"
+      "score" : 0.4589440184957032,
+      "contentPreview" : "功集成测试还查询 AuditEvent，确认低风险调用出现 TOOL_REQUEST_VALIDATED 与 TOOL_EXECUTION_COMPLETED，且审计响应没有复制 `Asia/Shanghai` 原参数；高风险拒绝测试确认 APPROVAL_REQUIRED、APPROVAL_DECIDED 和 TOOL_EXECUTION_SKIPPED 都可追溯。 测试环境使用内存 H2 代替 MySQL，并关闭向量数据源，因此启动快、结果稳定。真实 MySQL 和 pg…"
     }, {
       "rank" : 5,
       "fileName" : "07-真实故障与排查复盘.md",
@@ -522,8 +522,8 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 213.7918,
-    "returnedSources" : [ "07-真实故障与排查复盘.md", "08-测试策略与验收证据.md", "10-面试讲述与追问准备.md" ],
+    "latencyMs" : 215.8302,
+    "returnedSources" : [ "07-真实故障与排查复盘.md", "10-面试讲述与追问准备.md", "08-测试策略与验收证据.md" ],
     "hits" : [ {
       "rank" : 1,
       "fileName" : "07-真实故障与排查复盘.md",
@@ -532,16 +532,16 @@
       "contentPreview" : "SQL，业务 `NamedParameterJdbcTemplate` 仍可能连到 PostgreSQL。表现为向 PostgreSQL 执行 `INSERT knowledge_base` 或查询 `model_profile`，然后报 relation does not exist。 根因是 Spring 容器里同时存在多个 DataSource 和 JdbcTemplate，而业务仓储没有足够明确的限定。修复包括：创建带 `@Primary` 和 `@FlywayDat…"
     }, {
       "rank" : 2,
-      "fileName" : "08-测试策略与验收证据.md",
-      "chunkIndex" : 1,
-      "score" : 0.6062774262035476,
-      "contentPreview" : "SQL 和 pgvector 行为通过独立验收补足，不能只依赖 H2。 ## 前端验证 前端运行 `npm run build`，该命令先执行 TypeScript project build，再执行 Vite 生产构建。最终构建成功。浏览器冒烟检查确认五个导航入口、知识库创建表单、上传控件、Agent Builder、对话测试台和运行记录正常渲染。 ## 真实环境验证 Docker Desktop 中 MySQL 为 23306，pgvector 为 15432，二者均 h…"
-    }, {
-      "rank" : 3,
       "fileName" : "10-面试讲述与追问准备.md",
       "chunkIndex" : 1,
-      "score" : 0.5895520988303825,
-      "contentPreview" : "为后续。 ## STAR 故事：双数据源问题 情境：加入 pgvector 后，应用同时有 MySQL 和 PostgreSQL 两个数据源。任务：让 Flyway 只迁移 MySQL，业务 CRUD 使用 MySQL，向量读写只使用 PostgreSQL。 行动：我根据异常中的 `relation does not exist` 和连接池日志定位到自动装配选错连接，而不是表迁移缺失。随后显式定义 primary MySQL DataSource、JdbcTemplate 和…"
+      "score" : 0.5566835348919805,
+      "contentPreview" : "TERMINATION；独立页面能回看完整步骤和安全审计，重启会关闭遗留状态。SSH、Coding、身份和真正断点续跑仍如实保留为后续。 ## STAR 故事：双数据源问题 情境：加入 pgvector 后，应用同时有 MySQL 和 PostgreSQL 两个数据源。任务：让 Flyway 只迁移 MySQL，业务 CRUD 使用 MySQL，向量读写只使用 PostgreSQL。 行动：我根据异常中的 `relation does not exist` 和连接池日志定位到…"
+    }, {
+      "rank" : 3,
+      "fileName" : "08-测试策略与验收证据.md",
+      "chunkIndex" : 1,
+      "score" : 0.5535792832029287,
+      "contentPreview" : "功集成测试还查询 AuditEvent，确认低风险调用出现 TOOL_REQUEST_VALIDATED 与 TOOL_EXECUTION_COMPLETED，且审计响应没有复制 `Asia/Shanghai` 原参数；高风险拒绝测试确认 APPROVAL_REQUIRED、APPROVAL_DECIDED 和 TOOL_EXECUTION_SKIPPED 都可追溯。 测试环境使用内存 H2 代替 MySQL，并关闭向量数据源，因此启动快、结果稳定。真实 MySQL 和 pg…"
     }, {
       "rank" : 4,
       "fileName" : "07-真实故障与排查复盘.md",
@@ -565,13 +565,13 @@
     "firstRelevantRank" : 2,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 209.8016,
+    "latencyMs" : 213.7385,
     "returnedSources" : [ "01-项目总览与业务目标.md", "05-RAG全链路与检索算法.md", "07-真实故障与排查复盘.md", "10-面试讲述与追问准备.md" ],
     "hits" : [ {
       "rank" : 1,
       "fileName" : "01-项目总览与业务目标.md",
       "chunkIndex" : 1,
-      "score" : 0.6369355319820794,
+      "score" : 0.6330503426701699,
       "contentPreview" : "## 当前技术栈 - 后端：Java 21、Spring Boot 3.4.3、Maven、Spring JDBC、Flyway； - 前端：React 19、TypeScript、Vite； - 业务数据库：MySQL 8.4； - 向量数据库：PostgreSQL 17 + pgvector； - 文档解析：Apache Tika 3.1.0； - 模型接口：OpenAI Chat Completions 兼容 SSE，已用 DeepSeek 实测； - Embeddin…"
     }, {
       "rank" : 2,
@@ -589,8 +589,8 @@
       "rank" : 4,
       "fileName" : "10-面试讲述与追问准备.md",
       "chunkIndex" : 3,
-      "score" : 0.6102355840410126,
-      "contentPreview" : "职责清晰，但跨存储一致性需要后续补偿机制。 问：词法哈希算 embedding 吗？答：它产生固定维度、可做向量距离的数值表示，但不是训练得到的语义 embedding。它是零依赖检索基线，不能夸大语义能力。 问：为什么换了 Qwen 还不把无答案阈值调高？答：阈值扫描显示误召回下降时 Recall 也明显下降，正负样本分数重叠。固定阈值不是充分的相关性判别，需要独立开发集、分数间隔、rerank 或回答阶段证据判断。 问：为什么 Qwen 没有默认加检索 instructi…"
+      "score" : 0.6127844701266593,
+      "contentPreview" : "和外部调用去重，当前证据不足，所以称为遗留状态收口而不是断点恢复。 问：线程中断能绝对保证立即取消吗？答：不能，它是协作式机制。平台在主要边界反复检查，Java HttpClient 和当前工具会响应中断；未来接入第三方 MCP、SSH 或命令工具时，仍需它们提供自己的取消句柄和进程终止策略。 问：工具版为什么不是逐 token 流式？答：每轮必须先得到完整 tool_calls 才能安全执行，所以第一阶段使用非流式决策请求，最终文本以单个 delta 返回。普通无工具路径仍…"
     }, {
       "rank" : 5,
       "fileName" : "05-RAG全链路与检索算法.md",
@@ -605,17 +605,17 @@
     "question" : "删除文档为什么是一个值得讨论的工程问题？",
     "answerable" : true,
     "expectedSources" : [ "02-架构设计与技术选型.md", "05-RAG全链路与检索算法.md", "09-安全边界局限与路线图.md", "10-面试讲述与追问准备.md" ],
-    "firstRelevantRank" : 2,
+    "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 212.5047,
-    "returnedSources" : [ "03-数据模型与不可变版本.md", "05-RAG全链路与检索算法.md", "08-测试策略与验收证据.md", "10-面试讲述与追问准备.md" ],
+    "latencyMs" : 230.6838,
+    "returnedSources" : [ "10-面试讲述与追问准备.md", "05-RAG全链路与检索算法.md", "08-测试策略与验收证据.md", "00-入库说明与事实口径.md", "09-安全边界局限与路线图.md" ],
     "hits" : [ {
       "rank" : 1,
-      "fileName" : "03-数据模型与不可变版本.md",
-      "chunkIndex" : 2,
-      "score" : 0.4837466604892372,
-      "contentPreview" : "向量初始化器以 `IF NOT EXISTS` 创建，不会在启动时清空数据。 ## 版本机制的面试表达 可以把草稿和版本类比为“编辑区与发布制品”。草稿允许变化，发布制品一旦生成就不可修改；新需求通过发布 v2 解决，而不是覆盖 v1。一次会话固定使用一个制品，因此不会出现聊到一半模型、提示词或知识库突然变化的问题。"
+      "fileName" : "10-面试讲述与追问准备.md",
+      "chunkIndex" : 3,
+      "score" : 0.49102293494232097,
+      "contentPreview" : "和外部调用去重，当前证据不足，所以称为遗留状态收口而不是断点恢复。 问：线程中断能绝对保证立即取消吗？答：不能，它是协作式机制。平台在主要边界反复检查，Java HttpClient 和当前工具会响应中断；未来接入第三方 MCP、SSH 或命令工具时，仍需它们提供自己的取消句柄和进程终止策略。 问：工具版为什么不是逐 token 流式？答：每轮必须先得到完整 tool_calls 才能安全执行，所以第一阶段使用非流式决策请求，最终文本以单个 delta 返回。普通无工具路径仍…"
     }, {
       "rank" : 2,
       "fileName" : "05-RAG全链路与检索算法.md",
@@ -624,22 +624,22 @@
       "contentPreview" : "1 - cosine distance`。新模型的 0.05 仅保留现有召回行为，不代表有效拒答阈值。 检索结果一方面通过 SSE `sources` 发送给前端，另一方面拼成系统上下文注入模型。这样用户能看到证据，模型也能据此作答。 ## 删除闭环 删除文档时先删除 pgvector 中对应 documentId 的 chunk，再删除 MySQL 文档元数据，最后删除本地文件。验收时确认删除后文档列表为空、本地文件不存在，并且再次提问不再出现 sources；随后重新上传…"
     }, {
       "rank" : 3,
-      "fileName" : "03-数据模型与不可变版本.md",
-      "chunkIndex" : 1,
-      "score" : 0.4443464530863665,
-      "contentPreview" : "onversationId 请求不同版本时，后端返回冲突错误。`Message` 保存 user 和 assistant 消息，并按创建时间恢复上下文。 `KnowledgeBase` 是知识容器。`KnowledgeDocument` 保存文件名、媒体类型、大小、SHA-256、本地路径、处理状态、chunk 数、失败原因和时间。旧向量表 `knowledge_chunk` 保存 384 维 LocalHash；新表 `knowledge_chunk_v2` 保存 1024…"
-    }, {
-      "rank" : 4,
       "fileName" : "08-测试策略与验收证据.md",
       "chunkIndex" : 2,
-      "score" : 0.430393971788723,
-      "contentPreview" : "LocalHash 与 Qwen 在同一语料上重新生成带语料哈希的结果，Qwen 的 Recall@5、整体 MRR 和改写题 MRR均优于 LocalHash；最终数字见评测报告与 11 号文档。 ## 为什么自动化和真实验收都要有 自动化测试适合保证版本隔离、协议结构和算法不回归，但无法证明 Docker 端口、真实数据库方言、环境变量继承和外部模型兼容。真实验收能覆盖这些问题，却不适合每次提交都执行。因此项目把两类证据分开记录。 ## 后续应补的测试 当前仍缺少知识库隔…"
+      "score" : 0.44157787421254324,
+      "contentPreview" : "NCELLED，共 4 步；真实运行 `f72e72ab` 在默认 120 秒截止后为 TIMED_OUT，共 7 步。运行列表分别展示取消和超时原因，证明前端控制、后端中断、截止调度与持久化状态在真实链路上一致。 语义升级又验证了真实 Ollama、pgvector v2 和重建 API：数据库中向量确认为 1024 维、模型为 qwen3、版本为 qwen3-0.6b-v1；改写问题命中正确来源。知识包扩充后，LocalHash 与 Qwen 在同一语料上重新生成带语料哈…"
+    }, {
+      "rank" : 4,
+      "fileName" : "00-入库说明与事实口径.md",
+      "chunkIndex" : 1,
+      "score" : 0.4391977628584129,
+      "contentPreview" : "行标为 INTERRUPTED，而不是从旧步骤继续；高风险审批和 AuditEvent 也还没有审批人身份、签名防篡改、通用策略引擎和远程副作用治理，不能描述成企业级平台。 项目参考过 ai-rag、WaLiSSH 和 WaLiCode 的思路，但新工程在独立 Git 仓库中从骨架开始建设，没有把来源项目整包复制过来。可强调的成果是架构取舍、版本隔离、双数据库边界、RAG 闭环、真实排障和可验证证据，不应把来源项目代码或框架能力描述为个人原创。 ## 面试使用原则 理解每个“…"
     }, {
       "rank" : 5,
-      "fileName" : "10-面试讲述与追问准备.md",
-      "chunkIndex" : 3,
-      "score" : 0.43011158541370376,
-      "contentPreview" : "职责清晰，但跨存储一致性需要后续补偿机制。 问：词法哈希算 embedding 吗？答：它产生固定维度、可做向量距离的数值表示，但不是训练得到的语义 embedding。它是零依赖检索基线，不能夸大语义能力。 问：为什么换了 Qwen 还不把无答案阈值调高？答：阈值扫描显示误召回下降时 Recall 也明显下降，正负样本分数重叠。固定阈值不是充分的相关性判别，需要独立开发集、分数间隔、rerank 或回答阶段证据判断。 问：为什么 Qwen 没有默认加检索 instructi…"
+      "fileName" : "09-安全边界局限与路线图.md",
+      "chunkIndex" : 1,
+      "score" : 0.42837367548663446,
+      "contentPreview" : "nk，不在当前阶段继续无边界调参。 第二优先级的运行控制已经完成最小闭环：AgentRun 有最大轮数、单工具超时、总运行超时、主动取消、终止步骤和历史详情；重启时能关闭遗留状态。通用 Schema 校验和结构化工具审计也已进入统一网关。下一步仍需客户端断开联动取消、真正断点续跑和更多只读工具。 第三优先级的最小安全审批已经完成：HIGH 请求生成参数绑定的 ApprovalRequest，真实拒绝和批准均已人工通过。所有工具现已统一通过 SafeExecutionGatew…"
     } ]
   }, {
     "id" : "rag-011",
@@ -651,32 +651,32 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 227.1499,
-    "returnedSources" : [ "01-项目总览与业务目标.md", "10-面试讲述与追问准备.md", "00-入库说明与事实口径.md", "02-架构设计与技术选型.md", "06-开发过程与提交时间线.md" ],
+    "latencyMs" : 227.8386,
+    "returnedSources" : [ "01-项目总览与业务目标.md", "10-面试讲述与追问准备.md", "02-架构设计与技术选型.md", "00-入库说明与事实口径.md", "06-开发过程与提交时间线.md" ],
     "hits" : [ {
       "rank" : 1,
       "fileName" : "01-项目总览与业务目标.md",
       "chunkIndex" : 1,
-      "score" : 0.5386644778411825,
+      "score" : 0.5376143272923954,
       "contentPreview" : "## 当前技术栈 - 后端：Java 21、Spring Boot 3.4.3、Maven、Spring JDBC、Flyway； - 前端：React 19、TypeScript、Vite； - 业务数据库：MySQL 8.4； - 向量数据库：PostgreSQL 17 + pgvector； - 文档解析：Apache Tika 3.1.0； - 模型接口：OpenAI Chat Completions 兼容 SSE，已用 DeepSeek 实测； - Embeddin…"
     }, {
       "rank" : 2,
       "fileName" : "10-面试讲述与追问准备.md",
       "chunkIndex" : 0,
-      "score" : 0.5145942281566925,
+      "score" : 0.5198338626533352,
       "contentPreview" : "# Agent Studio Desktop：面试讲述与追问准备 ## 90 秒项目介绍 我主导做了一个单机优先的智能体搭建工具 Agent Studio Desktop，目标是让用户不改 Java 代码，就能配置 OpenAI 兼容模型、提示词和知识库，发布固定版本的 Agent，并在网页上做流式问答和查看引用来源。后端采用 Java 21 和 Spring Boot 模块化单体，前端是 React + TypeScript，MySQL 保存业务配置，PostgreSQL …"
     }, {
       "rank" : 3,
-      "fileName" : "00-入库说明与事实口径.md",
-      "chunkIndex" : 1,
-      "score" : 0.5105815958317651,
-      "contentPreview" : "骤继续；高风险审批也还没有审批人身份、通用策略引擎和远程副作用治理，不能描述成企业级平台。 项目参考过 ai-rag、WaLiSSH 和 WaLiCode 的思路，但新工程在独立 Git 仓库中从骨架开始建设，没有把来源项目整包复制过来。可强调的成果是架构取舍、版本隔离、双数据库边界、RAG 闭环、真实排障和可验证证据，不应把来源项目代码或框架能力描述为个人原创。 ## 面试使用原则 理解每个“为什么”比背诵类名更重要。推荐使用“我主导了需求收敛、架构取舍、环境配置、验收和问…"
-    }, {
-      "rank" : 4,
       "fileName" : "02-架构设计与技术选型.md",
       "chunkIndex" : 1,
       "score" : 0.5025219581419151,
       "contentPreview" : "024 维向量并写入 `knowledge_chunk_v2`，记录模型和索引版本；旧 384 维表继续保留。知识库升级必须由用户显式触发重建，启动应用不会自动改写索引。 当前 Qwen 表采用精确 cosine 排序，不建立 HNSW 向量索引。原因是当前语料规模很小，近似索引没有性能必要，反而可能牺牲召回。表上只对 knowledgeBaseId 和 embeddingVersion 建范围索引。 ## 为什么不引入 Redis、MQ 和 MinIO 第一版没有缓存规模、…"
+    }, {
+      "rank" : 4,
+      "fileName" : "00-入库说明与事实口径.md",
+      "chunkIndex" : 1,
+      "score" : 0.5006309781100818,
+      "contentPreview" : "行标为 INTERRUPTED，而不是从旧步骤继续；高风险审批和 AuditEvent 也还没有审批人身份、签名防篡改、通用策略引擎和远程副作用治理，不能描述成企业级平台。 项目参考过 ai-rag、WaLiSSH 和 WaLiCode 的思路，但新工程在独立 Git 仓库中从骨架开始建设，没有把来源项目整包复制过来。可强调的成果是架构取舍、版本隔离、双数据库边界、RAG 闭环、真实排障和可验证证据，不应把来源项目代码或框架能力描述为个人原创。 ## 面试使用原则 理解每个“…"
     }, {
       "rank" : 5,
       "fileName" : "06-开发过程与提交时间线.md",
@@ -694,38 +694,38 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 213.2321,
-    "returnedSources" : [ "00-入库说明与事实口径.md", "01-项目总览与业务目标.md", "10-面试讲述与追问准备.md", "08-测试策略与验收证据.md", "06-开发过程与提交时间线.md" ],
+    "latencyMs" : 228.248,
+    "returnedSources" : [ "00-入库说明与事实口径.md", "01-项目总览与业务目标.md", "10-面试讲述与追问准备.md", "06-开发过程与提交时间线.md", "08-测试策略与验收证据.md" ],
     "hits" : [ {
       "rank" : 1,
       "fileName" : "00-入库说明与事实口径.md",
       "chunkIndex" : 1,
-      "score" : 0.6785369757929135,
-      "contentPreview" : "骤继续；高风险审批也还没有审批人身份、通用策略引擎和远程副作用治理，不能描述成企业级平台。 项目参考过 ai-rag、WaLiSSH 和 WaLiCode 的思路，但新工程在独立 Git 仓库中从骨架开始建设，没有把来源项目整包复制过来。可强调的成果是架构取舍、版本隔离、双数据库边界、RAG 闭环、真实排障和可验证证据，不应把来源项目代码或框架能力描述为个人原创。 ## 面试使用原则 理解每个“为什么”比背诵类名更重要。推荐使用“我主导了需求收敛、架构取舍、环境配置、验收和问…"
+      "score" : 0.6747984206108463,
+      "contentPreview" : "行标为 INTERRUPTED，而不是从旧步骤继续；高风险审批和 AuditEvent 也还没有审批人身份、签名防篡改、通用策略引擎和远程副作用治理，不能描述成企业级平台。 项目参考过 ai-rag、WaLiSSH 和 WaLiCode 的思路，但新工程在独立 Git 仓库中从骨架开始建设，没有把来源项目整包复制过来。可强调的成果是架构取舍、版本隔离、双数据库边界、RAG 闭环、真实排障和可验证证据，不应把来源项目代码或框架能力描述为个人原创。 ## 面试使用原则 理解每个“…"
     }, {
       "rank" : 2,
       "fileName" : "01-项目总览与业务目标.md",
       "chunkIndex" : 1,
-      "score" : 0.6246701073986177,
+      "score" : 0.6257820038455222,
       "contentPreview" : "## 当前技术栈 - 后端：Java 21、Spring Boot 3.4.3、Maven、Spring JDBC、Flyway； - 前端：React 19、TypeScript、Vite； - 业务数据库：MySQL 8.4； - 向量数据库：PostgreSQL 17 + pgvector； - 文档解析：Apache Tika 3.1.0； - 模型接口：OpenAI Chat Completions 兼容 SSE，已用 DeepSeek 实测； - Embeddin…"
     }, {
       "rank" : 3,
       "fileName" : "10-面试讲述与追问准备.md",
       "chunkIndex" : 3,
-      "score" : 0.5822890673569964,
-      "contentPreview" : "职责清晰，但跨存储一致性需要后续补偿机制。 问：词法哈希算 embedding 吗？答：它产生固定维度、可做向量距离的数值表示，但不是训练得到的语义 embedding。它是零依赖检索基线，不能夸大语义能力。 问：为什么换了 Qwen 还不把无答案阈值调高？答：阈值扫描显示误召回下降时 Recall 也明显下降，正负样本分数重叠。固定阈值不是充分的相关性判别，需要独立开发集、分数间隔、rerank 或回答阶段证据判断。 问：为什么 Qwen 没有默认加检索 instructi…"
+      "score" : 0.5977641535874811,
+      "contentPreview" : "和外部调用去重，当前证据不足，所以称为遗留状态收口而不是断点恢复。 问：线程中断能绝对保证立即取消吗？答：不能，它是协作式机制。平台在主要边界反复检查，Java HttpClient 和当前工具会响应中断；未来接入第三方 MCP、SSH 或命令工具时，仍需它们提供自己的取消句柄和进程终止策略。 问：工具版为什么不是逐 token 流式？答：每轮必须先得到完整 tool_calls 才能安全执行，所以第一阶段使用非流式决策请求，最终文本以单个 delta 返回。普通无工具路径仍…"
     }, {
       "rank" : 4,
-      "fileName" : "08-测试策略与验收证据.md",
-      "chunkIndex" : 2,
-      "score" : 0.5652590185071912,
-      "contentPreview" : "LocalHash 与 Qwen 在同一语料上重新生成带语料哈希的结果，Qwen 的 Recall@5、整体 MRR 和改写题 MRR均优于 LocalHash；最终数字见评测报告与 11 号文档。 ## 为什么自动化和真实验收都要有 自动化测试适合保证版本隔离、协议结构和算法不回归，但无法证明 Docker 端口、真实数据库方言、环境变量继承和外部模型兼容。真实验收能覆盖这些问题，却不适合每次提交都执行。因此项目把两类证据分开记录。 ## 后续应补的测试 当前仍缺少知识库隔…"
-    }, {
-      "rank" : 5,
       "fileName" : "06-开发过程与提交时间线.md",
       "chunkIndex" : 1,
       "score" : 0.5642930744269341,
       "contentPreview" : "al workflow`。新增 Flyway V2、知识库与文档元数据、Tika 解析、文本切分、本地 384 维词法向量、pgvector 表和 HNSW 索引、知识库绑定、sources SSE 事件，以及前端知识库页面和来源展示。 真实验收创建了“科研助手验收库”和“科研知识助手”。示例 Markdown 上传后状态 READY，对话返回来源文件、chunk 0 和相似度。删除测试确认 MySQL 元数据、本地文件和向量检索结果同时消失，重新上传后恢复。 ## 开发方法…"
+    }, {
+      "rank" : 5,
+      "fileName" : "08-测试策略与验收证据.md",
+      "chunkIndex" : 2,
+      "score" : 0.5542700525297813,
+      "contentPreview" : "NCELLED，共 4 步；真实运行 `f72e72ab` 在默认 120 秒截止后为 TIMED_OUT，共 7 步。运行列表分别展示取消和超时原因，证明前端控制、后端中断、截止调度与持久化状态在真实链路上一致。 语义升级又验证了真实 Ollama、pgvector v2 和重建 API：数据库中向量确认为 1024 维、模型为 qwen3、版本为 qwen3-0.6b-v1；改写问题命中正确来源。知识包扩充后，LocalHash 与 Qwen 在同一语料上重新生成带语料哈…"
     } ]
   }, {
     "id" : "rag-013",
@@ -737,14 +737,14 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 253.7538,
+    "latencyMs" : 268.8381,
     "returnedSources" : [ "02-架构设计与技术选型.md", "07-真实故障与排查复盘.md", "06-开发过程与提交时间线.md", "09-安全边界局限与路线图.md", "08-测试策略与验收证据.md" ],
     "hits" : [ {
       "rank" : 1,
       "fileName" : "02-架构设计与技术选型.md",
       "chunkIndex" : 2,
-      "score" : 0.5928780573346943,
-      "contentPreview" : "runId 和截止时间。取消接口先把数据库状态改为 CANCEL_REQUESTED，再发送线程中断；ChatService 在检索、模型、审批、工具和持久化边界检查终止信号，最终写为 CANCELLED 或 TIMED_OUT，并增加 RUN_TERMINATION。应用启动会把上一进程遗留的非终态运行标为 INTERRUPTED、待决审批标为 EXPIRED。它解决的是状态收口，不是断点续跑；当前仍不支持登录身份，也不支持多个后端实例共享数据库。 ## 端口与部署 前端默…"
+      "score" : 0.5976080438386216,
+      "contentPreview" : "runId 和截止时间。取消接口先把数据库状态改为 CANCEL_REQUESTED，再发送线程中断；ChatService 在检索、模型、审批、工具和持久化边界检查终止信号，最终写为 CANCELLED 或 TIMED_OUT，并增加 RUN_TERMINATION。应用启动会把上一进程遗留的非终态运行标为 INTERRUPTED、待决审批标为 EXPIRED。它解决的是状态收口，不是断点续跑；当前仍不支持登录身份，也不支持多个后端实例共享数据库。 SafeExecutio…"
     }, {
       "rank" : 2,
       "fileName" : "07-真实故障与排查复盘.md",
@@ -761,14 +761,14 @@
       "rank" : 4,
       "fileName" : "09-安全边界局限与路线图.md",
       "chunkIndex" : 1,
-      "score" : 0.40500697319009243,
-      "contentPreview" : "有最大轮数、单工具超时、总运行超时、主动取消、终止步骤和历史详情；重启时能关闭遗留状态。下一步仍需客户端断开联动取消、真正断点续跑、通用 Schema 校验和更多只读工具。 第三优先级的最小安全审批已经完成：HIGH 请求生成参数绑定的 ApprovalRequest，真实拒绝和批准均已人工通过。下一步不是重新做审批，而是补身份、RBAC、策略规则、并发治理，并把相同执行门用于 EXECUTE、PRIVILEGED 类型工具。 SSH 是优先的垂直样例，先在 OpenSSH …"
+      "score" : 0.4274042303991252,
+      "contentPreview" : "nk，不在当前阶段继续无边界调参。 第二优先级的运行控制已经完成最小闭环：AgentRun 有最大轮数、单工具超时、总运行超时、主动取消、终止步骤和历史详情；重启时能关闭遗留状态。通用 Schema 校验和结构化工具审计也已进入统一网关。下一步仍需客户端断开联动取消、真正断点续跑和更多只读工具。 第三优先级的最小安全审批已经完成：HIGH 请求生成参数绑定的 ApprovalRequest，真实拒绝和批准均已人工通过。所有工具现已统一通过 SafeExecutionGatew…"
     }, {
       "rank" : 5,
       "fileName" : "08-测试策略与验收证据.md",
       "chunkIndex" : 1,
-      "score" : 0.39731688586037767,
-      "contentPreview" : "SQL 和 pgvector 行为通过独立验收补足，不能只依赖 H2。 ## 前端验证 前端运行 `npm run build`，该命令先执行 TypeScript project build，再执行 Vite 生产构建。最终构建成功。浏览器冒烟检查确认五个导航入口、知识库创建表单、上传控件、Agent Builder、对话测试台和运行记录正常渲染。 ## 真实环境验证 Docker Desktop 中 MySQL 为 23306，pgvector 为 15432，二者均 h…"
+      "score" : 0.4228420399240402,
+      "contentPreview" : "功集成测试还查询 AuditEvent，确认低风险调用出现 TOOL_REQUEST_VALIDATED 与 TOOL_EXECUTION_COMPLETED，且审计响应没有复制 `Asia/Shanghai` 原参数；高风险拒绝测试确认 APPROVAL_REQUIRED、APPROVAL_DECIDED 和 TOOL_EXECUTION_SKIPPED 都可追溯。 测试环境使用内存 H2 代替 MySQL，并关闭向量数据源，因此启动快、结果稳定。真实 MySQL 和 pg…"
     } ]
   }, {
     "id" : "rag-014",
@@ -780,14 +780,14 @@
     "firstRelevantRank" : 2,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 221.5188,
-    "returnedSources" : [ "06-开发过程与提交时间线.md", "05-RAG全链路与检索算法.md", "08-测试策略与验收证据.md" ],
+    "latencyMs" : 244.7835,
+    "returnedSources" : [ "10-面试讲述与追问准备.md", "05-RAG全链路与检索算法.md", "06-开发过程与提交时间线.md", "08-测试策略与验收证据.md" ],
     "hits" : [ {
       "rank" : 1,
-      "fileName" : "06-开发过程与提交时间线.md",
+      "fileName" : "10-面试讲述与追问准备.md",
       "chunkIndex" : 3,
-      "score" : 0.4686644033552626,
-      "contentPreview" : "可安全重放的检查点。自动化测试增至 17 个，覆盖阻塞模型调用的主动取消、总超时、terminated SSE、历史摘要和终止步骤。 提交前复核还发现一个并发窗口：取消请求可能恰好发生在最后一次信号检查之后、COMPLETED 写入之前。修复方式不是再加一次普通检查，而是让最终状态更新携带数据库前置条件；COMPLETED/FAILED 不能覆盖 CANCEL_REQUESTED，只有取消/超时/中断收口可以从非终态转为对应终态。这样把正确性落到原子状态迁移上，而不是依赖线程…"
+      "score" : 0.4877653634966091,
+      "contentPreview" : "和外部调用去重，当前证据不足，所以称为遗留状态收口而不是断点恢复。 问：线程中断能绝对保证立即取消吗？答：不能，它是协作式机制。平台在主要边界反复检查，Java HttpClient 和当前工具会响应中断；未来接入第三方 MCP、SSH 或命令工具时，仍需它们提供自己的取消句柄和进程终止策略。 问：工具版为什么不是逐 token 流式？答：每轮必须先得到完整 tool_calls 才能安全执行，所以第一阶段使用非流式决策请求，最终文本以单个 delta 返回。普通无工具路径仍…"
     }, {
       "rank" : 2,
       "fileName" : "05-RAG全链路与检索算法.md",
@@ -796,22 +796,22 @@
       "contentPreview" : "# Agent Studio Desktop：RAG 全链路与检索算法 ## 上传和元数据 用户在前端选择知识库并上传文档，单文件上限 20 MB。后端先校验知识库和非空文件，清理文件名，读取字节，计算 SHA-256，然后把文件写入 `data/knowledge/{knowledgeBaseId}/{documentId}.{extension}`。所有路径都会归一化并检查必须位于 dataRoot 下，防止路径越界。 MySQL 文档记录最初是 PROCESSING。解…"
     }, {
       "rank" : 3,
-      "fileName" : "08-测试策略与验收证据.md",
-      "chunkIndex" : 2,
-      "score" : 0.4291979138821463,
-      "contentPreview" : "LocalHash 与 Qwen 在同一语料上重新生成带语料哈希的结果，Qwen 的 Recall@5、整体 MRR 和改写题 MRR均优于 LocalHash；最终数字见评测报告与 11 号文档。 ## 为什么自动化和真实验收都要有 自动化测试适合保证版本隔离、协议结构和算法不回归，但无法证明 Docker 端口、真实数据库方言、环境变量继承和外部模型兼容。真实验收能覆盖这些问题，却不适合每次提交都执行。因此项目把两类证据分开记录。 ## 后续应补的测试 当前仍缺少知识库隔…"
+      "fileName" : "06-开发过程与提交时间线.md",
+      "chunkIndex" : 3,
+      "score" : 0.4178809034020742,
+      "contentPreview" : "可安全重放的检查点。自动化测试增至 17 个，覆盖阻塞模型调用的主动取消、总超时、terminated SSE、历史摘要和终止步骤。 提交前复核还发现一个并发窗口：取消请求可能恰好发生在最后一次信号检查之后、COMPLETED 写入之前。修复方式不是再加一次普通检查，而是让最终状态更新携带数据库前置条件；COMPLETED/FAILED 不能覆盖 CANCEL_REQUESTED，只有取消/超时/中断收口可以从非终态转为对应终态。这样把正确性落到原子状态迁移上，而不是依赖线程…"
     }, {
       "rank" : 4,
+      "fileName" : "08-测试策略与验收证据.md",
+      "chunkIndex" : 2,
+      "score" : 0.4158903084533104,
+      "contentPreview" : "NCELLED，共 4 步；真实运行 `f72e72ab` 在默认 120 秒截止后为 TIMED_OUT，共 7 步。运行列表分别展示取消和超时原因，证明前端控制、后端中断、截止调度与持久化状态在真实链路上一致。 语义升级又验证了真实 Ollama、pgvector v2 和重建 API：数据库中向量确认为 1024 维、模型为 qwen3、版本为 qwen3-0.6b-v1；改写问题命中正确来源。知识包扩充后，LocalHash 与 Qwen 在同一语料上重新生成带语料哈…"
+    }, {
+      "rank" : 5,
       "fileName" : "06-开发过程与提交时间线.md",
       "chunkIndex" : 2,
       "score" : 0.4108905813062994,
       "contentPreview" : "OOL_RESULT，再发起最终 MODEL_CALL；上海、北京和伦敦时区都得到结果，同一时区的后续问题还体现了模型按上下文判断无需重复调用。因此真实供应商的工具协议兼容性不再只依赖 mock。 ## 第七阶段：参数绑定的高风险审批 2026-09-05 在低风险链路验证后增加 Flyway V4、ApprovalRequest 和 HIGH/WRITE 的 write_workspace_note。该工具只能在 `data/tool-workspace` 下新建 `.md…"
-    }, {
-      "rank" : 5,
-      "fileName" : "05-RAG全链路与检索算法.md",
-      "chunkIndex" : 1,
-      "score" : 0.40943855451362965,
-      "contentPreview" : "1 - cosine distance`。新模型的 0.05 仅保留现有召回行为，不代表有效拒答阈值。 检索结果一方面通过 SSE `sources` 发送给前端，另一方面拼成系统上下文注入模型。这样用户能看到证据，模型也能据此作答。 ## 删除闭环 删除文档时先删除 pgvector 中对应 documentId 的 chunk，再删除 MySQL 文档元数据，最后删除本地文件。验收时确认删除后文档列表为空、本地文件不存在，并且再次提问不再出现 sources；随后重新上传…"
     } ]
   }, {
     "id" : "rag-015",
@@ -820,41 +820,41 @@
     "question" : "现在能让模型循环调用远程终端工具，并在危险操作前等待批准吗？",
     "answerable" : true,
     "expectedSources" : [ "00-入库说明与事实口径.md", "01-项目总览与业务目标.md", "09-安全边界局限与路线图.md" ],
-    "firstRelevantRank" : 1,
+    "firstRelevantRank" : 2,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 225.9941,
-    "returnedSources" : [ "09-安全边界局限与路线图.md", "06-开发过程与提交时间线.md", "10-面试讲述与追问准备.md", "04-模型调用与SSE流式对话.md" ],
+    "latencyMs" : 225.811,
+    "returnedSources" : [ "06-开发过程与提交时间线.md", "09-安全边界局限与路线图.md", "10-面试讲述与追问准备.md", "04-模型调用与SSE流式对话.md", "02-架构设计与技术选型.md" ],
     "hits" : [ {
       "rank" : 1,
-      "fileName" : "09-安全边界局限与路线图.md",
-      "chunkIndex" : 1,
-      "score" : 0.6434813619471965,
-      "contentPreview" : "有最大轮数、单工具超时、总运行超时、主动取消、终止步骤和历史详情；重启时能关闭遗留状态。下一步仍需客户端断开联动取消、真正断点续跑、通用 Schema 校验和更多只读工具。 第三优先级的最小安全审批已经完成：HIGH 请求生成参数绑定的 ApprovalRequest，真实拒绝和批准均已人工通过。下一步不是重新做审批，而是补身份、RBAC、策略规则、并发治理，并把相同执行门用于 EXECUTE、PRIVILEGED 类型工具。 SSH 是优先的垂直样例，先在 OpenSSH …"
-    }, {
-      "rank" : 2,
       "fileName" : "06-开发过程与提交时间线.md",
       "chunkIndex" : 2,
       "score" : 0.6426052952277146,
       "contentPreview" : "OOL_RESULT，再发起最终 MODEL_CALL；上海、北京和伦敦时区都得到结果，同一时区的后续问题还体现了模型按上下文判断无需重复调用。因此真实供应商的工具协议兼容性不再只依赖 mock。 ## 第七阶段：参数绑定的高风险审批 2026-09-05 在低风险链路验证后增加 Flyway V4、ApprovalRequest 和 HIGH/WRITE 的 write_workspace_note。该工具只能在 `data/tool-workspace` 下新建 `.md…"
     }, {
+      "rank" : 2,
+      "fileName" : "09-安全边界局限与路线图.md",
+      "chunkIndex" : 1,
+      "score" : 0.6345313321177577,
+      "contentPreview" : "nk，不在当前阶段继续无边界调参。 第二优先级的运行控制已经完成最小闭环：AgentRun 有最大轮数、单工具超时、总运行超时、主动取消、终止步骤和历史详情；重启时能关闭遗留状态。通用 Schema 校验和结构化工具审计也已进入统一网关。下一步仍需客户端断开联动取消、真正断点续跑和更多只读工具。 第三优先级的最小安全审批已经完成：HIGH 请求生成参数绑定的 ApprovalRequest，真实拒绝和批准均已人工通过。所有工具现已统一通过 SafeExecutionGatew…"
+    }, {
       "rank" : 3,
       "fileName" : "10-面试讲述与追问准备.md",
       "chunkIndex" : 2,
-      "score" : 0.5960263608625913,
-      "contentPreview" : "重放。ApprovalRequest 保存规范化的原始参数和 SHA-256，执行前用同一哈希原子消费 APPROVED 状态；这样批准的是用户看到的这一次具体调用，而不是对工具的永久放行。 问：高风险审批已经等于安全平台了吗？答：不是。当前证明的是单机环境中的参数绑定、拒绝、过期和一次性消费；还没有登录身份、RBAC、策略引擎、跨重启等待恢复和远程执行隔离，不能夸大成企业级治理。 问：运行取消是怎样实现的？答：取消接口先把数据库状态写成 CANCEL_REQUESTED，再…"
+      "score" : 0.5968866862593101,
+      "contentPreview" : "？答：如果 BUILTIN、MCP、SSH 和 Coding 各自处理参数、风险与审批，就会出现绕过路径。统一网关固定 Schema 校验、风险判断、审批、取消、限时执行和审计顺序，适配器只实现具体能力，因此新增工具不会重新发明安全链。 问：RunStep 和 AuditEvent 有什么区别？答：RunStep 面向智能体运行语义，记录模型调用、工具请求和 Observation；AuditEvent 面向安全决策，记录请求为何被接受、等待、跳过、执行、失败或终止。审计只保…"
     }, {
       "rank" : 4,
-      "fileName" : "06-开发过程与提交时间线.md",
-      "chunkIndex" : 1,
-      "score" : 0.5656525178878299,
-      "contentPreview" : "al workflow`。新增 Flyway V2、知识库与文档元数据、Tika 解析、文本切分、本地 384 维词法向量、pgvector 表和 HNSW 索引、知识库绑定、sources SSE 事件，以及前端知识库页面和来源展示。 真实验收创建了“科研助手验收库”和“科研知识助手”。示例 Markdown 上传后状态 READY，对话返回来源文件、chunk 0 和相似度。删除测试确认 MySQL 元数据、本地文件和向量检索结果同时消失，重新上传后恢复。 ## 开发方法…"
-    }, {
-      "rank" : 5,
       "fileName" : "04-模型调用与SSE流式对话.md",
       "chunkIndex" : 1,
-      "score" : 0.5605112355628457,
+      "score" : 0.5711131070160359,
       "contentPreview" : "存为一条完整 assistant 消息。SSE 超时比运行总时限多留 10 秒，用于发送终止状态和完成清理。 ## 会话上下文 收到用户消息后，后端先保存消息，再在异步任务中执行流式响应。模型消息的组装顺序是：AgentVersion 的系统提示词、可选知识库上下文、当前会话历史消息。知识库上下文要求模型优先依据片段回答，证据不足时明确说明，并标注来源文件和 chunk。 模型完整回答会在流结束后以 assistant 消息写入 MySQL。若模型中途失败，当前实现不会保存不…"
+    }, {
+      "rank" : 5,
+      "fileName" : "02-架构设计与技术选型.md",
+      "chunkIndex" : 2,
+      "score" : 0.5692342326714557,
+      "contentPreview" : "runId 和截止时间。取消接口先把数据库状态改为 CANCEL_REQUESTED，再发送线程中断；ChatService 在检索、模型、审批、工具和持久化边界检查终止信号，最终写为 CANCELLED 或 TIMED_OUT，并增加 RUN_TERMINATION。应用启动会把上一进程遗留的非终态运行标为 INTERRUPTED、待决审批标为 EXPIRED。它解决的是状态收口，不是断点续跑；当前仍不支持登录身份，也不支持多个后端实例共享数据库。 SafeExecutio…"
     } ]
   }, {
     "id" : "rag-016",
@@ -863,41 +863,41 @@
     "question" : "管理员后来改了模型地址和温度，为何旧会话的运行含义仍能复现？",
     "answerable" : true,
     "expectedSources" : [ "03-数据模型与不可变版本.md" ],
-    "firstRelevantRank" : 1,
+    "firstRelevantRank" : 3,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 224.5296,
-    "returnedSources" : [ "03-数据模型与不可变版本.md", "02-架构设计与技术选型.md", "07-真实故障与排查复盘.md", "06-开发过程与提交时间线.md" ],
+    "latencyMs" : 224.8343,
+    "returnedSources" : [ "07-真实故障与排查复盘.md", "02-架构设计与技术选型.md", "03-数据模型与不可变版本.md", "10-面试讲述与追问准备.md", "08-测试策略与验收证据.md" ],
     "hits" : [ {
       "rank" : 1,
-      "fileName" : "03-数据模型与不可变版本.md",
-      "chunkIndex" : 2,
-      "score" : 0.5765372896412699,
-      "contentPreview" : "向量初始化器以 `IF NOT EXISTS` 创建，不会在启动时清空数据。 ## 版本机制的面试表达 可以把草稿和版本类比为“编辑区与发布制品”。草稿允许变化，发布制品一旦生成就不可修改；新需求通过发布 v2 解决，而不是覆盖 v1。一次会话固定使用一个制品，因此不会出现聊到一半模型、提示词或知识库突然变化的问题。"
-    }, {
-      "rank" : 2,
-      "fileName" : "02-架构设计与技术选型.md",
-      "chunkIndex" : 2,
-      "score" : 0.5683682476895293,
-      "contentPreview" : "runId 和截止时间。取消接口先把数据库状态改为 CANCEL_REQUESTED，再发送线程中断；ChatService 在检索、模型、审批、工具和持久化边界检查终止信号，最终写为 CANCELLED 或 TIMED_OUT，并增加 RUN_TERMINATION。应用启动会把上一进程遗留的非终态运行标为 INTERRUPTED、待决审批标为 EXPIRED。它解决的是状态收口，不是断点续跑；当前仍不支持登录身份，也不支持多个后端实例共享数据库。 ## 端口与部署 前端默…"
-    }, {
-      "rank" : 3,
       "fileName" : "07-真实故障与排查复盘.md",
       "chunkIndex" : 1,
       "score" : 0.5668845856756857,
       "contentPreview" : "SQL，业务 `NamedParameterJdbcTemplate` 仍可能连到 PostgreSQL。表现为向 PostgreSQL 执行 `INSERT knowledge_base` 或查询 `model_profile`，然后报 relation does not exist。 根因是 Spring 容器里同时存在多个 DataSource 和 JdbcTemplate，而业务仓储没有足够明确的限定。修复包括：创建带 `@Primary` 和 `@FlywayDat…"
     }, {
-      "rank" : 4,
+      "rank" : 2,
+      "fileName" : "02-架构设计与技术选型.md",
+      "chunkIndex" : 2,
+      "score" : 0.5309872191068831,
+      "contentPreview" : "runId 和截止时间。取消接口先把数据库状态改为 CANCEL_REQUESTED，再发送线程中断；ChatService 在检索、模型、审批、工具和持久化边界检查终止信号，最终写为 CANCELLED 或 TIMED_OUT，并增加 RUN_TERMINATION。应用启动会把上一进程遗留的非终态运行标为 INTERRUPTED、待决审批标为 EXPIRED。它解决的是状态收口，不是断点续跑；当前仍不支持登录身份，也不支持多个后端实例共享数据库。 SafeExecutio…"
+    }, {
+      "rank" : 3,
       "fileName" : "03-数据模型与不可变版本.md",
       "chunkIndex" : 1,
-      "score" : 0.548531399814242,
-      "contentPreview" : "onversationId 请求不同版本时，后端返回冲突错误。`Message` 保存 user 和 assistant 消息，并按创建时间恢复上下文。 `KnowledgeBase` 是知识容器。`KnowledgeDocument` 保存文件名、媒体类型、大小、SHA-256、本地路径、处理状态、chunk 数、失败原因和时间。旧向量表 `knowledge_chunk` 保存 384 维 LocalHash；新表 `knowledge_chunk_v2` 保存 1024…"
+      "score" : 0.5262931293188648,
+      "contentPreview" : "gentVersion` 是发布快照。它除了保存关联标识，还复制模型名称、供应商、API 地址、模型名、密钥环境变量名、温度、系统提示词和知识库标识。复制这些字段的目的，是避免后续修改 ModelProfile 或草稿改变历史运行含义。 `Conversation` 在创建时绑定一个 `agentVersionId`。后续使用同一个 conversationId 请求不同版本时，后端返回冲突错误。`Message` 保存 user 和 assistant 消息，并按创建时间恢…"
+    }, {
+      "rank" : 4,
+      "fileName" : "10-面试讲述与追问准备.md",
+      "chunkIndex" : 1,
+      "score" : 0.5252404819272544,
+      "contentPreview" : "TERMINATION；独立页面能回看完整步骤和安全审计，重启会关闭遗留状态。SSH、Coding、身份和真正断点续跑仍如实保留为后续。 ## STAR 故事：双数据源问题 情境：加入 pgvector 后，应用同时有 MySQL 和 PostgreSQL 两个数据源。任务：让 Flyway 只迁移 MySQL，业务 CRUD 使用 MySQL，向量读写只使用 PostgreSQL。 行动：我根据异常中的 `relation does not exist` 和连接池日志定位到…"
     }, {
       "rank" : 5,
-      "fileName" : "06-开发过程与提交时间线.md",
-      "chunkIndex" : 3,
-      "score" : 0.5464884114817935,
-      "contentPreview" : "可安全重放的检查点。自动化测试增至 17 个，覆盖阻塞模型调用的主动取消、总超时、terminated SSE、历史摘要和终止步骤。 提交前复核还发现一个并发窗口：取消请求可能恰好发生在最后一次信号检查之后、COMPLETED 写入之前。修复方式不是再加一次普通检查，而是让最终状态更新携带数据库前置条件；COMPLETED/FAILED 不能覆盖 CANCEL_REQUESTED，只有取消/超时/中断收口可以从非终态转为对应终态。这样把正确性落到原子状态迁移上，而不是依赖线程…"
+      "fileName" : "08-测试策略与验收证据.md",
+      "chunkIndex" : 2,
+      "score" : 0.5246972785767996,
+      "contentPreview" : "NCELLED，共 4 步；真实运行 `f72e72ab` 在默认 120 秒截止后为 TIMED_OUT，共 7 步。运行列表分别展示取消和超时原因，证明前端控制、后端中断、截止调度与持久化状态在真实链路上一致。 语义升级又验证了真实 Ollama、pgvector v2 和重建 API：数据库中向量确认为 1024 维、模型为 qwen3、版本为 qwen3-0.6b-v1；改写问题命中正确来源。知识包扩充后，LocalHash 与 Qwen 在同一语料上重新生成带语料哈…"
     } ]
   }, {
     "id" : "rag-017",
@@ -906,41 +906,41 @@
     "question" : "页面已经列出命中文档，随后对话却失败，这两个现象为什么不矛盾？",
     "answerable" : true,
     "expectedSources" : [ "04-模型调用与SSE流式对话.md", "07-真实故障与排查复盘.md" ],
-    "firstRelevantRank" : 2,
+    "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 220.6371,
-    "returnedSources" : [ "09-安全边界局限与路线图.md", "07-真实故障与排查复盘.md", "02-架构设计与技术选型.md", "03-数据模型与不可变版本.md" ],
+    "latencyMs" : 230.6123,
+    "returnedSources" : [ "07-真实故障与排查复盘.md", "08-测试策略与验收证据.md", "09-安全边界局限与路线图.md", "00-入库说明与事实口径.md" ],
     "hits" : [ {
       "rank" : 1,
-      "fileName" : "09-安全边界局限与路线图.md",
-      "chunkIndex" : 1,
-      "score" : 0.47638955250927334,
-      "contentPreview" : "有最大轮数、单工具超时、总运行超时、主动取消、终止步骤和历史详情；重启时能关闭遗留状态。下一步仍需客户端断开联动取消、真正断点续跑、通用 Schema 校验和更多只读工具。 第三优先级的最小安全审批已经完成：HIGH 请求生成参数绑定的 ApprovalRequest，真实拒绝和批准均已人工通过。下一步不是重新做审批，而是补身份、RBAC、策略规则、并发治理，并把相同执行门用于 EXECUTE、PRIVILEGED 类型工具。 SSH 是优先的垂直样例，先在 OpenSSH …"
-    }, {
-      "rank" : 2,
       "fileName" : "07-真实故障与排查复盘.md",
       "chunkIndex" : 3,
       "score" : 0.46960445300464554,
       "contentPreview" : "wledge_base_id`；MySQL 将它当成一个实际 ID，因找不到对应 knowledge_base 而触发外键约束。修复采用双重保护：前端提交前把空值转换为 null，后端再把 null、空字符串和纯空格统一归一化为 null。测试直接以空字符串创建无知识库 Agent，并断言持久化模型值为 null。 排查过程中也补齐了独立的体验缺口：Agent 卡片现在可以编辑草稿，并提供精确重名提示。但这不是“查时间”创建失败的根因。经验是通用数据库异常会掩盖具体约束，诊断…"
     }, {
-      "rank" : 3,
+      "rank" : 2,
       "fileName" : "07-真实故障与排查复盘.md",
       "chunkIndex" : 1,
       "score" : 0.4665468539924022,
       "contentPreview" : "SQL，业务 `NamedParameterJdbcTemplate` 仍可能连到 PostgreSQL。表现为向 PostgreSQL 执行 `INSERT knowledge_base` 或查询 `model_profile`，然后报 relation does not exist。 根因是 Spring 容器里同时存在多个 DataSource 和 JdbcTemplate，而业务仓储没有足够明确的限定。修复包括：创建带 `@Primary` 和 `@FlywayDat…"
     }, {
-      "rank" : 4,
-      "fileName" : "02-架构设计与技术选型.md",
+      "rank" : 3,
+      "fileName" : "08-测试策略与验收证据.md",
       "chunkIndex" : 2,
-      "score" : 0.46174496385579256,
-      "contentPreview" : "runId 和截止时间。取消接口先把数据库状态改为 CANCEL_REQUESTED，再发送线程中断；ChatService 在检索、模型、审批、工具和持久化边界检查终止信号，最终写为 CANCELLED 或 TIMED_OUT，并增加 RUN_TERMINATION。应用启动会把上一进程遗留的非终态运行标为 INTERRUPTED、待决审批标为 EXPIRED。它解决的是状态收口，不是断点续跑；当前仍不支持登录身份，也不支持多个后端实例共享数据库。 ## 端口与部署 前端默…"
+      "score" : 0.45575246995544955,
+      "contentPreview" : "NCELLED，共 4 步；真实运行 `f72e72ab` 在默认 120 秒截止后为 TIMED_OUT，共 7 步。运行列表分别展示取消和超时原因，证明前端控制、后端中断、截止调度与持久化状态在真实链路上一致。 语义升级又验证了真实 Ollama、pgvector v2 和重建 API：数据库中向量确认为 1024 维、模型为 qwen3、版本为 qwen3-0.6b-v1；改写问题命中正确来源。知识包扩充后，LocalHash 与 Qwen 在同一语料上重新生成带语料哈…"
+    }, {
+      "rank" : 4,
+      "fileName" : "09-安全边界局限与路线图.md",
+      "chunkIndex" : 1,
+      "score" : 0.4509899817792939,
+      "contentPreview" : "nk，不在当前阶段继续无边界调参。 第二优先级的运行控制已经完成最小闭环：AgentRun 有最大轮数、单工具超时、总运行超时、主动取消、终止步骤和历史详情；重启时能关闭遗留状态。通用 Schema 校验和结构化工具审计也已进入统一网关。下一步仍需客户端断开联动取消、真正断点续跑和更多只读工具。 第三优先级的最小安全审批已经完成：HIGH 请求生成参数绑定的 ApprovalRequest，真实拒绝和批准均已人工通过。所有工具现已统一通过 SafeExecutionGatew…"
     }, {
       "rank" : 5,
-      "fileName" : "03-数据模型与不可变版本.md",
-      "chunkIndex" : 2,
-      "score" : 0.4585020404122907,
-      "contentPreview" : "向量初始化器以 `IF NOT EXISTS` 创建，不会在启动时清空数据。 ## 版本机制的面试表达 可以把草稿和版本类比为“编辑区与发布制品”。草稿允许变化，发布制品一旦生成就不可修改；新需求通过发布 v2 解决，而不是覆盖 v1。一次会话固定使用一个制品，因此不会出现聊到一半模型、提示词或知识库突然变化的问题。"
+      "fileName" : "00-入库说明与事实口径.md",
+      "chunkIndex" : 1,
+      "score" : 0.44140290840087293,
+      "contentPreview" : "行标为 INTERRUPTED，而不是从旧步骤继续；高风险审批和 AuditEvent 也还没有审批人身份、签名防篡改、通用策略引擎和远程副作用治理，不能描述成企业级平台。 项目参考过 ai-rag、WaLiSSH 和 WaLiCode 的思路，但新工程在独立 Git 仓库中从骨架开始建设，没有把来源项目整包复制过来。可强调的成果是架构取舍、版本隔离、双数据库边界、RAG 闭环、真实排障和可验证证据，不应把来源项目代码或框架能力描述为个人原创。 ## 面试使用原则 理解每个“…"
     } ]
   }, {
     "id" : "rag-018",
@@ -952,38 +952,38 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 223.4997,
-    "returnedSources" : [ "10-面试讲述与追问准备.md", "08-测试策略与验收证据.md", "03-数据模型与不可变版本.md", "05-RAG全链路与检索算法.md", "01-项目总览与业务目标.md" ],
+    "latencyMs" : 234.0299,
+    "returnedSources" : [ "10-面试讲述与追问准备.md", "08-测试策略与验收证据.md", "05-RAG全链路与检索算法.md", "01-项目总览与业务目标.md", "00-入库说明与事实口径.md" ],
     "hits" : [ {
       "rank" : 1,
       "fileName" : "10-面试讲述与追问准备.md",
       "chunkIndex" : 3,
-      "score" : 0.5096243427858219,
-      "contentPreview" : "职责清晰，但跨存储一致性需要后续补偿机制。 问：词法哈希算 embedding 吗？答：它产生固定维度、可做向量距离的数值表示，但不是训练得到的语义 embedding。它是零依赖检索基线，不能夸大语义能力。 问：为什么换了 Qwen 还不把无答案阈值调高？答：阈值扫描显示误召回下降时 Recall 也明显下降，正负样本分数重叠。固定阈值不是充分的相关性判别，需要独立开发集、分数间隔、rerank 或回答阶段证据判断。 问：为什么 Qwen 没有默认加检索 instructi…"
+      "score" : 0.5067333826983932,
+      "contentPreview" : "和外部调用去重，当前证据不足，所以称为遗留状态收口而不是断点恢复。 问：线程中断能绝对保证立即取消吗？答：不能，它是协作式机制。平台在主要边界反复检查，Java HttpClient 和当前工具会响应中断；未来接入第三方 MCP、SSH 或命令工具时，仍需它们提供自己的取消句柄和进程终止策略。 问：工具版为什么不是逐 token 流式？答：每轮必须先得到完整 tool_calls 才能安全执行，所以第一阶段使用非流式决策请求，最终文本以单个 delta 返回。普通无工具路径仍…"
     }, {
       "rank" : 2,
       "fileName" : "08-测试策略与验收证据.md",
       "chunkIndex" : 2,
-      "score" : 0.5011415623512924,
-      "contentPreview" : "LocalHash 与 Qwen 在同一语料上重新生成带语料哈希的结果，Qwen 的 Recall@5、整体 MRR 和改写题 MRR均优于 LocalHash；最终数字见评测报告与 11 号文档。 ## 为什么自动化和真实验收都要有 自动化测试适合保证版本隔离、协议结构和算法不回归，但无法证明 Docker 端口、真实数据库方言、环境变量继承和外部模型兼容。真实验收能覆盖这些问题，却不适合每次提交都执行。因此项目把两类证据分开记录。 ## 后续应补的测试 当前仍缺少知识库隔…"
+      "score" : 0.48947674877703223,
+      "contentPreview" : "NCELLED，共 4 步；真实运行 `f72e72ab` 在默认 120 秒截止后为 TIMED_OUT，共 7 步。运行列表分别展示取消和超时原因，证明前端控制、后端中断、截止调度与持久化状态在真实链路上一致。 语义升级又验证了真实 Ollama、pgvector v2 和重建 API：数据库中向量确认为 1024 维、模型为 qwen3、版本为 qwen3-0.6b-v1；改写问题命中正确来源。知识包扩充后，LocalHash 与 Qwen 在同一语料上重新生成带语料哈…"
     }, {
       "rank" : 3,
-      "fileName" : "03-数据模型与不可变版本.md",
-      "chunkIndex" : 2,
-      "score" : 0.4867462215036393,
-      "contentPreview" : "向量初始化器以 `IF NOT EXISTS` 创建，不会在启动时清空数据。 ## 版本机制的面试表达 可以把草稿和版本类比为“编辑区与发布制品”。草稿允许变化，发布制品一旦生成就不可修改；新需求通过发布 v2 解决，而不是覆盖 v1。一次会话固定使用一个制品，因此不会出现聊到一半模型、提示词或知识库突然变化的问题。"
-    }, {
-      "rank" : 4,
       "fileName" : "05-RAG全链路与检索算法.md",
       "chunkIndex" : 1,
       "score" : 0.48174561702233365,
       "contentPreview" : "1 - cosine distance`。新模型的 0.05 仅保留现有召回行为，不代表有效拒答阈值。 检索结果一方面通过 SSE `sources` 发送给前端，另一方面拼成系统上下文注入模型。这样用户能看到证据，模型也能据此作答。 ## 删除闭环 删除文档时先删除 pgvector 中对应 documentId 的 chunk，再删除 MySQL 文档元数据，最后删除本地文件。验收时确认删除后文档列表为空、本地文件不存在，并且再次提问不再出现 sources；随后重新上传…"
     }, {
-      "rank" : 5,
+      "rank" : 4,
       "fileName" : "01-项目总览与业务目标.md",
       "chunkIndex" : 1,
-      "score" : 0.4494729818359245,
+      "score" : 0.45097199088644835,
       "contentPreview" : "## 当前技术栈 - 后端：Java 21、Spring Boot 3.4.3、Maven、Spring JDBC、Flyway； - 前端：React 19、TypeScript、Vite； - 业务数据库：MySQL 8.4； - 向量数据库：PostgreSQL 17 + pgvector； - 文档解析：Apache Tika 3.1.0； - 模型接口：OpenAI Chat Completions 兼容 SSE，已用 DeepSeek 实测； - Embeddin…"
+    }, {
+      "rank" : 5,
+      "fileName" : "00-入库说明与事实口径.md",
+      "chunkIndex" : 1,
+      "score" : 0.4489065687878965,
+      "contentPreview" : "行标为 INTERRUPTED，而不是从旧步骤继续；高风险审批和 AuditEvent 也还没有审批人身份、签名防篡改、通用策略引擎和远程副作用治理，不能描述成企业级平台。 项目参考过 ai-rag、WaLiSSH 和 WaLiCode 的思路，但新工程在独立 Git 仓库中从骨架开始建设，没有把来源项目整包复制过来。可强调的成果是架构取舍、版本隔离、双数据库边界、RAG 闭环、真实排障和可验证证据，不应把来源项目代码或框架能力描述为个人原创。 ## 面试使用原则 理解每个“…"
     } ]
   }, {
     "id" : "rag-019",
@@ -995,8 +995,8 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 222.6338,
-    "returnedSources" : [ "07-真实故障与排查复盘.md", "02-架构设计与技术选型.md", "08-测试策略与验收证据.md", "06-开发过程与提交时间线.md" ],
+    "latencyMs" : 223.5678,
+    "returnedSources" : [ "07-真实故障与排查复盘.md", "02-架构设计与技术选型.md", "08-测试策略与验收证据.md" ],
     "hits" : [ {
       "rank" : 1,
       "fileName" : "07-真实故障与排查复盘.md",
@@ -1005,28 +1005,28 @@
       "contentPreview" : "# Agent Studio Desktop：真实故障与排查复盘 ## 故障一：MySQL 端口连续冲突 现象是 Docker 报 `bind: Only one usage of each socket address` 或 `port is already allocated`。3306 被占用后改到 13306仍冲突，最终选择 23306。 根因不是容器内 MySQL 启动失败，而是 Windows 宿主机端口已经被其他进程或容器占用。修复是在 Compose 中只修改…"
     }, {
       "rank" : 2,
-      "fileName" : "02-架构设计与技术选型.md",
-      "chunkIndex" : 2,
-      "score" : 0.4756939753747065,
-      "contentPreview" : "runId 和截止时间。取消接口先把数据库状态改为 CANCEL_REQUESTED，再发送线程中断；ChatService 在检索、模型、审批、工具和持久化边界检查终止信号，最终写为 CANCELLED 或 TIMED_OUT，并增加 RUN_TERMINATION。应用启动会把上一进程遗留的非终态运行标为 INTERRUPTED、待决审批标为 EXPIRED。它解决的是状态收口，不是断点续跑；当前仍不支持登录身份，也不支持多个后端实例共享数据库。 ## 端口与部署 前端默…"
-    }, {
-      "rank" : 3,
       "fileName" : "07-真实故障与排查复盘.md",
       "chunkIndex" : 1,
       "score" : 0.4053592014635207,
       "contentPreview" : "SQL，业务 `NamedParameterJdbcTemplate` 仍可能连到 PostgreSQL。表现为向 PostgreSQL 执行 `INSERT knowledge_base` 或查询 `model_profile`，然后报 relation does not exist。 根因是 Spring 容器里同时存在多个 DataSource 和 JdbcTemplate，而业务仓储没有足够明确的限定。修复包括：创建带 `@Primary` 和 `@FlywayDat…"
     }, {
+      "rank" : 3,
+      "fileName" : "02-架构设计与技术选型.md",
+      "chunkIndex" : 2,
+      "score" : 0.39985539495561956,
+      "contentPreview" : "runId 和截止时间。取消接口先把数据库状态改为 CANCEL_REQUESTED，再发送线程中断；ChatService 在检索、模型、审批、工具和持久化边界检查终止信号，最终写为 CANCELLED 或 TIMED_OUT，并增加 RUN_TERMINATION。应用启动会把上一进程遗留的非终态运行标为 INTERRUPTED、待决审批标为 EXPIRED。它解决的是状态收口，不是断点续跑；当前仍不支持登录身份，也不支持多个后端实例共享数据库。 SafeExecutio…"
+    }, {
       "rank" : 4,
       "fileName" : "08-测试策略与验收证据.md",
       "chunkIndex" : 1,
-      "score" : 0.403350313401791,
-      "contentPreview" : "SQL 和 pgvector 行为通过独立验收补足，不能只依赖 H2。 ## 前端验证 前端运行 `npm run build`，该命令先执行 TypeScript project build，再执行 Vite 生产构建。最终构建成功。浏览器冒烟检查确认五个导航入口、知识库创建表单、上传控件、Agent Builder、对话测试台和运行记录正常渲染。 ## 真实环境验证 Docker Desktop 中 MySQL 为 23306，pgvector 为 15432，二者均 h…"
+      "score" : 0.3760295390670271,
+      "contentPreview" : "功集成测试还查询 AuditEvent，确认低风险调用出现 TOOL_REQUEST_VALIDATED 与 TOOL_EXECUTION_COMPLETED，且审计响应没有复制 `Asia/Shanghai` 原参数；高风险拒绝测试确认 APPROVAL_REQUIRED、APPROVAL_DECIDED 和 TOOL_EXECUTION_SKIPPED 都可追溯。 测试环境使用内存 H2 代替 MySQL，并关闭向量数据源，因此启动快、结果稳定。真实 MySQL 和 pg…"
     }, {
       "rank" : 5,
-      "fileName" : "06-开发过程与提交时间线.md",
-      "chunkIndex" : 0,
-      "score" : 0.3735418106694488,
-      "contentPreview" : "# Agent Studio Desktop：开发过程与提交时间线 ## 阶段 0：独立工程基线 第一个提交是 `de8dd90 chore: establish agent studio desktop baseline`。这一阶段建立独立 Git 仓库、Spring Boot 单体、React + TypeScript + Vite 前端、Docker Compose、健康检查、README、架构决策和来源边界记录。 实际环境确认 Maven 使用 Java 21.0.4…"
+      "fileName" : "08-测试策略与验收证据.md",
+      "chunkIndex" : 2,
+      "score" : 0.37455640131091883,
+      "contentPreview" : "NCELLED，共 4 步；真实运行 `f72e72ab` 在默认 120 秒截止后为 TIMED_OUT，共 7 步。运行列表分别展示取消和超时原因，证明前端控制、后端中断、截止调度与持久化状态在真实链路上一致。 语义升级又验证了真实 Ollama、pgvector v2 和重建 API：数据库中向量确认为 1024 维、模型为 qwen3、版本为 qwen3-0.6b-v1；改写问题命中正确来源。知识包扩充后，LocalHash 与 Qwen 在同一语料上重新生成带语料哈…"
     } ]
   }, {
     "id" : "rag-020",
@@ -1038,14 +1038,14 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 234.2348,
-    "returnedSources" : [ "10-面试讲述与追问准备.md", "07-真实故障与排查复盘.md", "08-测试策略与验收证据.md", "02-架构设计与技术选型.md" ],
+    "latencyMs" : 227.1505,
+    "returnedSources" : [ "10-面试讲述与追问准备.md", "07-真实故障与排查复盘.md", "08-测试策略与验收证据.md", "03-数据模型与不可变版本.md", "01-项目总览与业务目标.md" ],
     "hits" : [ {
       "rank" : 1,
       "fileName" : "10-面试讲述与追问准备.md",
       "chunkIndex" : 1,
-      "score" : 0.5834628821484392,
-      "contentPreview" : "为后续。 ## STAR 故事：双数据源问题 情境：加入 pgvector 后，应用同时有 MySQL 和 PostgreSQL 两个数据源。任务：让 Flyway 只迁移 MySQL，业务 CRUD 使用 MySQL，向量读写只使用 PostgreSQL。 行动：我根据异常中的 `relation does not exist` 和连接池日志定位到自动装配选错连接，而不是表迁移缺失。随后显式定义 primary MySQL DataSource、JdbcTemplate 和…"
+      "score" : 0.5758061541403352,
+      "contentPreview" : "TERMINATION；独立页面能回看完整步骤和安全审计，重启会关闭遗留状态。SSH、Coding、身份和真正断点续跑仍如实保留为后续。 ## STAR 故事：双数据源问题 情境：加入 pgvector 后，应用同时有 MySQL 和 PostgreSQL 两个数据源。任务：让 Flyway 只迁移 MySQL，业务 CRUD 使用 MySQL，向量读写只使用 PostgreSQL。 行动：我根据异常中的 `relation does not exist` 和连接池日志定位到…"
     }, {
       "rank" : 2,
       "fileName" : "07-真实故障与排查复盘.md",
@@ -1056,20 +1056,20 @@
       "rank" : 3,
       "fileName" : "08-测试策略与验收证据.md",
       "chunkIndex" : 1,
-      "score" : 0.5224718929656286,
-      "contentPreview" : "SQL 和 pgvector 行为通过独立验收补足，不能只依赖 H2。 ## 前端验证 前端运行 `npm run build`，该命令先执行 TypeScript project build，再执行 Vite 生产构建。最终构建成功。浏览器冒烟检查确认五个导航入口、知识库创建表单、上传控件、Agent Builder、对话测试台和运行记录正常渲染。 ## 真实环境验证 Docker Desktop 中 MySQL 为 23306，pgvector 为 15432，二者均 h…"
+      "score" : 0.5364509247021271,
+      "contentPreview" : "功集成测试还查询 AuditEvent，确认低风险调用出现 TOOL_REQUEST_VALIDATED 与 TOOL_EXECUTION_COMPLETED，且审计响应没有复制 `Asia/Shanghai` 原参数；高风险拒绝测试确认 APPROVAL_REQUIRED、APPROVAL_DECIDED 和 TOOL_EXECUTION_SKIPPED 都可追溯。 测试环境使用内存 H2 代替 MySQL，并关闭向量数据源，因此启动快、结果稳定。真实 MySQL 和 pg…"
     }, {
       "rank" : 4,
-      "fileName" : "07-真实故障与排查复盘.md",
-      "chunkIndex" : 0,
-      "score" : 0.5116110586236878,
-      "contentPreview" : "# Agent Studio Desktop：真实故障与排查复盘 ## 故障一：MySQL 端口连续冲突 现象是 Docker 报 `bind: Only one usage of each socket address` 或 `port is already allocated`。3306 被占用后改到 13306仍冲突，最终选择 23306。 根因不是容器内 MySQL 启动失败，而是 Windows 宿主机端口已经被其他进程或容器占用。修复是在 Compose 中只修改…"
+      "fileName" : "03-数据模型与不可变版本.md",
+      "chunkIndex" : 2,
+      "score" : 0.520536018355056,
+      "contentPreview" : "gentDefinition、AgentVersion 上增加知识库外键。V3 增加工具绑定、版本工具快照、AgentRun 和 RunStep。V4 增加 ApprovalRequest。V5 补齐审批上下文并增加 AuditEvent。应用启动时 Flyway 只迁移 MySQL；pgvector 的 extension、chunk 表和 HNSW 索引由向量初始化器以 `IF NOT EXISTS` 创建，不会在启动时清空数据。 ## 版本机制的面试表达 可以把草稿和版…"
     }, {
       "rank" : 5,
-      "fileName" : "02-架构设计与技术选型.md",
-      "chunkIndex" : 0,
-      "score" : 0.5072115817544167,
-      "contentPreview" : "# Agent Studio Desktop：架构设计与技术选型 ## 模块化单体 项目选择“Spring Boot 模块化单体 + 独立 React 前端 + 两个数据库容器”。后端只有一个 Maven 工程，通过 `agent`、`model`、`conversation`、`knowledge`、`system` 等 Java package 隔离职责。 这个选择针对的是单机开发工具场景。微服务会引入服务发现、网络调用、分布式事务、部署和日志聚合成本，而当前用户只有一个…"
+      "fileName" : "01-项目总览与业务目标.md",
+      "chunkIndex" : 1,
+      "score" : 0.5124058984936262,
+      "contentPreview" : "## 当前技术栈 - 后端：Java 21、Spring Boot 3.4.3、Maven、Spring JDBC、Flyway； - 前端：React 19、TypeScript、Vite； - 业务数据库：MySQL 8.4； - 向量数据库：PostgreSQL 17 + pgvector； - 文档解析：Apache Tika 3.1.0； - 模型接口：OpenAI Chat Completions 兼容 SSE，已用 DeepSeek 实测； - Embeddin…"
     } ]
   }, {
     "id" : "rag-021",
@@ -1078,41 +1078,41 @@
     "question" : "把词面指纹换成神经网络表征时，怎样避免旧数据与新数据悄悄混用？",
     "answerable" : true,
     "expectedSources" : [ "05-RAG全链路与检索算法.md", "09-安全边界局限与路线图.md" ],
-    "firstRelevantRank" : 4,
+    "firstRelevantRank" : 3,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 229.2698,
-    "returnedSources" : [ "08-测试策略与验收证据.md", "03-数据模型与不可变版本.md", "06-开发过程与提交时间线.md", "05-RAG全链路与检索算法.md", "10-面试讲述与追问准备.md" ],
+    "latencyMs" : 226.4953,
+    "returnedSources" : [ "08-测试策略与验收证据.md", "06-开发过程与提交时间线.md", "05-RAG全链路与检索算法.md", "00-入库说明与事实口径.md", "02-架构设计与技术选型.md" ],
     "hits" : [ {
       "rank" : 1,
       "fileName" : "08-测试策略与验收证据.md",
       "chunkIndex" : 2,
-      "score" : 0.4872729828809903,
-      "contentPreview" : "LocalHash 与 Qwen 在同一语料上重新生成带语料哈希的结果，Qwen 的 Recall@5、整体 MRR 和改写题 MRR均优于 LocalHash；最终数字见评测报告与 11 号文档。 ## 为什么自动化和真实验收都要有 自动化测试适合保证版本隔离、协议结构和算法不回归，但无法证明 Docker 端口、真实数据库方言、环境变量继承和外部模型兼容。真实验收能覆盖这些问题，却不适合每次提交都执行。因此项目把两类证据分开记录。 ## 后续应补的测试 当前仍缺少知识库隔…"
+      "score" : 0.4880880819107157,
+      "contentPreview" : "NCELLED，共 4 步；真实运行 `f72e72ab` 在默认 120 秒截止后为 TIMED_OUT，共 7 步。运行列表分别展示取消和超时原因，证明前端控制、后端中断、截止调度与持久化状态在真实链路上一致。 语义升级又验证了真实 Ollama、pgvector v2 和重建 API：数据库中向量确认为 1024 维、模型为 qwen3、版本为 qwen3-0.6b-v1；改写问题命中正确来源。知识包扩充后，LocalHash 与 Qwen 在同一语料上重新生成带语料哈…"
     }, {
       "rank" : 2,
-      "fileName" : "03-数据模型与不可变版本.md",
-      "chunkIndex" : 2,
-      "score" : 0.48468942631844797,
-      "contentPreview" : "向量初始化器以 `IF NOT EXISTS` 创建，不会在启动时清空数据。 ## 版本机制的面试表达 可以把草稿和版本类比为“编辑区与发布制品”。草稿允许变化，发布制品一旦生成就不可修改；新需求通过发布 v2 解决，而不是覆盖 v1。一次会话固定使用一个制品，因此不会出现聊到一半模型、提示词或知识库突然变化的问题。"
+      "fileName" : "06-开发过程与提交时间线.md",
+      "chunkIndex" : 4,
+      "score" : 0.4688636859308844,
+      "contentPreview" : "15ec1cd` 完成 Qwen embedding-only 候选对照。数据证明 Qwen 对低词面重合改写有明显收益，因此生产增加 EmbeddingGateway、1024 维版本化索引和显式重建入口。 实现期间又做了 query instruction 消融：在知识包扩充前的同一语料上，统一中文前缀令 MRR 从 0.8160 降到 0.6917，最终默认关闭。知识包随后补入升级过程与故障复盘，LocalHash 与 Qwen 又在新语料上同时重跑。这个过程体现了项目…"
     }, {
       "rank" : 3,
-      "fileName" : "06-开发过程与提交时间线.md",
-      "chunkIndex" : 3,
-      "score" : 0.4756741655706144,
-      "contentPreview" : "可安全重放的检查点。自动化测试增至 17 个，覆盖阻塞模型调用的主动取消、总超时、terminated SSE、历史摘要和终止步骤。 提交前复核还发现一个并发窗口：取消请求可能恰好发生在最后一次信号检查之后、COMPLETED 写入之前。修复方式不是再加一次普通检查，而是让最终状态更新携带数据库前置条件；COMPLETED/FAILED 不能覆盖 CANCEL_REQUESTED，只有取消/超时/中断收口可以从非终态转为对应终态。这样把正确性落到原子状态迁移上，而不是依赖线程…"
-    }, {
-      "rank" : 4,
       "fileName" : "05-RAG全链路与检索算法.md",
       "chunkIndex" : 1,
       "score" : 0.46367561486355385,
       "contentPreview" : "1 - cosine distance`。新模型的 0.05 仅保留现有召回行为，不代表有效拒答阈值。 检索结果一方面通过 SSE `sources` 发送给前端，另一方面拼成系统上下文注入模型。这样用户能看到证据，模型也能据此作答。 ## 删除闭环 删除文档时先删除 pgvector 中对应 documentId 的 chunk，再删除 MySQL 文档元数据，最后删除本地文件。验收时确认删除后文档列表为空、本地文件不存在，并且再次提问不再出现 sources；随后重新上传…"
     }, {
+      "rank" : 4,
+      "fileName" : "00-入库说明与事实口径.md",
+      "chunkIndex" : 1,
+      "score" : 0.43844015532113406,
+      "contentPreview" : "行标为 INTERRUPTED，而不是从旧步骤继续；高风险审批和 AuditEvent 也还没有审批人身份、签名防篡改、通用策略引擎和远程副作用治理，不能描述成企业级平台。 项目参考过 ai-rag、WaLiSSH 和 WaLiCode 的思路，但新工程在独立 Git 仓库中从骨架开始建设，没有把来源项目整包复制过来。可强调的成果是架构取舍、版本隔离、双数据库边界、RAG 闭环、真实排障和可验证证据，不应把来源项目代码或框架能力描述为个人原创。 ## 面试使用原则 理解每个“…"
+    }, {
       "rank" : 5,
-      "fileName" : "10-面试讲述与追问准备.md",
-      "chunkIndex" : 3,
-      "score" : 0.4413255668846432,
-      "contentPreview" : "职责清晰，但跨存储一致性需要后续补偿机制。 问：词法哈希算 embedding 吗？答：它产生固定维度、可做向量距离的数值表示，但不是训练得到的语义 embedding。它是零依赖检索基线，不能夸大语义能力。 问：为什么换了 Qwen 还不把无答案阈值调高？答：阈值扫描显示误召回下降时 Recall 也明显下降，正负样本分数重叠。固定阈值不是充分的相关性判别，需要独立开发集、分数间隔、rerank 或回答阶段证据判断。 问：为什么 Qwen 没有默认加检索 instructi…"
+      "fileName" : "02-架构设计与技术选型.md",
+      "chunkIndex" : 1,
+      "score" : 0.43623279287013156,
+      "contentPreview" : "024 维向量并写入 `knowledge_chunk_v2`，记录模型和索引版本；旧 384 维表继续保留。知识库升级必须由用户显式触发重建，启动应用不会自动改写索引。 当前 Qwen 表采用精确 cosine 排序，不建立 HNSW 向量索引。原因是当前语料规模很小，近似索引没有性能必要，反而可能牺牲召回。表上只对 knowledgeBaseId 和 embeddingVersion 建范围索引。 ## 为什么不引入 Redis、MQ 和 MinIO 第一版没有缓存规模、…"
     } ]
   }, {
     "id" : "rag-022",
@@ -1121,41 +1121,41 @@
     "question" : "一份资料横跨关系记录、磁盘原件和可重建索引，清理到一半失败会留下什么风险？",
     "answerable" : true,
     "expectedSources" : [ "02-架构设计与技术选型.md", "05-RAG全链路与检索算法.md", "09-安全边界局限与路线图.md", "10-面试讲述与追问准备.md" ],
-    "firstRelevantRank" : 3,
+    "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 230.6668,
-    "returnedSources" : [ "03-数据模型与不可变版本.md", "08-测试策略与验收证据.md", "10-面试讲述与追问准备.md", "05-RAG全链路与检索算法.md", "07-真实故障与排查复盘.md" ],
+    "latencyMs" : 224.9834,
+    "returnedSources" : [ "05-RAG全链路与检索算法.md", "08-测试策略与验收证据.md", "06-开发过程与提交时间线.md", "07-真实故障与排查复盘.md" ],
     "hits" : [ {
       "rank" : 1,
-      "fileName" : "03-数据模型与不可变版本.md",
-      "chunkIndex" : 2,
-      "score" : 0.4435839032161792,
-      "contentPreview" : "向量初始化器以 `IF NOT EXISTS` 创建，不会在启动时清空数据。 ## 版本机制的面试表达 可以把草稿和版本类比为“编辑区与发布制品”。草稿允许变化，发布制品一旦生成就不可修改；新需求通过发布 v2 解决，而不是覆盖 v1。一次会话固定使用一个制品，因此不会出现聊到一半模型、提示词或知识库突然变化的问题。"
-    }, {
-      "rank" : 2,
-      "fileName" : "08-测试策略与验收证据.md",
-      "chunkIndex" : 2,
-      "score" : 0.4382425673761248,
-      "contentPreview" : "LocalHash 与 Qwen 在同一语料上重新生成带语料哈希的结果，Qwen 的 Recall@5、整体 MRR 和改写题 MRR均优于 LocalHash；最终数字见评测报告与 11 号文档。 ## 为什么自动化和真实验收都要有 自动化测试适合保证版本隔离、协议结构和算法不回归，但无法证明 Docker 端口、真实数据库方言、环境变量继承和外部模型兼容。真实验收能覆盖这些问题，却不适合每次提交都执行。因此项目把两类证据分开记录。 ## 后续应补的测试 当前仍缺少知识库隔…"
-    }, {
-      "rank" : 3,
-      "fileName" : "10-面试讲述与追问准备.md",
-      "chunkIndex" : 2,
-      "score" : 0.4292094463567957,
-      "contentPreview" : "重放。ApprovalRequest 保存规范化的原始参数和 SHA-256，执行前用同一哈希原子消费 APPROVED 状态；这样批准的是用户看到的这一次具体调用，而不是对工具的永久放行。 问：高风险审批已经等于安全平台了吗？答：不是。当前证明的是单机环境中的参数绑定、拒绝、过期和一次性消费；还没有登录身份、RBAC、策略引擎、跨重启等待恢复和远程执行隔离，不能夸大成企业级治理。 问：运行取消是怎样实现的？答：取消接口先把数据库状态写成 CANCEL_REQUESTED，再…"
-    }, {
-      "rank" : 4,
       "fileName" : "05-RAG全链路与检索算法.md",
       "chunkIndex" : 1,
       "score" : 0.4250565975648541,
       "contentPreview" : "1 - cosine distance`。新模型的 0.05 仅保留现有召回行为，不代表有效拒答阈值。 检索结果一方面通过 SSE `sources` 发送给前端，另一方面拼成系统上下文注入模型。这样用户能看到证据，模型也能据此作答。 ## 删除闭环 删除文档时先删除 pgvector 中对应 documentId 的 chunk，再删除 MySQL 文档元数据，最后删除本地文件。验收时确认删除后文档列表为空、本地文件不存在，并且再次提问不再出现 sources；随后重新上传…"
     }, {
-      "rank" : 5,
+      "rank" : 2,
+      "fileName" : "08-测试策略与验收证据.md",
+      "chunkIndex" : 2,
+      "score" : 0.42197026066073534,
+      "contentPreview" : "NCELLED，共 4 步；真实运行 `f72e72ab` 在默认 120 秒截止后为 TIMED_OUT，共 7 步。运行列表分别展示取消和超时原因，证明前端控制、后端中断、截止调度与持久化状态在真实链路上一致。 语义升级又验证了真实 Ollama、pgvector v2 和重建 API：数据库中向量确认为 1024 维、模型为 qwen3、版本为 qwen3-0.6b-v1；改写问题命中正确来源。知识包扩充后，LocalHash 与 Qwen 在同一语料上重新生成带语料哈…"
+    }, {
+      "rank" : 3,
+      "fileName" : "06-开发过程与提交时间线.md",
+      "chunkIndex" : 3,
+      "score" : 0.4177979659479565,
+      "contentPreview" : "可安全重放的检查点。自动化测试增至 17 个，覆盖阻塞模型调用的主动取消、总超时、terminated SSE、历史摘要和终止步骤。 提交前复核还发现一个并发窗口：取消请求可能恰好发生在最后一次信号检查之后、COMPLETED 写入之前。修复方式不是再加一次普通检查，而是让最终状态更新携带数据库前置条件；COMPLETED/FAILED 不能覆盖 CANCEL_REQUESTED，只有取消/超时/中断收口可以从非终态转为对应终态。这样把正确性落到原子状态迁移上，而不是依赖线程…"
+    }, {
+      "rank" : 4,
       "fileName" : "07-真实故障与排查复盘.md",
       "chunkIndex" : 2,
       "score" : 0.417795761261983,
       "contentPreview" : "struction-aware 模型的常见建议，为每个问题添加统一中文任务说明。复测后 Recall 没变，但 MRR 降到 0.6917，相关文档更常排在后面。 这不是接口或维度错误，而是提示前缀改变了向量空间中的查询表达。修复是保留 queryInstruction 配置能力但默认置空，并重新运行同一冻结题集，MRR 恢复到 0.8160。知识包扩充后又在新语料上复测，仍采用无前缀方案。经验是 embedding 的 prompt 必须在本领域语料上做消融，而且语料变更后…"
+    }, {
+      "rank" : 5,
+      "fileName" : "07-真实故障与排查复盘.md",
+      "chunkIndex" : 3,
+      "score" : 0.4077743164442216,
+      "contentPreview" : "wledge_base_id`；MySQL 将它当成一个实际 ID，因找不到对应 knowledge_base 而触发外键约束。修复采用双重保护：前端提交前把空值转换为 null，后端再把 null、空字符串和纯空格统一归一化为 null。测试直接以空字符串创建无知识库 Agent，并断言持久化模型值为 null。 排查过程中也补齐了独立的体验缺口：Agent 卡片现在可以编辑草稿，并提供精确重名提示。但这不是“查时间”创建失败的根因。经验是通用数据库异常会掩盖具体约束，诊断…"
     } ]
   }, {
     "id" : "rag-023",
@@ -1167,38 +1167,38 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 227.8947,
-    "returnedSources" : [ "01-项目总览与业务目标.md", "02-架构设计与技术选型.md", "00-入库说明与事实口径.md", "04-模型调用与SSE流式对话.md", "08-测试策略与验收证据.md" ],
+    "latencyMs" : 224.1046,
+    "returnedSources" : [ "01-项目总览与业务目标.md", "08-测试策略与验收证据.md", "02-架构设计与技术选型.md", "04-模型调用与SSE流式对话.md", "10-面试讲述与追问准备.md" ],
     "hits" : [ {
       "rank" : 1,
       "fileName" : "01-项目总览与业务目标.md",
       "chunkIndex" : 1,
-      "score" : 0.43605257251900337,
+      "score" : 0.4401642419525651,
       "contentPreview" : "## 当前技术栈 - 后端：Java 21、Spring Boot 3.4.3、Maven、Spring JDBC、Flyway； - 前端：React 19、TypeScript、Vite； - 业务数据库：MySQL 8.4； - 向量数据库：PostgreSQL 17 + pgvector； - 文档解析：Apache Tika 3.1.0； - 模型接口：OpenAI Chat Completions 兼容 SSE，已用 DeepSeek 实测； - Embeddin…"
     }, {
       "rank" : 2,
-      "fileName" : "02-架构设计与技术选型.md",
+      "fileName" : "08-测试策略与验收证据.md",
       "chunkIndex" : 2,
-      "score" : 0.4257912737045867,
-      "contentPreview" : "runId 和截止时间。取消接口先把数据库状态改为 CANCEL_REQUESTED，再发送线程中断；ChatService 在检索、模型、审批、工具和持久化边界检查终止信号，最终写为 CANCELLED 或 TIMED_OUT，并增加 RUN_TERMINATION。应用启动会把上一进程遗留的非终态运行标为 INTERRUPTED、待决审批标为 EXPIRED。它解决的是状态收口，不是断点续跑；当前仍不支持登录身份，也不支持多个后端实例共享数据库。 ## 端口与部署 前端默…"
+      "score" : 0.43878339125627164,
+      "contentPreview" : "NCELLED，共 4 步；真实运行 `f72e72ab` 在默认 120 秒截止后为 TIMED_OUT，共 7 步。运行列表分别展示取消和超时原因，证明前端控制、后端中断、截止调度与持久化状态在真实链路上一致。 语义升级又验证了真实 Ollama、pgvector v2 和重建 API：数据库中向量确认为 1024 维、模型为 qwen3、版本为 qwen3-0.6b-v1；改写问题命中正确来源。知识包扩充后，LocalHash 与 Qwen 在同一语料上重新生成带语料哈…"
     }, {
       "rank" : 3,
-      "fileName" : "00-入库说明与事实口径.md",
-      "chunkIndex" : 1,
-      "score" : 0.422795406357213,
-      "contentPreview" : "骤继续；高风险审批也还没有审批人身份、通用策略引擎和远程副作用治理，不能描述成企业级平台。 项目参考过 ai-rag、WaLiSSH 和 WaLiCode 的思路，但新工程在独立 Git 仓库中从骨架开始建设，没有把来源项目整包复制过来。可强调的成果是架构取舍、版本隔离、双数据库边界、RAG 闭环、真实排障和可验证证据，不应把来源项目代码或框架能力描述为个人原创。 ## 面试使用原则 理解每个“为什么”比背诵类名更重要。推荐使用“我主导了需求收敛、架构取舍、环境配置、验收和问…"
+      "fileName" : "02-架构设计与技术选型.md",
+      "chunkIndex" : 2,
+      "score" : 0.41237301866044546,
+      "contentPreview" : "runId 和截止时间。取消接口先把数据库状态改为 CANCEL_REQUESTED，再发送线程中断；ChatService 在检索、模型、审批、工具和持久化边界检查终止信号，最终写为 CANCELLED 或 TIMED_OUT，并增加 RUN_TERMINATION。应用启动会把上一进程遗留的非终态运行标为 INTERRUPTED、待决审批标为 EXPIRED。它解决的是状态收口，不是断点续跑；当前仍不支持登录身份，也不支持多个后端实例共享数据库。 SafeExecutio…"
     }, {
       "rank" : 4,
       "fileName" : "04-模型调用与SSE流式对话.md",
       "chunkIndex" : 1,
-      "score" : 0.41604514662353514,
+      "score" : 0.41093374676677646,
       "contentPreview" : "存为一条完整 assistant 消息。SSE 超时比运行总时限多留 10 秒，用于发送终止状态和完成清理。 ## 会话上下文 收到用户消息后，后端先保存消息，再在异步任务中执行流式响应。模型消息的组装顺序是：AgentVersion 的系统提示词、可选知识库上下文、当前会话历史消息。知识库上下文要求模型优先依据片段回答，证据不足时明确说明，并标注来源文件和 chunk。 模型完整回答会在流结束后以 assistant 消息写入 MySQL。若模型中途失败，当前实现不会保存不…"
     }, {
       "rank" : 5,
-      "fileName" : "08-测试策略与验收证据.md",
-      "chunkIndex" : 2,
-      "score" : 0.4127866771502074,
-      "contentPreview" : "LocalHash 与 Qwen 在同一语料上重新生成带语料哈希的结果，Qwen 的 Recall@5、整体 MRR 和改写题 MRR均优于 LocalHash；最终数字见评测报告与 11 号文档。 ## 为什么自动化和真实验收都要有 自动化测试适合保证版本隔离、协议结构和算法不回归，但无法证明 Docker 端口、真实数据库方言、环境变量继承和外部模型兼容。真实验收能覆盖这些问题，却不适合每次提交都执行。因此项目把两类证据分开记录。 ## 后续应补的测试 当前仍缺少知识库隔…"
+      "fileName" : "10-面试讲述与追问准备.md",
+      "chunkIndex" : 3,
+      "score" : 0.40418370023944816,
+      "contentPreview" : "和外部调用去重，当前证据不足，所以称为遗留状态收口而不是断点恢复。 问：线程中断能绝对保证立即取消吗？答：不能，它是协作式机制。平台在主要边界反复检查，Java HttpClient 和当前工具会响应中断；未来接入第三方 MCP、SSH 或命令工具时，仍需它们提供自己的取消句柄和进程终止策略。 问：工具版为什么不是逐 token 流式？答：每轮必须先得到完整 tool_calls 才能安全执行，所以第一阶段使用非流式决策请求，最终文本以单个 delta 返回。普通无工具路径仍…"
     } ]
   }, {
     "id" : "rag-024",
@@ -1210,32 +1210,32 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 225.5174,
-    "returnedSources" : [ "00-入库说明与事实口径.md", "03-数据模型与不可变版本.md", "10-面试讲述与追问准备.md", "09-安全边界局限与路线图.md", "06-开发过程与提交时间线.md" ],
+    "latencyMs" : 235.1619,
+    "returnedSources" : [ "00-入库说明与事实口径.md", "09-安全边界局限与路线图.md", "10-面试讲述与追问准备.md", "03-数据模型与不可变版本.md", "06-开发过程与提交时间线.md" ],
     "hits" : [ {
       "rank" : 1,
       "fileName" : "00-入库说明与事实口径.md",
       "chunkIndex" : 1,
-      "score" : 0.5673159868081802,
-      "contentPreview" : "骤继续；高风险审批也还没有审批人身份、通用策略引擎和远程副作用治理，不能描述成企业级平台。 项目参考过 ai-rag、WaLiSSH 和 WaLiCode 的思路，但新工程在独立 Git 仓库中从骨架开始建设，没有把来源项目整包复制过来。可强调的成果是架构取舍、版本隔离、双数据库边界、RAG 闭环、真实排障和可验证证据，不应把来源项目代码或框架能力描述为个人原创。 ## 面试使用原则 理解每个“为什么”比背诵类名更重要。推荐使用“我主导了需求收敛、架构取舍、环境配置、验收和问…"
+      "score" : 0.5659176843213202,
+      "contentPreview" : "行标为 INTERRUPTED，而不是从旧步骤继续；高风险审批和 AuditEvent 也还没有审批人身份、签名防篡改、通用策略引擎和远程副作用治理，不能描述成企业级平台。 项目参考过 ai-rag、WaLiSSH 和 WaLiCode 的思路，但新工程在独立 Git 仓库中从骨架开始建设，没有把来源项目整包复制过来。可强调的成果是架构取舍、版本隔离、双数据库边界、RAG 闭环、真实排障和可验证证据，不应把来源项目代码或框架能力描述为个人原创。 ## 面试使用原则 理解每个“…"
     }, {
       "rank" : 2,
-      "fileName" : "03-数据模型与不可变版本.md",
-      "chunkIndex" : 2,
-      "score" : 0.52421225125989,
-      "contentPreview" : "向量初始化器以 `IF NOT EXISTS` 创建，不会在启动时清空数据。 ## 版本机制的面试表达 可以把草稿和版本类比为“编辑区与发布制品”。草稿允许变化，发布制品一旦生成就不可修改；新需求通过发布 v2 解决，而不是覆盖 v1。一次会话固定使用一个制品，因此不会出现聊到一半模型、提示词或知识库突然变化的问题。"
+      "fileName" : "09-安全边界局限与路线图.md",
+      "chunkIndex" : 1,
+      "score" : 0.48076515097972944,
+      "contentPreview" : "nk，不在当前阶段继续无边界调参。 第二优先级的运行控制已经完成最小闭环：AgentRun 有最大轮数、单工具超时、总运行超时、主动取消、终止步骤和历史详情；重启时能关闭遗留状态。通用 Schema 校验和结构化工具审计也已进入统一网关。下一步仍需客户端断开联动取消、真正断点续跑和更多只读工具。 第三优先级的最小安全审批已经完成：HIGH 请求生成参数绑定的 ApprovalRequest，真实拒绝和批准均已人工通过。所有工具现已统一通过 SafeExecutionGatew…"
     }, {
       "rank" : 3,
       "fileName" : "10-面试讲述与追问准备.md",
       "chunkIndex" : 3,
-      "score" : 0.5032003652419772,
-      "contentPreview" : "职责清晰，但跨存储一致性需要后续补偿机制。 问：词法哈希算 embedding 吗？答：它产生固定维度、可做向量距离的数值表示，但不是训练得到的语义 embedding。它是零依赖检索基线，不能夸大语义能力。 问：为什么换了 Qwen 还不把无答案阈值调高？答：阈值扫描显示误召回下降时 Recall 也明显下降，正负样本分数重叠。固定阈值不是充分的相关性判别，需要独立开发集、分数间隔、rerank 或回答阶段证据判断。 问：为什么 Qwen 没有默认加检索 instructi…"
+      "score" : 0.4760108758409055,
+      "contentPreview" : "和外部调用去重，当前证据不足，所以称为遗留状态收口而不是断点恢复。 问：线程中断能绝对保证立即取消吗？答：不能，它是协作式机制。平台在主要边界反复检查，Java HttpClient 和当前工具会响应中断；未来接入第三方 MCP、SSH 或命令工具时，仍需它们提供自己的取消句柄和进程终止策略。 问：工具版为什么不是逐 token 流式？答：每轮必须先得到完整 tool_calls 才能安全执行，所以第一阶段使用非流式决策请求，最终文本以单个 delta 返回。普通无工具路径仍…"
     }, {
       "rank" : 4,
-      "fileName" : "09-安全边界局限与路线图.md",
-      "chunkIndex" : 1,
-      "score" : 0.46148865561134356,
-      "contentPreview" : "有最大轮数、单工具超时、总运行超时、主动取消、终止步骤和历史详情；重启时能关闭遗留状态。下一步仍需客户端断开联动取消、真正断点续跑、通用 Schema 校验和更多只读工具。 第三优先级的最小安全审批已经完成：HIGH 请求生成参数绑定的 ApprovalRequest，真实拒绝和批准均已人工通过。下一步不是重新做审批，而是补身份、RBAC、策略规则、并发治理，并把相同执行门用于 EXECUTE、PRIVILEGED 类型工具。 SSH 是优先的垂直样例，先在 OpenSSH …"
+      "fileName" : "03-数据模型与不可变版本.md",
+      "chunkIndex" : 2,
+      "score" : 0.47161916229943285,
+      "contentPreview" : "gentDefinition、AgentVersion 上增加知识库外键。V3 增加工具绑定、版本工具快照、AgentRun 和 RunStep。V4 增加 ApprovalRequest。V5 补齐审批上下文并增加 AuditEvent。应用启动时 Flyway 只迁移 MySQL；pgvector 的 extension、chunk 表和 HNSW 索引由向量初始化器以 `IF NOT EXISTS` 创建，不会在启动时清空数据。 ## 版本机制的面试表达 可以把草稿和版…"
     }, {
       "rank" : 5,
       "fileName" : "06-开发过程与提交时间线.md",
@@ -1253,38 +1253,38 @@
     "firstRelevantRank" : 0,
     "hitAt5" : false,
     "falsePositive" : true,
-    "latencyMs" : 227.8382,
-    "returnedSources" : [ "01-项目总览与业务目标.md", "00-入库说明与事实口径.md", "10-面试讲述与追问准备.md", "06-开发过程与提交时间线.md" ],
+    "latencyMs" : 229.4856,
+    "returnedSources" : [ "01-项目总览与业务目标.md", "00-入库说明与事实口径.md", "06-开发过程与提交时间线.md", "02-架构设计与技术选型.md", "10-面试讲述与追问准备.md" ],
     "hits" : [ {
       "rank" : 1,
       "fileName" : "01-项目总览与业务目标.md",
       "chunkIndex" : 1,
-      "score" : 0.4373403982378659,
+      "score" : 0.4401739865496558,
       "contentPreview" : "## 当前技术栈 - 后端：Java 21、Spring Boot 3.4.3、Maven、Spring JDBC、Flyway； - 前端：React 19、TypeScript、Vite； - 业务数据库：MySQL 8.4； - 向量数据库：PostgreSQL 17 + pgvector； - 文档解析：Apache Tika 3.1.0； - 模型接口：OpenAI Chat Completions 兼容 SSE，已用 DeepSeek 实测； - Embeddin…"
     }, {
       "rank" : 2,
       "fileName" : "00-入库说明与事实口径.md",
       "chunkIndex" : 1,
-      "score" : 0.4127074168045196,
-      "contentPreview" : "骤继续；高风险审批也还没有审批人身份、通用策略引擎和远程副作用治理，不能描述成企业级平台。 项目参考过 ai-rag、WaLiSSH 和 WaLiCode 的思路，但新工程在独立 Git 仓库中从骨架开始建设，没有把来源项目整包复制过来。可强调的成果是架构取舍、版本隔离、双数据库边界、RAG 闭环、真实排障和可验证证据，不应把来源项目代码或框架能力描述为个人原创。 ## 面试使用原则 理解每个“为什么”比背诵类名更重要。推荐使用“我主导了需求收敛、架构取舍、环境配置、验收和问…"
+      "score" : 0.4277971135426237,
+      "contentPreview" : "行标为 INTERRUPTED，而不是从旧步骤继续；高风险审批和 AuditEvent 也还没有审批人身份、签名防篡改、通用策略引擎和远程副作用治理，不能描述成企业级平台。 项目参考过 ai-rag、WaLiSSH 和 WaLiCode 的思路，但新工程在独立 Git 仓库中从骨架开始建设，没有把来源项目整包复制过来。可强调的成果是架构取舍、版本隔离、双数据库边界、RAG 闭环、真实排障和可验证证据，不应把来源项目代码或框架能力描述为个人原创。 ## 面试使用原则 理解每个“…"
     }, {
       "rank" : 3,
-      "fileName" : "10-面试讲述与追问准备.md",
-      "chunkIndex" : 2,
-      "score" : 0.38355944417032545,
-      "contentPreview" : "重放。ApprovalRequest 保存规范化的原始参数和 SHA-256，执行前用同一哈希原子消费 APPROVED 状态；这样批准的是用户看到的这一次具体调用，而不是对工具的永久放行。 问：高风险审批已经等于安全平台了吗？答：不是。当前证明的是单机环境中的参数绑定、拒绝、过期和一次性消费；还没有登录身份、RBAC、策略引擎、跨重启等待恢复和远程执行隔离，不能夸大成企业级治理。 问：运行取消是怎样实现的？答：取消接口先把数据库状态写成 CANCEL_REQUESTED，再…"
-    }, {
-      "rank" : 4,
       "fileName" : "06-开发过程与提交时间线.md",
       "chunkIndex" : 2,
       "score" : 0.38348762555283655,
       "contentPreview" : "OOL_RESULT，再发起最终 MODEL_CALL；上海、北京和伦敦时区都得到结果，同一时区的后续问题还体现了模型按上下文判断无需重复调用。因此真实供应商的工具协议兼容性不再只依赖 mock。 ## 第七阶段：参数绑定的高风险审批 2026-09-05 在低风险链路验证后增加 Flyway V4、ApprovalRequest 和 HIGH/WRITE 的 write_workspace_note。该工具只能在 `data/tool-workspace` 下新建 `.md…"
     }, {
+      "rank" : 4,
+      "fileName" : "02-架构设计与技术选型.md",
+      "chunkIndex" : 2,
+      "score" : 0.3769152227600794,
+      "contentPreview" : "runId 和截止时间。取消接口先把数据库状态改为 CANCEL_REQUESTED，再发送线程中断；ChatService 在检索、模型、审批、工具和持久化边界检查终止信号，最终写为 CANCELLED 或 TIMED_OUT，并增加 RUN_TERMINATION。应用启动会把上一进程遗留的非终态运行标为 INTERRUPTED、待决审批标为 EXPIRED。它解决的是状态收口，不是断点续跑；当前仍不支持登录身份，也不支持多个后端实例共享数据库。 SafeExecutio…"
+    }, {
       "rank" : 5,
       "fileName" : "10-面试讲述与追问准备.md",
-      "chunkIndex" : 3,
-      "score" : 0.3740798311642785,
-      "contentPreview" : "职责清晰，但跨存储一致性需要后续补偿机制。 问：词法哈希算 embedding 吗？答：它产生固定维度、可做向量距离的数值表示，但不是训练得到的语义 embedding。它是零依赖检索基线，不能夸大语义能力。 问：为什么换了 Qwen 还不把无答案阈值调高？答：阈值扫描显示误召回下降时 Recall 也明显下降，正负样本分数重叠。固定阈值不是充分的相关性判别，需要独立开发集、分数间隔、rerank 或回答阶段证据判断。 问：为什么 Qwen 没有默认加检索 instructi…"
+      "chunkIndex" : 2,
+      "score" : 0.37429943512074837,
+      "contentPreview" : "？答：如果 BUILTIN、MCP、SSH 和 Coding 各自处理参数、风险与审批，就会出现绕过路径。统一网关固定 Schema 校验、风险判断、审批、取消、限时执行和审计顺序，适配器只实现具体能力，因此新增工具不会重新发明安全链。 问：RunStep 和 AuditEvent 有什么区别？答：RunStep 面向智能体运行语义，记录模型调用、工具请求和 Observation；AuditEvent 面向安全决策，记录请求为何被接受、等待、跳过、执行、失败或终止。审计只保…"
     } ]
   }, {
     "id" : "rag-026",
@@ -1296,38 +1296,38 @@
     "firstRelevantRank" : 0,
     "hitAt5" : false,
     "falsePositive" : true,
-    "latencyMs" : 223.4892,
-    "returnedSources" : [ "02-架构设计与技术选型.md", "09-安全边界局限与路线图.md", "03-数据模型与不可变版本.md", "07-真实故障与排查复盘.md" ],
+    "latencyMs" : 229.6519,
+    "returnedSources" : [ "09-安全边界局限与路线图.md", "02-架构设计与技术选型.md", "07-真实故障与排查复盘.md", "01-项目总览与业务目标.md" ],
     "hits" : [ {
       "rank" : 1,
-      "fileName" : "02-架构设计与技术选型.md",
-      "chunkIndex" : 2,
-      "score" : 0.3983244863128524,
-      "contentPreview" : "runId 和截止时间。取消接口先把数据库状态改为 CANCEL_REQUESTED，再发送线程中断；ChatService 在检索、模型、审批、工具和持久化边界检查终止信号，最终写为 CANCELLED 或 TIMED_OUT，并增加 RUN_TERMINATION。应用启动会把上一进程遗留的非终态运行标为 INTERRUPTED、待决审批标为 EXPIRED。它解决的是状态收口，不是断点续跑；当前仍不支持登录身份，也不支持多个后端实例共享数据库。 ## 端口与部署 前端默…"
-    }, {
-      "rank" : 2,
       "fileName" : "09-安全边界局限与路线图.md",
       "chunkIndex" : 1,
-      "score" : 0.39671848696032996,
-      "contentPreview" : "有最大轮数、单工具超时、总运行超时、主动取消、终止步骤和历史详情；重启时能关闭遗留状态。下一步仍需客户端断开联动取消、真正断点续跑、通用 Schema 校验和更多只读工具。 第三优先级的最小安全审批已经完成：HIGH 请求生成参数绑定的 ApprovalRequest，真实拒绝和批准均已人工通过。下一步不是重新做审批，而是补身份、RBAC、策略规则、并发治理，并把相同执行门用于 EXECUTE、PRIVILEGED 类型工具。 SSH 是优先的垂直样例，先在 OpenSSH …"
+      "score" : 0.37816623108952796,
+      "contentPreview" : "nk，不在当前阶段继续无边界调参。 第二优先级的运行控制已经完成最小闭环：AgentRun 有最大轮数、单工具超时、总运行超时、主动取消、终止步骤和历史详情；重启时能关闭遗留状态。通用 Schema 校验和结构化工具审计也已进入统一网关。下一步仍需客户端断开联动取消、真正断点续跑和更多只读工具。 第三优先级的最小安全审批已经完成：HIGH 请求生成参数绑定的 ApprovalRequest，真实拒绝和批准均已人工通过。所有工具现已统一通过 SafeExecutionGatew…"
+    }, {
+      "rank" : 2,
+      "fileName" : "02-架构设计与技术选型.md",
+      "chunkIndex" : 2,
+      "score" : 0.3778202407118882,
+      "contentPreview" : "runId 和截止时间。取消接口先把数据库状态改为 CANCEL_REQUESTED，再发送线程中断；ChatService 在检索、模型、审批、工具和持久化边界检查终止信号，最终写为 CANCELLED 或 TIMED_OUT，并增加 RUN_TERMINATION。应用启动会把上一进程遗留的非终态运行标为 INTERRUPTED、待决审批标为 EXPIRED。它解决的是状态收口，不是断点续跑；当前仍不支持登录身份，也不支持多个后端实例共享数据库。 SafeExecutio…"
     }, {
       "rank" : 3,
-      "fileName" : "03-数据模型与不可变版本.md",
-      "chunkIndex" : 2,
-      "score" : 0.3925308991968432,
-      "contentPreview" : "向量初始化器以 `IF NOT EXISTS` 创建，不会在启动时清空数据。 ## 版本机制的面试表达 可以把草稿和版本类比为“编辑区与发布制品”。草稿允许变化，发布制品一旦生成就不可修改；新需求通过发布 v2 解决，而不是覆盖 v1。一次会话固定使用一个制品，因此不会出现聊到一半模型、提示词或知识库突然变化的问题。"
-    }, {
-      "rank" : 4,
       "fileName" : "07-真实故障与排查复盘.md",
       "chunkIndex" : 3,
       "score" : 0.37646707436744276,
       "contentPreview" : "wledge_base_id`；MySQL 将它当成一个实际 ID，因找不到对应 knowledge_base 而触发外键约束。修复采用双重保护：前端提交前把空值转换为 null，后端再把 null、空字符串和纯空格统一归一化为 null。测试直接以空字符串创建无知识库 Agent，并断言持久化模型值为 null。 排查过程中也补齐了独立的体验缺口：Agent 卡片现在可以编辑草稿，并提供精确重名提示。但这不是“查时间”创建失败的根因。经验是通用数据库异常会掩盖具体约束，诊断…"
     }, {
-      "rank" : 5,
+      "rank" : 4,
       "fileName" : "07-真实故障与排查复盘.md",
       "chunkIndex" : 1,
       "score" : 0.3597555391353836,
       "contentPreview" : "SQL，业务 `NamedParameterJdbcTemplate` 仍可能连到 PostgreSQL。表现为向 PostgreSQL 执行 `INSERT knowledge_base` 或查询 `model_profile`，然后报 relation does not exist。 根因是 Spring 容器里同时存在多个 DataSource 和 JdbcTemplate，而业务仓储没有足够明确的限定。修复包括：创建带 `@Primary` 和 `@FlywayDat…"
+    }, {
+      "rank" : 5,
+      "fileName" : "01-项目总览与业务目标.md",
+      "chunkIndex" : 1,
+      "score" : 0.35637804716574534,
+      "contentPreview" : "## 当前技术栈 - 后端：Java 21、Spring Boot 3.4.3、Maven、Spring JDBC、Flyway； - 前端：React 19、TypeScript、Vite； - 业务数据库：MySQL 8.4； - 向量数据库：PostgreSQL 17 + pgvector； - 文档解析：Apache Tika 3.1.0； - 模型接口：OpenAI Chat Completions 兼容 SSE，已用 DeepSeek 实测； - Embeddin…"
     } ]
   }, {
     "id" : "rag-027",
@@ -1339,38 +1339,38 @@
     "firstRelevantRank" : 0,
     "hitAt5" : false,
     "falsePositive" : true,
-    "latencyMs" : 227.3585,
-    "returnedSources" : [ "02-架构设计与技术选型.md", "04-模型调用与SSE流式对话.md", "01-项目总览与业务目标.md", "10-面试讲述与追问准备.md", "06-开发过程与提交时间线.md" ],
+    "latencyMs" : 227.9747,
+    "returnedSources" : [ "03-数据模型与不可变版本.md", "04-模型调用与SSE流式对话.md", "06-开发过程与提交时间线.md", "01-项目总览与业务目标.md", "02-架构设计与技术选型.md" ],
     "hits" : [ {
       "rank" : 1,
-      "fileName" : "02-架构设计与技术选型.md",
+      "fileName" : "03-数据模型与不可变版本.md",
       "chunkIndex" : 2,
-      "score" : 0.3783051897275759,
-      "contentPreview" : "runId 和截止时间。取消接口先把数据库状态改为 CANCEL_REQUESTED，再发送线程中断；ChatService 在检索、模型、审批、工具和持久化边界检查终止信号，最终写为 CANCELLED 或 TIMED_OUT，并增加 RUN_TERMINATION。应用启动会把上一进程遗留的非终态运行标为 INTERRUPTED、待决审批标为 EXPIRED。它解决的是状态收口，不是断点续跑；当前仍不支持登录身份，也不支持多个后端实例共享数据库。 ## 端口与部署 前端默…"
+      "score" : 0.3854808886742665,
+      "contentPreview" : "gentDefinition、AgentVersion 上增加知识库外键。V3 增加工具绑定、版本工具快照、AgentRun 和 RunStep。V4 增加 ApprovalRequest。V5 补齐审批上下文并增加 AuditEvent。应用启动时 Flyway 只迁移 MySQL；pgvector 的 extension、chunk 表和 HNSW 索引由向量初始化器以 `IF NOT EXISTS` 创建，不会在启动时清空数据。 ## 版本机制的面试表达 可以把草稿和版…"
     }, {
       "rank" : 2,
       "fileName" : "04-模型调用与SSE流式对话.md",
       "chunkIndex" : 1,
-      "score" : 0.35898369567499616,
+      "score" : 0.35409534518102176,
       "contentPreview" : "存为一条完整 assistant 消息。SSE 超时比运行总时限多留 10 秒，用于发送终止状态和完成清理。 ## 会话上下文 收到用户消息后，后端先保存消息，再在异步任务中执行流式响应。模型消息的组装顺序是：AgentVersion 的系统提示词、可选知识库上下文、当前会话历史消息。知识库上下文要求模型优先依据片段回答，证据不足时明确说明，并标注来源文件和 chunk。 模型完整回答会在流结束后以 assistant 消息写入 MySQL。若模型中途失败，当前实现不会保存不…"
     }, {
       "rank" : 3,
-      "fileName" : "01-项目总览与业务目标.md",
-      "chunkIndex" : 1,
-      "score" : 0.35620368793563656,
-      "contentPreview" : "## 当前技术栈 - 后端：Java 21、Spring Boot 3.4.3、Maven、Spring JDBC、Flyway； - 前端：React 19、TypeScript、Vite； - 业务数据库：MySQL 8.4； - 向量数据库：PostgreSQL 17 + pgvector； - 文档解析：Apache Tika 3.1.0； - 模型接口：OpenAI Chat Completions 兼容 SSE，已用 DeepSeek 实测； - Embeddin…"
-    }, {
-      "rank" : 4,
-      "fileName" : "10-面试讲述与追问准备.md",
-      "chunkIndex" : 0,
-      "score" : 0.35388061006036675,
-      "contentPreview" : "# Agent Studio Desktop：面试讲述与追问准备 ## 90 秒项目介绍 我主导做了一个单机优先的智能体搭建工具 Agent Studio Desktop，目标是让用户不改 Java 代码，就能配置 OpenAI 兼容模型、提示词和知识库，发布固定版本的 Agent，并在网页上做流式问答和查看引用来源。后端采用 Java 21 和 Spring Boot 模块化单体，前端是 React + TypeScript，MySQL 保存业务配置，PostgreSQL …"
-    }, {
-      "rank" : 5,
       "fileName" : "06-开发过程与提交时间线.md",
       "chunkIndex" : 0,
       "score" : 0.3538259007730487,
       "contentPreview" : "# Agent Studio Desktop：开发过程与提交时间线 ## 阶段 0：独立工程基线 第一个提交是 `de8dd90 chore: establish agent studio desktop baseline`。这一阶段建立独立 Git 仓库、Spring Boot 单体、React + TypeScript + Vite 前端、Docker Compose、健康检查、README、架构决策和来源边界记录。 实际环境确认 Maven 使用 Java 21.0.4…"
+    }, {
+      "rank" : 4,
+      "fileName" : "01-项目总览与业务目标.md",
+      "chunkIndex" : 1,
+      "score" : 0.35256417817526287,
+      "contentPreview" : "## 当前技术栈 - 后端：Java 21、Spring Boot 3.4.3、Maven、Spring JDBC、Flyway； - 前端：React 19、TypeScript、Vite； - 业务数据库：MySQL 8.4； - 向量数据库：PostgreSQL 17 + pgvector； - 文档解析：Apache Tika 3.1.0； - 模型接口：OpenAI Chat Completions 兼容 SSE，已用 DeepSeek 实测； - Embeddin…"
+    }, {
+      "rank" : 5,
+      "fileName" : "02-架构设计与技术选型.md",
+      "chunkIndex" : 1,
+      "score" : 0.35092182406162764,
+      "contentPreview" : "024 维向量并写入 `knowledge_chunk_v2`，记录模型和索引版本；旧 384 维表继续保留。知识库升级必须由用户显式触发重建，启动应用不会自动改写索引。 当前 Qwen 表采用精确 cosine 排序，不建立 HNSW 向量索引。原因是当前语料规模很小，近似索引没有性能必要，反而可能牺牲召回。表上只对 knowledgeBaseId 和 embeddingVersion 建范围索引。 ## 为什么不引入 Redis、MQ 和 MinIO 第一版没有缓存规模、…"
     } ]
   }, {
     "id" : "rag-028",
@@ -1382,38 +1382,38 @@
     "firstRelevantRank" : 0,
     "hitAt5" : false,
     "falsePositive" : true,
-    "latencyMs" : 233.2184,
-    "returnedSources" : [ "02-架构设计与技术选型.md", "04-模型调用与SSE流式对话.md", "08-测试策略与验收证据.md", "09-安全边界局限与路线图.md", "06-开发过程与提交时间线.md" ],
+    "latencyMs" : 234.349,
+    "returnedSources" : [ "08-测试策略与验收证据.md", "06-开发过程与提交时间线.md", "04-模型调用与SSE流式对话.md", "02-架构设计与技术选型.md", "01-项目总览与业务目标.md" ],
     "hits" : [ {
       "rank" : 1,
-      "fileName" : "02-架构设计与技术选型.md",
+      "fileName" : "08-测试策略与验收证据.md",
       "chunkIndex" : 2,
-      "score" : 0.4714246154575268,
-      "contentPreview" : "runId 和截止时间。取消接口先把数据库状态改为 CANCEL_REQUESTED，再发送线程中断；ChatService 在检索、模型、审批、工具和持久化边界检查终止信号，最终写为 CANCELLED 或 TIMED_OUT，并增加 RUN_TERMINATION。应用启动会把上一进程遗留的非终态运行标为 INTERRUPTED、待决审批标为 EXPIRED。它解决的是状态收口，不是断点续跑；当前仍不支持登录身份，也不支持多个后端实例共享数据库。 ## 端口与部署 前端默…"
+      "score" : 0.42902107669939127,
+      "contentPreview" : "NCELLED，共 4 步；真实运行 `f72e72ab` 在默认 120 秒截止后为 TIMED_OUT，共 7 步。运行列表分别展示取消和超时原因，证明前端控制、后端中断、截止调度与持久化状态在真实链路上一致。 语义升级又验证了真实 Ollama、pgvector v2 和重建 API：数据库中向量确认为 1024 维、模型为 qwen3、版本为 qwen3-0.6b-v1；改写问题命中正确来源。知识包扩充后，LocalHash 与 Qwen 在同一语料上重新生成带语料哈…"
     }, {
       "rank" : 2,
-      "fileName" : "04-模型调用与SSE流式对话.md",
-      "chunkIndex" : 1,
-      "score" : 0.4222175764501499,
-      "contentPreview" : "存为一条完整 assistant 消息。SSE 超时比运行总时限多留 10 秒，用于发送终止状态和完成清理。 ## 会话上下文 收到用户消息后，后端先保存消息，再在异步任务中执行流式响应。模型消息的组装顺序是：AgentVersion 的系统提示词、可选知识库上下文、当前会话历史消息。知识库上下文要求模型优先依据片段回答，证据不足时明确说明，并标注来源文件和 chunk。 模型完整回答会在流结束后以 assistant 消息写入 MySQL。若模型中途失败，当前实现不会保存不…"
-    }, {
-      "rank" : 3,
-      "fileName" : "08-测试策略与验收证据.md",
-      "chunkIndex" : 1,
-      "score" : 0.42058921671813077,
-      "contentPreview" : "SQL 和 pgvector 行为通过独立验收补足，不能只依赖 H2。 ## 前端验证 前端运行 `npm run build`，该命令先执行 TypeScript project build，再执行 Vite 生产构建。最终构建成功。浏览器冒烟检查确认五个导航入口、知识库创建表单、上传控件、Agent Builder、对话测试台和运行记录正常渲染。 ## 真实环境验证 Docker Desktop 中 MySQL 为 23306，pgvector 为 15432，二者均 h…"
-    }, {
-      "rank" : 4,
-      "fileName" : "09-安全边界局限与路线图.md",
-      "chunkIndex" : 1,
-      "score" : 0.4198041733314706,
-      "contentPreview" : "有最大轮数、单工具超时、总运行超时、主动取消、终止步骤和历史详情；重启时能关闭遗留状态。下一步仍需客户端断开联动取消、真正断点续跑、通用 Schema 校验和更多只读工具。 第三优先级的最小安全审批已经完成：HIGH 请求生成参数绑定的 ApprovalRequest，真实拒绝和批准均已人工通过。下一步不是重新做审批，而是补身份、RBAC、策略规则、并发治理，并把相同执行门用于 EXECUTE、PRIVILEGED 类型工具。 SSH 是优先的垂直样例，先在 OpenSSH …"
-    }, {
-      "rank" : 5,
       "fileName" : "06-开发过程与提交时间线.md",
       "chunkIndex" : 2,
       "score" : 0.4189920177395904,
       "contentPreview" : "OOL_RESULT，再发起最终 MODEL_CALL；上海、北京和伦敦时区都得到结果，同一时区的后续问题还体现了模型按上下文判断无需重复调用。因此真实供应商的工具协议兼容性不再只依赖 mock。 ## 第七阶段：参数绑定的高风险审批 2026-09-05 在低风险链路验证后增加 Flyway V4、ApprovalRequest 和 HIGH/WRITE 的 write_workspace_note。该工具只能在 `data/tool-workspace` 下新建 `.md…"
+    }, {
+      "rank" : 3,
+      "fileName" : "04-模型调用与SSE流式对话.md",
+      "chunkIndex" : 1,
+      "score" : 0.41893164113825854,
+      "contentPreview" : "存为一条完整 assistant 消息。SSE 超时比运行总时限多留 10 秒，用于发送终止状态和完成清理。 ## 会话上下文 收到用户消息后，后端先保存消息，再在异步任务中执行流式响应。模型消息的组装顺序是：AgentVersion 的系统提示词、可选知识库上下文、当前会话历史消息。知识库上下文要求模型优先依据片段回答，证据不足时明确说明，并标注来源文件和 chunk。 模型完整回答会在流结束后以 assistant 消息写入 MySQL。若模型中途失败，当前实现不会保存不…"
+    }, {
+      "rank" : 4,
+      "fileName" : "02-架构设计与技术选型.md",
+      "chunkIndex" : 2,
+      "score" : 0.4174901700888023,
+      "contentPreview" : "runId 和截止时间。取消接口先把数据库状态改为 CANCEL_REQUESTED，再发送线程中断；ChatService 在检索、模型、审批、工具和持久化边界检查终止信号，最终写为 CANCELLED 或 TIMED_OUT，并增加 RUN_TERMINATION。应用启动会把上一进程遗留的非终态运行标为 INTERRUPTED、待决审批标为 EXPIRED。它解决的是状态收口，不是断点续跑；当前仍不支持登录身份，也不支持多个后端实例共享数据库。 SafeExecutio…"
+    }, {
+      "rank" : 5,
+      "fileName" : "01-项目总览与业务目标.md",
+      "chunkIndex" : 1,
+      "score" : 0.40773356868350263,
+      "contentPreview" : "## 当前技术栈 - 后端：Java 21、Spring Boot 3.4.3、Maven、Spring JDBC、Flyway； - 前端：React 19、TypeScript、Vite； - 业务数据库：MySQL 8.4； - 向量数据库：PostgreSQL 17 + pgvector； - 文档解析：Apache Tika 3.1.0； - 模型接口：OpenAI Chat Completions 兼容 SSE，已用 DeepSeek 实测； - Embeddin…"
     } ]
   }, {
     "id" : "rag-029",
@@ -1425,38 +1425,38 @@
     "firstRelevantRank" : 0,
     "hitAt5" : false,
     "falsePositive" : true,
-    "latencyMs" : 228.0635,
-    "returnedSources" : [ "01-项目总览与业务目标.md", "10-面试讲述与追问准备.md", "07-真实故障与排查复盘.md", "05-RAG全链路与检索算法.md", "09-安全边界局限与路线图.md" ],
+    "latencyMs" : 235.3144,
+    "returnedSources" : [ "01-项目总览与业务目标.md", "06-开发过程与提交时间线.md", "08-测试策略与验收证据.md", "07-真实故障与排查复盘.md", "05-RAG全链路与检索算法.md" ],
     "hits" : [ {
       "rank" : 1,
       "fileName" : "01-项目总览与业务目标.md",
       "chunkIndex" : 1,
-      "score" : 0.5849197912084803,
+      "score" : 0.5803666259970427,
       "contentPreview" : "## 当前技术栈 - 后端：Java 21、Spring Boot 3.4.3、Maven、Spring JDBC、Flyway； - 前端：React 19、TypeScript、Vite； - 业务数据库：MySQL 8.4； - 向量数据库：PostgreSQL 17 + pgvector； - 文档解析：Apache Tika 3.1.0； - 模型接口：OpenAI Chat Completions 兼容 SSE，已用 DeepSeek 实测； - Embeddin…"
     }, {
       "rank" : 2,
-      "fileName" : "10-面试讲述与追问准备.md",
-      "chunkIndex" : 3,
-      "score" : 0.5274575193841708,
-      "contentPreview" : "职责清晰，但跨存储一致性需要后续补偿机制。 问：词法哈希算 embedding 吗？答：它产生固定维度、可做向量距离的数值表示，但不是训练得到的语义 embedding。它是零依赖检索基线，不能夸大语义能力。 问：为什么换了 Qwen 还不把无答案阈值调高？答：阈值扫描显示误召回下降时 Recall 也明显下降，正负样本分数重叠。固定阈值不是充分的相关性判别，需要独立开发集、分数间隔、rerank 或回答阶段证据判断。 问：为什么 Qwen 没有默认加检索 instructi…"
+      "fileName" : "06-开发过程与提交时间线.md",
+      "chunkIndex" : 4,
+      "score" : 0.5368298002021382,
+      "contentPreview" : "15ec1cd` 完成 Qwen embedding-only 候选对照。数据证明 Qwen 对低词面重合改写有明显收益，因此生产增加 EmbeddingGateway、1024 维版本化索引和显式重建入口。 实现期间又做了 query instruction 消融：在知识包扩充前的同一语料上，统一中文前缀令 MRR 从 0.8160 降到 0.6917，最终默认关闭。知识包随后补入升级过程与故障复盘，LocalHash 与 Qwen 又在新语料上同时重跑。这个过程体现了项目…"
     }, {
       "rank" : 3,
+      "fileName" : "08-测试策略与验收证据.md",
+      "chunkIndex" : 2,
+      "score" : 0.4929778680329335,
+      "contentPreview" : "NCELLED，共 4 步；真实运行 `f72e72ab` 在默认 120 秒截止后为 TIMED_OUT，共 7 步。运行列表分别展示取消和超时原因，证明前端控制、后端中断、截止调度与持久化状态在真实链路上一致。 语义升级又验证了真实 Ollama、pgvector v2 和重建 API：数据库中向量确认为 1024 维、模型为 qwen3、版本为 qwen3-0.6b-v1；改写问题命中正确来源。知识包扩充后，LocalHash 与 Qwen 在同一语料上重新生成带语料哈…"
+    }, {
+      "rank" : 4,
       "fileName" : "07-真实故障与排查复盘.md",
       "chunkIndex" : 2,
       "score" : 0.490787592464417,
       "contentPreview" : "struction-aware 模型的常见建议，为每个问题添加统一中文任务说明。复测后 Recall 没变，但 MRR 降到 0.6917，相关文档更常排在后面。 这不是接口或维度错误，而是提示前缀改变了向量空间中的查询表达。修复是保留 queryInstruction 配置能力但默认置空，并重新运行同一冻结题集，MRR 恢复到 0.8160。知识包扩充后又在新语料上复测，仍采用无前缀方案。经验是 embedding 的 prompt 必须在本领域语料上做消融，而且语料变更后…"
     }, {
-      "rank" : 4,
+      "rank" : 5,
       "fileName" : "05-RAG全链路与检索算法.md",
       "chunkIndex" : 0,
       "score" : 0.4819038449624313,
       "contentPreview" : "# Agent Studio Desktop：RAG 全链路与检索算法 ## 上传和元数据 用户在前端选择知识库并上传文档，单文件上限 20 MB。后端先校验知识库和非空文件，清理文件名，读取字节，计算 SHA-256，然后把文件写入 `data/knowledge/{knowledgeBaseId}/{documentId}.{extension}`。所有路径都会归一化并检查必须位于 dataRoot 下，防止路径越界。 MySQL 文档记录最初是 PROCESSING。解…"
-    }, {
-      "rank" : 5,
-      "fileName" : "09-安全边界局限与路线图.md",
-      "chunkIndex" : 0,
-      "score" : 0.4770314699072433,
-      "contentPreview" : "# Agent Studio Desktop：安全边界、当前局限与路线图 ## 已有安全边界 模型密钥不进入数据库和 Git，ModelProfile 只保存环境变量名称。后端在模型调用时读取启动进程环境。文件保存路径经过绝对化、规范化和 dataRoot 前缀检查，避免通过文件名写出授权目录。上传大小限制为 20 MB，API 请求使用校验注解，外部模型错误文本会截断。 AgentVersion 不可变，会话固定绑定版本，减少运行中配置漂移。知识库检索按 knowledge…"
     } ]
   }, {
     "id" : "rag-030",
@@ -1468,25 +1468,25 @@
     "firstRelevantRank" : 0,
     "hitAt5" : false,
     "falsePositive" : true,
-    "latencyMs" : 225.5654,
-    "returnedSources" : [ "10-面试讲述与追问准备.md", "00-入库说明与事实口径.md", "01-项目总览与业务目标.md", "06-开发过程与提交时间线.md" ],
+    "latencyMs" : 223.1014,
+    "returnedSources" : [ "00-入库说明与事实口径.md", "10-面试讲述与追问准备.md", "01-项目总览与业务目标.md", "06-开发过程与提交时间线.md" ],
     "hits" : [ {
       "rank" : 1,
-      "fileName" : "10-面试讲述与追问准备.md",
-      "chunkIndex" : 3,
-      "score" : 0.3907008345828899,
-      "contentPreview" : "职责清晰，但跨存储一致性需要后续补偿机制。 问：词法哈希算 embedding 吗？答：它产生固定维度、可做向量距离的数值表示，但不是训练得到的语义 embedding。它是零依赖检索基线，不能夸大语义能力。 问：为什么换了 Qwen 还不把无答案阈值调高？答：阈值扫描显示误召回下降时 Recall 也明显下降，正负样本分数重叠。固定阈值不是充分的相关性判别，需要独立开发集、分数间隔、rerank 或回答阶段证据判断。 问：为什么 Qwen 没有默认加检索 instructi…"
-    }, {
-      "rank" : 2,
       "fileName" : "00-入库说明与事实口径.md",
       "chunkIndex" : 1,
-      "score" : 0.37951374726906834,
-      "contentPreview" : "骤继续；高风险审批也还没有审批人身份、通用策略引擎和远程副作用治理，不能描述成企业级平台。 项目参考过 ai-rag、WaLiSSH 和 WaLiCode 的思路，但新工程在独立 Git 仓库中从骨架开始建设，没有把来源项目整包复制过来。可强调的成果是架构取舍、版本隔离、双数据库边界、RAG 闭环、真实排障和可验证证据，不应把来源项目代码或框架能力描述为个人原创。 ## 面试使用原则 理解每个“为什么”比背诵类名更重要。推荐使用“我主导了需求收敛、架构取舍、环境配置、验收和问…"
+      "score" : 0.3864361530635012,
+      "contentPreview" : "行标为 INTERRUPTED，而不是从旧步骤继续；高风险审批和 AuditEvent 也还没有审批人身份、签名防篡改、通用策略引擎和远程副作用治理，不能描述成企业级平台。 项目参考过 ai-rag、WaLiSSH 和 WaLiCode 的思路，但新工程在独立 Git 仓库中从骨架开始建设，没有把来源项目整包复制过来。可强调的成果是架构取舍、版本隔离、双数据库边界、RAG 闭环、真实排障和可验证证据，不应把来源项目代码或框架能力描述为个人原创。 ## 面试使用原则 理解每个“…"
+    }, {
+      "rank" : 2,
+      "fileName" : "10-面试讲述与追问准备.md",
+      "chunkIndex" : 3,
+      "score" : 0.36054309625808745,
+      "contentPreview" : "和外部调用去重，当前证据不足，所以称为遗留状态收口而不是断点恢复。 问：线程中断能绝对保证立即取消吗？答：不能，它是协作式机制。平台在主要边界反复检查，Java HttpClient 和当前工具会响应中断；未来接入第三方 MCP、SSH 或命令工具时，仍需它们提供自己的取消句柄和进程终止策略。 问：工具版为什么不是逐 token 流式？答：每轮必须先得到完整 tool_calls 才能安全执行，所以第一阶段使用非流式决策请求，最终文本以单个 delta 返回。普通无工具路径仍…"
     }, {
       "rank" : 3,
       "fileName" : "01-项目总览与业务目标.md",
       "chunkIndex" : 1,
-      "score" : 0.35560792582737905,
+      "score" : 0.35691629949607706,
       "contentPreview" : "## 当前技术栈 - 后端：Java 21、Spring Boot 3.4.3、Maven、Spring JDBC、Flyway； - 前端：React 19、TypeScript、Vite； - 业务数据库：MySQL 8.4； - 向量数据库：PostgreSQL 17 + pgvector； - 文档解析：Apache Tika 3.1.0； - 模型接口：OpenAI Chat Completions 兼容 SSE，已用 DeepSeek 实测； - Embeddin…"
     }, {
       "rank" : 4,

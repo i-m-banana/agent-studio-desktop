@@ -7,6 +7,7 @@ import java.util.Map;
 
 import com.agentstudio.agent.AgentService;
 import com.agentstudio.approval.ApprovalService;
+import com.agentstudio.execution.SafeExecutionGateway;
 import com.agentstudio.model.ModelMessage;
 import com.agentstudio.model.ReActMessage;
 import com.agentstudio.model.StreamingModelGateway;
@@ -36,6 +37,7 @@ public class ChatService {
     private final RunRepository runs;
     private final ToolRegistry tools;
     private final ApprovalService approvals;
+    private final SafeExecutionGateway executionGateway;
     private final RunControlService controls;
     private final Duration totalTimeout;
     private final int maxRounds;
@@ -44,7 +46,8 @@ public class ChatService {
     public ChatService(AgentService agents, ConversationRepository conversations,
                        StreamingModelGateway modelGateway, KnowledgeRetriever knowledgeRetriever,
                        @Qualifier("chatTaskExecutor") TaskExecutor taskExecutor,
-                       RunRepository runs, ToolRegistry tools, ApprovalService approvals, RunControlService controls,
+                       RunRepository runs, ToolRegistry tools, ApprovalService approvals,
+                       SafeExecutionGateway executionGateway, RunControlService controls,
                        @Value("${agent-studio.runtime.max-tool-rounds:4}") int maxRounds,
                        @Value("${agent-studio.runtime.max-tool-calls-per-round:4}") int maxCallsPerRound,
                        @Value("${agent-studio.runtime.total-timeout:120s}") Duration totalTimeout) {
@@ -56,6 +59,7 @@ public class ChatService {
         this.runs = runs;
         this.tools = tools;
         this.approvals = approvals;
+        this.executionGateway = executionGateway;
         this.controls = controls;
         this.maxRounds = maxRounds;
         this.maxCallsPerRound = maxCallsPerRound;
@@ -119,7 +123,7 @@ public class ChatService {
                 emitStep(emitter, runs.addStep(run.id(), "MODEL_CALL", "COMPLETED",
                         null, null, null, truncate(answer.toString()), null));
             } else {
-                executeReAct(emitter, run.id(), version, modelMessages, answer);
+                executeReAct(emitter, run.id(), conversationId, version, modelMessages, answer);
             }
             controls.check(run.id());
             if (!runs.finish(run.id(), "COMPLETED", null)) {
@@ -156,7 +160,7 @@ public class ChatService {
         }
     }
 
-    private void executeReAct(SseEmitter emitter, String runId,
+    private void executeReAct(SseEmitter emitter, String runId, String conversationId,
                               com.agentstudio.agent.AgentVersion version,
                               java.util.List<ModelMessage> sourceMessages,
                               StringBuilder answer) throws Exception {
@@ -191,27 +195,22 @@ public class ChatService {
                 emitStep(emitter, runs.addStep(runId, "TOOL_CALL", "RUNNING", call.id(),
                         call.name(), truncate(call.argumentsJson()), null, null));
                 runs.updateStatus(runId, "TOOL_RUNNING");
-                if ("HIGH".equals(tools.descriptor(call.name()).riskLevel())) {
-                    var approval = approvals.request(runId, call);
-                    emitStep(emitter, runs.addStep(runId, "APPROVAL_REQUEST", "WAITING", call.id(),
-                            call.name(), truncate(call.argumentsJson()), null, null));
-                    runs.updateStatus(runId, "WAITING_APPROVAL");
-                    send(emitter, "approval_required", approval);
-                    var outcome = approvals.await(approval);
-                    controls.check(runId);
-                    emitStep(emitter, runs.addStep(runId, "APPROVAL_RESULT", outcome.status(), call.id(),
-                            call.name(), null, truncate(outcome.reason()), null));
-                    if (!outcome.approved()) {
-                        var denied = "工具未执行：审批" + ("EXPIRED".equals(outcome.status()) ? "已过期" : "被拒绝")
-                                + (outcome.reason() == null ? "" : "（" + outcome.reason() + "）");
-                        messages.add(ReActMessage.observation(call.id(), denied));
+                try {
+                    var result = executionGateway.execute(runId, conversationId, version.id(), call, approval -> {
+                        emitStep(emitter, runs.addStep(runId, "APPROVAL_REQUEST", "WAITING", call.id(),
+                                call.name(), truncate(call.argumentsJson()), null, null));
+                        runs.updateStatus(runId, "WAITING_APPROVAL");
+                        send(emitter, "approval_required", approval);
+                    }, () -> runs.updateStatus(runId, "TOOL_RUNNING"), () -> controls.check(runId));
+                    if (result.approvalOutcome() != null) {
+                        emitStep(emitter, runs.addStep(runId, "APPROVAL_RESULT", result.approvalOutcome().status(),
+                                call.id(), call.name(), null, truncate(result.approvalOutcome().reason()), null));
+                    }
+                    if (!result.executed()) {
+                        messages.add(ReActMessage.observation(call.id(), result.output()));
                         runs.updateStatus(runId, "OBSERVING");
                         continue;
                     }
-                    runs.updateStatus(runId, "TOOL_RUNNING");
-                }
-                try {
-                    var result = tools.execute(call.name(), call.argumentsJson());
                     var output = truncate(result.output());
                     emitStep(emitter, runs.addStep(runId, "TOOL_RESULT", "COMPLETED", call.id(),
                             call.name(), null, output, result.durationMs()));

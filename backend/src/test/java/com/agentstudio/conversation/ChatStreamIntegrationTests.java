@@ -144,6 +144,12 @@ class ChatStreamIntegrationTests {
                 .andExpect(status().isOk())
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("COMPLETED")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("current_time")));
+        mockMvc.perform(get("/api/audit-events").param("runId", matcher.group(1)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("TOOL_REQUEST_VALIDATED")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("TOOL_EXECUTION_COMPLETED")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(
+                        org.hamcrest.Matchers.containsString("Asia/Shanghai"))));
     }
 
     @Test
@@ -214,12 +220,20 @@ class ChatStreamIntegrationTests {
                         .contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"test rejection\"}"))
                 .andExpect(status().isOk());
 
-        mockMvc.perform(asyncDispatch(result))
+        var response = mockMvc.perform(asyncDispatch(result))
                 .andExpect(status().isOk())
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("event:approval_required")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("APPROVAL_RESULT")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("REJECTED")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("write was rejected")))
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("event:done")));
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("event:done")))
+                .andReturn().getResponse().getContentAsString();
+        var runMatcher = java.util.regex.Pattern.compile("\\\"runId\\\":\\\"([^\\\"]+)\\\"").matcher(response);
+        assertThat(runMatcher.find()).isTrue();
+        mockMvc.perform(get("/api/audit-events").param("runId", runMatcher.group(1)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("APPROVAL_REQUIRED")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("APPROVAL_DECIDED")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("TOOL_EXECUTION_SKIPPED")));
     }
 }

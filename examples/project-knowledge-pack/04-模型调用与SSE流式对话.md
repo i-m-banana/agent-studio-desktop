@@ -22,7 +22,7 @@
 
 模型完整回答会在流结束后以 assistant 消息写入 MySQL。若模型中途失败，当前实现不会保存不完整 assistant 文本。SSE emitter 超时为 120 秒，HTTP 模型请求也设置 120 秒超时。
 
-绑定工具时使用非流式 Chat Completions 获取一轮完整的 assistant 消息和 tool_calls。平台执行已绑定工具，把 Observation 加入消息后再次调用模型，直到得到最终文本或达到最大轮数。每一轮产生 step 事件。遇到 HIGH 工具时，服务发送 `approval_required` 并把运行标为 WAITING_APPROVAL；前端调用独立的 approve 或 reject 接口，服务再发送 APPROVAL_RESULT。批准只对界面展示的原始参数有效，拒绝和超时作为 Observation 返回模型。工具版最终文本当前以一个 delta 事件返回；未绑定工具的路径仍然逐 token 转发多个 delta。
+绑定工具时使用非流式 Chat Completions 获取一轮完整的 assistant 消息和 tool_calls。平台把已绑定工具请求交给 SafeExecutionGateway，完成 Schema 校验、风险审批、取消检查、限时执行和审计，再把 Observation 加入消息后调用模型，直到得到最终文本或达到最大轮数。每一轮产生 step 事件。遇到 HIGH 工具时，服务发送 `approval_required` 并把运行标为 WAITING_APPROVAL；事件除原始参数与 SHA-256 外，还展示能力、风险和目标环境。前端调用独立的 approve 或 reject 接口，服务再发送 APPROVAL_RESULT。批准只对界面展示的原始参数有效，拒绝和超时作为 Observation 返回模型。工具版最终文本当前以一个 delta 事件返回；未绑定工具的路径仍然逐 token 转发多个 delta。
 
 ## 为什么选 SSE
 

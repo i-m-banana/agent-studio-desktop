@@ -141,5 +141,11 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .run-detail dd { margin: 0; color: #aab8b0; overflow-wrap: anywhere; }
 .run-detail .run-steps { margin: 0; }
 .run-error { padding: 12px; color: #e08a84; border-left: 2px solid #b9605a; background: rgba(185, 96, 90, .08); }
+.audit-events { display: grid; gap: 10px; margin-top: 22px; padding: 18px; border: 1px solid #294136; border-radius: 12px; background: #0d1a15; }
+.audit-events > p { margin: 0; color: #71847a; font-size: 12px; }
+.audit-events article { display: grid; gap: 6px; padding: 12px; border-left: 2px solid #4d8067; background: rgba(104, 214, 164, .035); }
+.audit-events article > div { display: flex; justify-content: space-between; gap: 12px; }
+.audit-events article small, .audit-events article code, .audit-events article p { margin: 0; color: #83968c; font-size: 10px; overflow-wrap: anywhere; }
+.audit-events article code { color: #72b795; }
 @media (max-width: 900px) { .app-shell { grid-template-columns: 1fr; } .sidebar { position: static; height: auto; display: grid; grid-template-columns: 1fr auto; gap: 26px; } .sidebar h1 { font-size: 34px; } .sidebar nav { grid-column: 1 / -1; grid-template-columns: repeat(5, 1fr); } .connection { grid-column: 2; grid-row: 1; } .two-column { grid-template-columns: 1fr; } }
 @media (max-width: 620px) { .sidebar { padding: 24px 18px; } .sidebar nav { grid-template-columns: 1fr; } .workspace { padding: 36px 16px; } .chat-toolbar { align-items: stretch; flex-direction: column; } .composer { grid-template-columns: 1fr; } .message { grid-template-columns: 1fr; gap: 5px; } }

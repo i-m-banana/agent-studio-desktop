@@ -12,6 +12,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import com.agentstudio.model.ModelToolCall;
+import com.agentstudio.tool.WriteWorkspaceNoteTool;
 import org.junit.jupiter.api.Test;
 
 class ApprovalServiceTests {
@@ -19,8 +20,9 @@ class ApprovalServiceTests {
     void approvedArgumentsAreConsumedExactlyAgainstTheirHash() throws Exception {
         var repository = mock(ApprovalRepository.class);
         var service = new ApprovalService(repository, Duration.ofSeconds(2));
-        var request = service.request("run-1",
-                new ModelToolCall("call-1", "write_workspace_note", "{\"fileName\":\"a.md\",\"content\":\"ok\"}"));
+        var request = service.request("run-1", "conversation-1", "version-1",
+                new ModelToolCall("call-1", "write_workspace_note", "{\"fileName\":\"a.md\",\"content\":\"ok\"}"),
+                new WriteWorkspaceNoteTool("../data").descriptor(), "LOCAL");
         when(repository.find(request.id())).thenReturn(Optional.of(request));
         when(repository.decide(eq(request.id()), eq("APPROVED"), any(), any())).thenReturn(true);
         when(repository.consume(request.id(), request.argumentsSha256())).thenReturn(true);
