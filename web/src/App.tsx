@@ -16,12 +16,12 @@ type ApprovalRequest = { id: string; toolName: string; capability: string; riskL
 type RunSummary = { id: string; conversationId: string; agentVersionId: string; status: string; startedAt: string; completedAt?: string; errorMessage?: string; stepCount: number }
 type AgentRun = Omit<RunSummary, 'stepCount'> & { steps: RunStep[] }
 type AuditEvent = { id: string; eventType: string; toolName?: string; capability?: string; riskLevel?: string; status: string; argumentsSha256?: string; details?: string; createdAt: string }
-type McpTool = { publicName: string; remoteName: string; displayName: string; description: string; capability: string; riskLevel: string; timeoutSeconds: number; active: boolean; schemaSha256: string }
-type McpServer = { id: string; name: string; endpointUrl: string; apiKeyEnv?: string; status: string; protocolVersion?: string; remoteServerName?: string; remoteServerVersion?: string; lastError?: string; lastSyncedAt?: string; tools: McpTool[] }
+type McpTool = { publicName: string; remoteName: string; displayName: string; description: string; capability: string; riskLevel: string; timeoutSeconds: number; active: boolean; enabled: boolean; schemaSha256: string }
+type McpServer = { id: string; name: string; transport: 'STREAMABLE_HTTP' | 'STDIO'; endpointUrl?: string; apiKeyEnv?: string; command?: string; arguments: string[]; workingDirectory?: string; environment: Record<string, string>; enabled: boolean; status: string; protocolVersion?: string; remoteServerName?: string; remoteServerVersion?: string; lastError?: string; lastSyncedAt?: string; tools: McpTool[] }
 
 const emptyModel = { name: '', provider: 'OPENAI_COMPATIBLE', baseUrl: 'https://api.openai.com/v1', modelName: '', apiKeyEnv: 'OPENAI_API_KEY', temperature: 0.7 }
 const emptyAgent = { name: '', description: '', modelProfileId: '', knowledgeBaseId: '', systemPrompt: '', toolNames: [] as string[] }
-const emptyMcp = { name: '', endpointUrl: 'http://127.0.0.1:3001/mcp', apiKeyEnv: '' }
+const emptyMcp = { name: '', transport: 'STREAMABLE_HTTP' as 'STREAMABLE_HTTP' | 'STDIO', endpointUrl: 'http://127.0.0.1:3001/mcp', apiKeyEnv: '', command: 'node', argumentsText: '', workingDirectory: '', environmentText: '' }
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, { ...init, headers: { 'Content-Type': 'application/json', ...init?.headers } })
@@ -40,6 +40,7 @@ function App() {
   const [tools, setTools] = useState<ToolDefinition[]>([])
   const [mcpServers, setMcpServers] = useState<McpServer[]>([])
   const [mcpForm, setMcpForm] = useState(emptyMcp)
+  const [editingMcpId, setEditingMcpId] = useState<string>()
   const [knowledgeBases, setKnowledgeBases] = useState<KnowledgeBase[]>([])
   const [documents, setDocuments] = useState<KnowledgeDocument[]>([])
   const [selectedKnowledgeBase, setSelectedKnowledgeBase] = useState('')
@@ -109,20 +110,53 @@ function App() {
   async function submitMcpServer(event: FormEvent) {
     event.preventDefault()
     await perform(async () => {
-      const created = await api<McpServer>('/api/mcp/servers', { method: 'POST', body: JSON.stringify({ ...mcpForm, apiKeyEnv: mcpForm.apiKeyEnv || null }) })
+      const environment = Object.fromEntries(mcpForm.environmentText.split('\n').map((line) => line.trim()).filter(Boolean).map((line) => {
+        const index = line.indexOf('='); if (index < 1) throw new Error(`环境变量映射格式无效：${line}`)
+        return [line.slice(0, index).trim(), line.slice(index + 1).trim()]
+      }))
+      const payload = { name: mcpForm.name, transport: mcpForm.transport,
+        endpointUrl: mcpForm.transport === 'STREAMABLE_HTTP' ? mcpForm.endpointUrl : null,
+        apiKeyEnv: mcpForm.transport === 'STREAMABLE_HTTP' ? mcpForm.apiKeyEnv || null : null,
+        command: mcpForm.transport === 'STDIO' ? mcpForm.command : null,
+        arguments: mcpForm.transport === 'STDIO' ? mcpForm.argumentsText.split('\n').map((line) => line.trim()).filter(Boolean) : [],
+        workingDirectory: mcpForm.transport === 'STDIO' ? mcpForm.workingDirectory || null : null,
+        environment: mcpForm.transport === 'STDIO' ? environment : {} }
+      const id = editingMcpId
+      const saved = await api<McpServer>(id ? `/api/mcp/servers/${id}` : '/api/mcp/servers', { method: id ? 'PUT' : 'POST', body: JSON.stringify(payload) })
       setNotice('MCP Server 已保存，正在连接并发现工具……')
-      try { await api(`/api/mcp/servers/${created.id}/sync`, { method: 'POST', body: '{}' }) }
+      try { await api(`/api/mcp/servers/${saved.id}/sync`, { method: 'POST', body: '{}' }) }
       catch (error) { await refresh(); throw error }
-      setMcpForm(emptyMcp); await refresh()
+      setEditingMcpId(undefined); setMcpForm(emptyMcp); await refresh()
       setNotice('MCP 连接成功，发现的工具已进入 Agent Builder；首次绑定仍需发布新版本。')
     })
   }
 
   async function syncMcpServer(id: string) {
     await perform(async () => {
-      const result = await api<{ toolCount: number; remoteServerName: string }>(`/api/mcp/servers/${id}/sync`, { method: 'POST', body: '{}' })
-      await refresh(); setNotice(`MCP 同步完成：${result.remoteServerName}，发现 ${result.toolCount} 个工具。`)
+      const result = await api<{ toolCount: number; remoteServerName: string; added: number; removed: number; unchanged: number }>(`/api/mcp/servers/${id}/sync`, { method: 'POST', body: '{}' })
+      await refresh(); setNotice(`MCP 同步完成：共 ${result.toolCount} 个工具，新增 ${result.added}、下线 ${result.removed}、未变化 ${result.unchanged}。`)
     })
+  }
+
+  function editMcpServer(server: McpServer) {
+    setEditingMcpId(server.id)
+    setMcpForm({ name: server.name, transport: server.transport, endpointUrl: server.endpointUrl ?? '', apiKeyEnv: server.apiKeyEnv ?? '', command: server.command ?? 'node', argumentsText: (server.arguments ?? []).join('\n'), workingDirectory: server.workingDirectory ?? '', environmentText: Object.entries(server.environment ?? {}).map(([key, value]) => `${key}=${value}`).join('\n') })
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  async function toggleMcpServer(server: McpServer) {
+    await perform(async () => { await api(`/api/mcp/servers/${server.id}/enabled`, { method: 'PUT', body: JSON.stringify({ enabled: !server.enabled }) }); await refresh(); setNotice(server.enabled ? 'MCP Server 已停用，历史记录仍然保留。' : 'MCP Server 已启用。') })
+  }
+
+  async function deleteMcpServer(server: McpServer) {
+    if (!window.confirm(`确认删除“${server.name}”？已被 Agent 引用时平台会阻止删除。`)) return
+    await perform(async () => { const response = await fetch(`/api/mcp/servers/${server.id}`, { method: 'DELETE' }); if (!response.ok) { const body = await response.json().catch(() => ({ message: '删除失败' })); throw new Error(body.message) } if (editingMcpId === server.id) { setEditingMcpId(undefined); setMcpForm(emptyMcp) } await refresh(); setNotice('未被引用的 MCP Server 已删除。') })
+  }
+
+  async function updateMcpTool(tool: McpTool, changes: Partial<Pick<McpTool, 'enabled' | 'riskLevel' | 'timeoutSeconds'>>) {
+    const next = { enabled: changes.enabled ?? tool.enabled, capability: tool.capability, riskLevel: changes.riskLevel ?? tool.riskLevel, timeoutSeconds: changes.timeoutSeconds ?? tool.timeoutSeconds }
+    if (tool.riskLevel === 'HIGH' && next.riskLevel === 'LOW' && !window.confirm('降为低风险后将不再要求逐次审批，确认信任这个工具？')) return
+    await perform(async () => { await api(`/api/mcp/servers/tools/${tool.publicName}/policy`, { method: 'PUT', body: JSON.stringify(next) }); await refresh(); setNotice('MCP 工具策略已更新；已发布 Agent 版本中的工具名称不变。') })
   }
 
   async function chooseKnowledgeBase(id: string) {
@@ -303,15 +337,25 @@ function App() {
         </div>
         <div className="panel list-panel"><h2>文档 <small>{documents.length}</small></h2>{documents.length === 0 ? <Empty text="选择知识库并上传第一份文档" /> : documents.map((document) => <article className="document-card" key={document.id}><div><div><strong>{document.fileName}</strong><p>{formatBytes(document.fileSize)} · {document.chunkCount} chunks</p></div><span className={`badge badge--${document.status.toLowerCase()}`}>{document.status}</span></div>{document.errorMessage && <p className="error-text">{document.errorMessage}</p>}<button className="danger" onClick={() => void deleteDocument(document.id)}>删除</button></article>)}</div>
       </div></section>}
-      {view === 'mcp' && <section><PageHeader number="03" title="MCP 连接" description="连接 Streamable HTTP MCP Server，发现工具后统一交给平台审批、超时和审计。" /><div className="two-column">
-        <form className="panel form" onSubmit={submitMcpServer}><h2>新增 MCP Server</h2>
-          <p className="hint">当前支持 MCP 2025-06-18 Streamable HTTP。HTTP 仅允许本机地址，远程连接必须使用 HTTPS。</p>
+      {view === 'mcp' && <section><PageHeader number="03" title="MCP 连接" description="连接远程 HTTP 或本机 stdio MCP Server，并统一管理发现、权限、审批、超时和审计。" /><div className="two-column">
+        <form className="panel form" onSubmit={submitMcpServer}><h2>{editingMcpId ? '编辑 MCP Server' : '新增 MCP Server'}</h2>
+          {editingMcpId && <p className="edit-hint">修改连接配置后会自动重新同步；历史运行和已发布版本不会被改写。</p>}
+          <Field label="连接方式"><select value={mcpForm.transport} onChange={(e) => setMcpForm({ ...mcpForm, transport: e.target.value as 'STREAMABLE_HTTP' | 'STDIO' })}><option value="STREAMABLE_HTTP">Streamable HTTP</option><option value="STDIO">本机 stdio 子进程</option></select></Field>
           <Field label="显示名称"><input required value={mcpForm.name} onChange={(e) => setMcpForm({ ...mcpForm, name: e.target.value })} placeholder="例如：本地研发工具" /></Field>
-          <Field label="MCP Endpoint"><input required type="url" value={mcpForm.endpointUrl} onChange={(e) => setMcpForm({ ...mcpForm, endpointUrl: e.target.value })} placeholder="http://127.0.0.1:3001/mcp" /></Field>
-          <Field label="Bearer Token 环境变量（可选）"><input value={mcpForm.apiKeyEnv} onChange={(e) => setMcpForm({ ...mcpForm, apiKeyEnv: e.target.value })} placeholder="例如：MCP_API_TOKEN" /></Field>
-          <button className="primary" disabled={busy}>保存、连接并发现工具</button>
+          {mcpForm.transport === 'STREAMABLE_HTTP' ? <>
+            <p className="hint">HTTP 仅允许本机地址，远程连接必须使用 HTTPS。</p>
+            <Field label="MCP Endpoint"><input required type="url" value={mcpForm.endpointUrl} onChange={(e) => setMcpForm({ ...mcpForm, endpointUrl: e.target.value })} placeholder="http://127.0.0.1:3001/mcp" /></Field>
+            <Field label="Bearer Token 环境变量（可选）"><input value={mcpForm.apiKeyEnv} onChange={(e) => setMcpForm({ ...mcpForm, apiKeyEnv: e.target.value })} placeholder="例如：MCP_API_TOKEN" /></Field>
+          </> : <>
+            <p className="hint">平台直接启动程序，不经过命令行解释器；stdout 仅用于 MCP 消息，日志请写 stderr。</p>
+            <Field label="启动程序"><input required value={mcpForm.command} onChange={(e) => setMcpForm({ ...mcpForm, command: e.target.value })} placeholder="node 或可执行文件绝对路径" /></Field>
+            <Field label="启动参数（每行一个）"><textarea rows={4} value={mcpForm.argumentsText} onChange={(e) => setMcpForm({ ...mcpForm, argumentsText: e.target.value })} placeholder={'D:\\path\\to\\server.mjs'} /></Field>
+            <Field label="工作目录（可选）"><input value={mcpForm.workingDirectory} onChange={(e) => setMcpForm({ ...mcpForm, workingDirectory: e.target.value })} /></Field>
+            <Field label="环境变量映射（每行 子进程变量=宿主变量）"><textarea rows={3} value={mcpForm.environmentText} onChange={(e) => setMcpForm({ ...mcpForm, environmentText: e.target.value })} placeholder="SERVICE_TOKEN=MCP_SERVICE_TOKEN" /></Field>
+          </>}
+          <div className="form-actions"><button className="primary" disabled={busy}>{editingMcpId ? '保存并重新同步' : '保存、连接并发现工具'}</button>{editingMcpId && <button className="ghost" type="button" onClick={() => { setEditingMcpId(undefined); setMcpForm(emptyMcp) }}>取消编辑</button>}</div>
         </form>
-        <div className="panel list-panel"><h2>MCP Server <small>{mcpServers.length}</small></h2>{mcpServers.length === 0 ? <Empty text="尚未连接 MCP Server" /> : mcpServers.map((server) => <article className="mcp-card" key={server.id}><div className="card-head"><div><strong>{server.name}</strong><p>{server.remoteServerName ? `${server.remoteServerName} · ${server.remoteServerVersion ?? '未知版本'}` : server.endpointUrl}</p></div><span className={`badge badge--${server.status.toLowerCase()}`}>{server.status}</span></div><code>{server.endpointUrl}</code><p className="hint">协议 {server.protocolVersion ?? '尚未协商'}{server.apiKeyEnv ? ` · 凭据 ${server.apiKeyEnv}` : ' · 无鉴权'}</p>{server.lastError && <p className="error-text">{server.lastError}</p>}<div className="mcp-tools">{server.tools.filter((tool) => tool.active).map((tool) => <details key={tool.publicName}><summary>{tool.displayName}<span>{tool.riskLevel}</span></summary><p>{tool.description}</p><code>{tool.publicName}</code></details>)}</div><div className="card-actions"><small>{server.lastSyncedAt ? `上次同步 ${new Date(server.lastSyncedAt).toLocaleString()}` : '尚未同步'}</small><button className="secondary" disabled={busy} onClick={() => void syncMcpServer(server.id)}>测试并同步</button></div></article>)}</div>
+        <div className="panel list-panel"><h2>MCP Server <small>{mcpServers.length}</small></h2>{mcpServers.length === 0 ? <Empty text="尚未连接 MCP Server" /> : mcpServers.map((server) => <article className={`mcp-card ${server.enabled ? '' : 'mcp-card--disabled'}`} key={server.id}><div className="card-head"><div><strong>{server.name}</strong><p>{server.remoteServerName ? `${server.remoteServerName} · ${server.remoteServerVersion ?? '未知版本'}` : server.transport === 'STDIO' ? '本机 stdio' : server.endpointUrl}</p></div><span className={`badge badge--${server.status.toLowerCase()}`}>{server.enabled ? server.status : 'DISABLED'}</span></div><code>{server.transport === 'STDIO' ? [server.command, ...(server.arguments ?? [])].join(' ') : server.endpointUrl}</code><p className="hint">{server.transport === 'STDIO' ? '本机子进程' : 'Streamable HTTP'} · 协议 {server.protocolVersion ?? '尚未协商'}{server.apiKeyEnv ? ` · 凭据 ${server.apiKeyEnv}` : ''}</p>{server.lastError && <p className="error-text">{server.lastError}</p>}<div className="mcp-tools">{server.tools.filter((tool) => tool.active).map((tool) => <details key={tool.publicName}><summary>{tool.displayName}<span>{tool.enabled ? tool.riskLevel : 'OFF'}</span></summary><p>{tool.description}</p><code>{tool.publicName}</code><div className="tool-policy"><label><input type="checkbox" checked={tool.enabled} onChange={(e) => void updateMcpTool(tool, { enabled: e.target.checked })} />允许 Agent 使用</label><label>风险<select value={tool.riskLevel} onChange={(e) => void updateMcpTool(tool, { riskLevel: e.target.value })}><option value="HIGH">高风险（逐次审批）</option><option value="LOW">低风险（直接执行）</option></select></label><label>超时（秒）<input type="number" min="1" max="300" value={tool.timeoutSeconds} onChange={(e) => void updateMcpTool(tool, { timeoutSeconds: Number(e.target.value) })} /></label></div></details>)}</div><div className="card-actions"><small>{server.lastSyncedAt ? `上次同步 ${new Date(server.lastSyncedAt).toLocaleString()}` : '尚未同步'}</small><button className="ghost" disabled={busy} onClick={() => editMcpServer(server)}>编辑</button><button className="ghost" disabled={busy} onClick={() => void toggleMcpServer(server)}>{server.enabled ? '停用' : '启用'}</button><button className="secondary" disabled={busy || !server.enabled} onClick={() => void syncMcpServer(server.id)}>测试并同步</button><button className="danger compact" disabled={busy} onClick={() => void deleteMcpServer(server)}>删除</button></div></article>)}</div>
       </div></section>}
       {view === 'agents' && <section><PageHeader number="04" title="Agent Builder" description="编辑草稿，然后发布不可变版本；历史运行始终绑定原版本。" /><div className="two-column">
         <form className="panel form" onSubmit={submitAgent}><h2>{editingAgentId ? '编辑 Agent 草稿' : '创建 Agent 草稿'}</h2>

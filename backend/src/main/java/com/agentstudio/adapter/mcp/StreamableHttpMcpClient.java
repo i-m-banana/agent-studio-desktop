@@ -29,6 +29,9 @@ public class StreamableHttpMcpClient implements McpTransportClient {
     }
 
     @Override
+    public String transport() { return "STREAMABLE_HTTP"; }
+
+    @Override
     public McpDiscovery discover(McpServer server) throws Exception {
         var session = initialize(server);
         try {

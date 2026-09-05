@@ -18,10 +18,11 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 class McpServiceIntegrationTests {
     @Autowired McpService service;
     @Autowired ToolRegistry tools;
-    @MockitoBean McpTransportClient client;
+    @MockitoBean StreamableHttpMcpClient client;
 
     @Test
     void syncAddsNamespacedHighRiskToolToUnifiedRegistry() throws Exception {
+        when(client.transport()).thenReturn("STREAMABLE_HTTP");
         when(client.discover(any())).thenReturn(new McpDiscovery("2025-06-18", "test-server", "1.0", List.of(
                 new McpRemoteTool("lookup.issue", "Lookup issue", "Read issue by id",
                         Map.of("type", "object", "properties", Map.of("id", Map.of("type", "string")),
@@ -31,6 +32,7 @@ class McpServiceIntegrationTests {
         var result = service.sync(server.id());
         assertThat(result.status()).isEqualTo("READY");
         assertThat(result.toolCount()).isEqualTo(1);
+        assertThat(result.added()).isEqualTo(1);
         var descriptor = tools.descriptors().stream().filter(tool -> "MCP".equals(tool.source())).findFirst().orElseThrow();
         assertThat(descriptor).satisfies(tool -> {
             assertThat(tool.name()).startsWith("mcp_");
@@ -40,5 +42,20 @@ class McpServiceIntegrationTests {
         });
         assertThat(tools.targetEnvironment(descriptor.name())).startsWith("MCP:").endsWith("@localhost");
         assertThat(tools.execute(descriptor.name(), "{\"id\":\"ISSUE-1\"}").output()).isEqualTo("issue result");
+
+        var secondSync = service.sync(server.id());
+        assertThat(secondSync.added()).isZero();
+        assertThat(secondSync.removed()).isZero();
+        assertThat(secondSync.unchanged()).isEqualTo(1);
+        service.updateToolPolicy(descriptor.name(), new McpToolPolicyRequest(false, "READ", "LOW", 12));
+        assertThat(service.activeDescriptors()).noneMatch(tool -> tool.name().equals(descriptor.name()));
+        service.setEnabled(server.id(), false);
+        assertThat(service.listServers()).filteredOn(item -> item.id().equals(server.id()))
+                .singleElement().extracting(McpServer::enabled).isEqualTo(false);
+
+        var disposable = service.create(new McpServerRequest("delete-" + UUID.randomUUID(),
+                "http://localhost:39998/mcp", null));
+        service.delete(disposable.id());
+        assertThat(service.listServers()).noneMatch(item -> item.id().equals(disposable.id()));
     }
 }

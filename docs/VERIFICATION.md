@@ -197,9 +197,24 @@
 
 自动化证据：H2 成功应用 V1 至 V6；协议测试覆盖有状态初始化、协议版本头、工具发现、tools/call 和 JSON-RPC 错误；集成测试覆盖动态工具进入统一注册表、稳定命名、HIGH 风险、目标环境和执行委托。全量后端共 23 个测试通过，前端生产构建通过。
 
-尚待人工验证：用户本机 MySQL 的 V6 迁移，以及 DeepSeek 对动态 MCP 工具的真实 tool_call、批准和拒绝分支。当前不支持 stdio、OAuth、resources、prompts、sampling、通知订阅或 MCP session 复用。
+阶段 9 当时尚待人工验证用户本机 MySQL 的 V6 迁移，以及 DeepSeek 对动态 MCP 工具的真实 tool_call、批准和拒绝分支；当时也不支持 stdio。后续用户已提供 HTTP MCP 批准调用成功的运行记录，stdio 与管理能力则在阶段 10 补齐。
 
 知识包加入 MCP 材料后再次执行冻结 30 题回归：00–10 为 11 份文档、35 个 chunk，语料 SHA-256 `a1970fceb87a09ad2044ef027b1de0cd3086b510842f3d8817e0ab79bac46259`。LocalHash Recall@5 87.50%、MRR 0.6854；Qwen Recall@5 100%、MRR 0.8278、改写题 MRR 0.8361、p95 233.375 ms。两者无答案误召回率仍为 100%，MCP 文档扩充没有解决证据充分性判断。结果 JSON 保存每份文档哈希；后续文字修订应以新快照复测，不能把本段哈希当作始终不变的目录标识。
+
+## 阶段 10：MCP stdio 与日常管理（2026-09-05）
+
+- Flyway V7 增加 transport、stdio 启动参数/工作目录/环境变量引用和单工具 enabled 策略；原 HTTP Server 自动保持 `STREAMABLE_HTTP`；
+- 新增 stdio 客户端，覆盖进程启动、初始化、换行 JSON-RPC、tools/list、tools/call、stderr 诊断、取消通知和分级进程清理；
+- 启动参数不经过 shell，拒绝直接配置命令行解释器；密钥只按宿主环境变量名注入，不写入数据库；
+- MCP 页面支持 HTTP/stdio 条件配置、编辑、启停、受保护删除、同步差异，以及单工具启用、风险和超时策略；
+- 被 Agent 草稿或历史版本引用的 Server 不能物理删除，保证运行记录与版本引用仍可解释；
+- 零依赖 stdio Node fixture 可用于人工全链路验收。
+
+自动化证据：H2 成功应用 V1 至 V7；真实子进程测试完成 stdio 发现和调用；HTTP 协议与统一注册表回归继续通过；管理集成测试覆盖同步差异、工具停用、Server 停用和未引用删除。全量后端 24 个测试通过，前端 TypeScript 与 Vite 生产构建通过。
+
+尚待人工验证：用户本机 MySQL 应在后端重启时从 V6 升至 V7，并在页面使用 stdio fixture 完成真实 DeepSeek tool_call。当前未实现 OS 沙箱、OAuth、resources、prompts、sampling、roots、elicitation、list_changed 订阅和 session 池。
+
+知识包完成 stdio 与 Server 管理材料后，重新运行同一冻结 30 题：00–10 仍为 11 份文档，切分后为 38 个 chunk，语料 SHA-256 `686a21f66cf2d931e298d5a77e25d5d0658909e7bd5201708d79273befd098cd`。LocalHash Recall@5 87.50%、MRR 0.6542、改写题 MRR 0.5306、p95 0.272 ms；Qwen Recall@5 100%、MRR 0.8958、改写题 MRR 0.8333、p95 260.366 ms。两者无答案误召回率仍为 100%。结果保存在 `local-hash-after-mcp-stdio.json` 与 `qwen3-embedding-0.6b-after-mcp-stdio.json`。
 
 知识包同步回归：
 

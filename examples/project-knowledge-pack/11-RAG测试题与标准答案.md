@@ -16,7 +16,7 @@
 
 问题：项目是否已经支持 SSH 和 ReAct？
 
-标准答案：显式 ReAct 已经支持，包括两个内置工具、MCP Streamable HTTP 动态工具、版本快照、AgentRun/RunStep、统一安全执行网关、Schema 校验、参数审批、AuditEvent、主动取消、总超时和历史详情；MCP stdio/OAuth/resources/prompts、SSH、Coding、身份和断点续跑仍未实现。因此不能回答成“完全没有 ReAct”，也不能回答成“已经是完整工具平台”。
+标准答案：显式 ReAct 已经支持，包括两个内置工具、MCP Streamable HTTP 与 stdio 动态工具、版本快照、AgentRun/RunStep、统一安全执行网关、Schema 校验、参数审批、AuditEvent、主动取消、总超时和历史详情；MCP OAuth/resources/prompts、stdio OS 沙箱、SSH、Coding、身份和断点续跑仍未实现。因此不能回答成“完全没有 ReAct”，也不能回答成“已经是完整工具平台”。
 
 问题：RunStep 和 AuditEvent 为什么不能合成一张表？
 
@@ -102,6 +102,14 @@
 
 标准答案：平台名包含 Server 命名空间以及远端名称、标题、描述和 Schema 的 SHA-256 指纹。描述不变时同步复用修订，影响模型选择或参数的变化会生成新工具名；旧 AgentVersion 保留旧引用，新草稿只看到当前 active 修订。
 
+问题：stdio MCP 的启动和停止边界是什么？
+
+标准答案：平台用“启动程序+参数数组”直接启动短生命周期进程，不经过 shell；完成 initialize/initialized 后发现或调用工具。结束时关闭 stdin 并等待，随后 terminate，仍不退出则强杀进程树；超时前还会发送 notifications/cancelled。stdout 只能放单行 JSON-RPC，日志放 stderr。
+
+问题：为什么删除已被 AgentVersion 引用的 MCP Server 会失败？
+
+标准答案：历史版本保存的是稳定工具平台名。物理删除 Server 和工具目录会让历史配置及运行记录失去解释依据，所以平台只允许停用已引用 Server；完全未引用时才允许删除。
+
 问题：项目是否直接复制了 ai-rag、WaLiSSH 和 WaLiCode 的业务代码？
 
 标准答案：没有。三个项目是只读参考来源，新项目在独立仓库中从骨架开始建设；当前强调的是重新做出的架构取舍、实现和验证，来源项目代码不计为个人原创。
@@ -120,6 +128,6 @@
 
 标准答案：没有。6 道无答案题仍全部返回片段；提高固定阈值会严重损害 Recall，因此该问题留给独立的相关性判断、rerank 或回答阶段证据充分性策略。
 
-问题：最终扩充知识包上的 LocalHash 与 Qwen 对比结果是什么？
+问题：加入 MCP stdio 材料后的最终知识包，LocalHash 与 Qwen 对比结果是什么？
 
-标准答案：盲测语料是 00–10，共 11 份文档、35 个 chunk，SHA-256 为 `a1970fceb87a09ad2044ef027b1de0cd3086b510842f3d8817e0ab79bac46259`。LocalHash 的 Recall@5/MRR 为 87.50%/0.6854，Qwen 为 100%/0.8278；改写题 MRR 从 0.6250 升至 0.8361，Qwen p95 为 233.375 ms。无答案误召回率两者都是 100%。
+标准答案：盲测语料是 00–10，共 11 份文档、38 个 chunk，SHA-256 为 `686a21f66cf2d931e298d5a77e25d5d0658909e7bd5201708d79273befd098cd`。LocalHash 的 Recall@5/MRR 为 87.50%/0.6542，Qwen 为 100%/0.8958；改写题 MRR 从 0.5306 升至 0.8333，Qwen p95 为 260.366 ms。无答案误召回率两者都是 100%。
