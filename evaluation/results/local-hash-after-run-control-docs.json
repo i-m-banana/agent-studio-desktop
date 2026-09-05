@@ -1,7 +1,7 @@
 {
   "schemaVersion" : "1.0",
-  "generatedAt" : "2026-09-05T07:04:20.524403300Z",
-  "gitCommit" : "9c077b3b3ae1166e1e958f7ef7425e718726220d",
+  "generatedAt" : "2026-09-05T07:21:38.441233200Z",
+  "gitCommit" : "3fb2b015787ec75a88f4bfe3a7b5eb2e1fbc1d65",
   "evaluator" : {
     "mode" : "offline-production-components",
     "javaVersion" : "21.0.4",
@@ -20,7 +20,7 @@
   "corpus" : {
     "documentCount" : 11,
     "chunkCount" : 31,
-    "corpusSha256" : "21c1e28952098038520784d0fff71c734052abee0e2457e4aa92f53e1e023442",
+    "corpusSha256" : "afa570413548ec513d822756af1a044b4153cec8ec65119f1c09a7ac88074794",
     "documents" : [ {
       "fileName" : "00-入库说明与事实口径.md",
       "rawSha256" : "cc3bb0e459f85410f9c66ce10148ab7449255bf90eb094d5c6cdfe2b172579bd",
@@ -53,8 +53,8 @@
       "chunkCount" : 2
     }, {
       "fileName" : "06-开发过程与提交时间线.md",
-      "rawSha256" : "9e76db8d02b48537dd2a65ff5988c845860fef98623f3167690ac30657fe6c48",
-      "extractedCharacters" : 3509,
+      "rawSha256" : "b7a085472e96dc0fcf28e6c626e6577f130a5c6de460f7a05af986e45f9a7643",
+      "extractedCharacters" : 3686,
       "chunkCount" : 4
     }, {
       "fileName" : "07-真实故障与排查复盘.md",
@@ -63,8 +63,8 @@
       "chunkCount" : 4
     }, {
       "fileName" : "08-测试策略与验收证据.md",
-      "rawSha256" : "bd37658829009d358af3fa909ef9a188d8ec96842198d2c125f8a7d565106653",
-      "extractedCharacters" : 2140,
+      "rawSha256" : "a62a279fd6b38279dbce5b46726ae0de868de73cb99a3d7be4220f57057427b8",
+      "extractedCharacters" : 2291,
       "chunkCount" : 3
     }, {
       "fileName" : "09-安全边界局限与路线图.md",
@@ -77,7 +77,7 @@
       "extractedCharacters" : 3438,
       "chunkCount" : 4
     } ],
-    "indexingLatencyMs" : 1951.853
+    "indexingLatencyMs" : 2108.441
   },
   "metrics" : {
     "totalCases" : 30,
@@ -154,7 +154,7 @@
     "recallAt5" : 0.20833333333333334,
     "mrr" : 0.1875,
     "noAnswerFalsePositiveRate" : 0.16666666666666666,
-    "meanReturnedChunks" : 0.6333333333333333
+    "meanReturnedChunks" : 0.6
   }, {
     "threshold" : 0.45,
     "recallAt5" : 0.16666666666666666,
@@ -195,9 +195,9 @@
   "latency" : {
     "measuredQueries" : 30,
     "warmupRounds" : 8,
-    "p50Ms" : 0.1657,
-    "p95Ms" : 0.3281,
-    "maximumMs" : 0.3608
+    "p50Ms" : 0.1077,
+    "p95Ms" : 0.2361,
+    "maximumMs" : 0.5468
   },
   "answerMetrics" : {
     "status" : "not_measured",
@@ -221,7 +221,7 @@
     "firstRelevantRank" : 2,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.1294,
+    "latencyMs" : 0.1398,
     "returnedSources" : [ "00-入库说明与事实口径.md", "06-开发过程与提交时间线.md", "10-面试讲述与追问准备.md", "08-测试策略与验收证据.md", "01-项目总览与业务目标.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -264,8 +264,8 @@
     "firstRelevantRank" : 0,
     "hitAt5" : false,
     "falsePositive" : false,
-    "latencyMs" : 0.3608,
-    "returnedSources" : [ "09-安全边界局限与路线图.md", "02-架构设计与技术选型.md", "08-测试策略与验收证据.md", "00-入库说明与事实口径.md", "01-项目总览与业务目标.md" ],
+    "latencyMs" : 0.2254,
+    "returnedSources" : [ "09-安全边界局限与路线图.md", "02-架构设计与技术选型.md", "00-入库说明与事实口径.md", "01-项目总览与业务目标.md", "06-开发过程与提交时间线.md" ],
     "hits" : [ {
       "rank" : 1,
       "fileName" : "09-安全边界局限与路线图.md",
@@ -280,22 +280,22 @@
       "contentPreview" : "# Agent Studio Desktop：架构设计与技术选型 ## 模块化单体 项目选择“Spring Boot 模块化单体 + 独立 React 前端 + 两个数据库容器”。后端只有一个 Maven 工程，通过 `agent`、`model`、`conversation`、`knowledge`、`system` 等 Java package 隔离职责。 这个选择针对的是单机开发工具场景。微服务会引入服务发现、网络调用、分布式事务、部署和日志聚合成本，而当前用户只有一个…"
     }, {
       "rank" : 3,
-      "fileName" : "08-测试策略与验收证据.md",
-      "chunkIndex" : 1,
-      "score" : 0.2801891783909624,
-      "contentPreview" : "SQL 和 pgvector 行为通过独立验收补足，不能只依赖 H2。 ## 前端验证 前端运行 `npm run build`，该命令先执行 TypeScript project build，再执行 Vite 生产构建。最终构建成功。浏览器冒烟检查确认四个导航入口、知识库创建表单、上传控件、Agent Builder 和对话测试台正常渲染。 ## 真实环境验证 Docker Desktop 中 MySQL 为 23306，pgvector 为 15432，二者均 healt…"
-    }, {
-      "rank" : 4,
       "fileName" : "00-入库说明与事实口径.md",
       "chunkIndex" : 0,
       "score" : 0.2758889256757889,
       "contentPreview" : "# Agent Studio Desktop 知识包入库说明 这套文档用于 Agent Studio Desktop 的 RAG 手工验收，也用于帮助项目负责人复盘设计、开发、排障和测试过程。建议在前端新建名为“Agent Studio 项目知识库”的知识库，然后逐份上传本目录中的 Markdown 文件。逐份上传比合并成一个大文件更适合验证来源文件展示、跨文档召回和删除一致性。 ## 推荐入库顺序 1. 项目总览； 2. 架构与技术选型； 3. 数据模型与版本机制； 4. …"
     }, {
-      "rank" : 5,
+      "rank" : 4,
       "fileName" : "01-项目总览与业务目标.md",
       "chunkIndex" : 0,
       "score" : 0.27408218606388673,
       "contentPreview" : "# Agent Studio Desktop：项目总览与业务目标 ## 一句话定位 Agent Studio Desktop 是一个运行在个人电脑上的智能体搭建与调试工具。用户不需要修改 Java 代码，就能配置 OpenAI 兼容模型、系统提示词和知识库，发布一个固定版本的 Agent，并在本地网页中流式对话、查看检索来源。 它不是公网 SaaS，也不是高并发多租户平台。产品的核心价值是让“模型连接、提示词、知识和版本”变成可配置资产，同时让本地开发环境简单、过程可观察、结…"
+    }, {
+      "rank" : 5,
+      "fileName" : "06-开发过程与提交时间线.md",
+      "chunkIndex" : 0,
+      "score" : 0.2690099284893062,
+      "contentPreview" : "# Agent Studio Desktop：开发过程与提交时间线 ## 阶段 0：独立工程基线 第一个提交是 `de8dd90 chore: establish agent studio desktop baseline`。这一阶段建立独立 Git 仓库、Spring Boot 单体、React + TypeScript + Vite 前端、Docker Compose、健康检查、README、架构决策和来源边界记录。 实际环境确认 Maven 使用 Java 21.0.4…"
     } ]
   }, {
     "id" : "rag-003",
@@ -307,7 +307,7 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.2282,
+    "latencyMs" : 0.1441,
     "returnedSources" : [ "01-项目总览与业务目标.md", "07-真实故障与排查复盘.md", "06-开发过程与提交时间线.md", "00-入库说明与事实口径.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -337,7 +337,7 @@
       "rank" : 5,
       "fileName" : "06-开发过程与提交时间线.md",
       "chunkIndex" : 3,
-      "score" : 0.2283795544329111,
+      "score" : 0.23872543576803085,
       "contentPreview" : "可安全重放的检查点。自动化测试增至 17 个，覆盖阻塞模型调用的主动取消、总超时、terminated SSE、历史摘要和终止步骤。 提交前复核还发现一个并发窗口：取消请求可能恰好发生在最后一次信号检查之后、COMPLETED 写入之前。修复方式不是再加一次普通检查，而是让最终状态更新携带数据库前置条件；COMPLETED/FAILED 不能覆盖 CANCEL_REQUESTED，只有取消/超时/中断收口可以从非终态转为对应终态。这样把正确性落到原子状态迁移上，而不是依赖线程…"
     } ]
   }, {
@@ -350,7 +350,7 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.208,
+    "latencyMs" : 0.1022,
     "returnedSources" : [ "03-数据模型与不可变版本.md", "04-模型调用与SSE流式对话.md", "06-开发过程与提交时间线.md", "00-入库说明与事实口径.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -393,8 +393,8 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.1816,
-    "returnedSources" : [ "04-模型调用与SSE流式对话.md", "06-开发过程与提交时间线.md", "02-架构设计与技术选型.md", "07-真实故障与排查复盘.md", "08-测试策略与验收证据.md" ],
+    "latencyMs" : 0.1003,
+    "returnedSources" : [ "04-模型调用与SSE流式对话.md", "06-开发过程与提交时间线.md", "02-架构设计与技术选型.md", "08-测试策略与验收证据.md", "07-真实故障与排查复盘.md" ],
     "hits" : [ {
       "rank" : 1,
       "fileName" : "04-模型调用与SSE流式对话.md",
@@ -415,16 +415,16 @@
       "contentPreview" : "024 维向量并写入 `knowledge_chunk_v2`，记录模型和索引版本；旧 384 维表继续保留。知识库升级必须由用户显式触发重建，启动应用不会自动改写索引。 当前 Qwen 表采用精确 cosine 排序，不建立 HNSW 向量索引。原因是当前语料规模很小，近似索引没有性能必要，反而可能牺牲召回。表上只对 knowledgeBaseId 和 embeddingVersion 建范围索引。 ## 为什么不引入 Redis、MQ 和 MinIO 第一版没有缓存规模、…"
     }, {
       "rank" : 4,
+      "fileName" : "08-测试策略与验收证据.md",
+      "chunkIndex" : 1,
+      "score" : 0.27697112038505833,
+      "contentPreview" : "SQL 和 pgvector 行为通过独立验收补足，不能只依赖 H2。 ## 前端验证 前端运行 `npm run build`，该命令先执行 TypeScript project build，再执行 Vite 生产构建。最终构建成功。浏览器冒烟检查确认五个导航入口、知识库创建表单、上传控件、Agent Builder、对话测试台和运行记录正常渲染。 ## 真实环境验证 Docker Desktop 中 MySQL 为 23306，pgvector 为 15432，二者均 h…"
+    }, {
+      "rank" : 5,
       "fileName" : "07-真实故障与排查复盘.md",
       "chunkIndex" : 1,
       "score" : 0.272021565529117,
       "contentPreview" : "SQL，业务 `NamedParameterJdbcTemplate` 仍可能连到 PostgreSQL。表现为向 PostgreSQL 执行 `INSERT knowledge_base` 或查询 `model_profile`，然后报 relation does not exist。 根因是 Spring 容器里同时存在多个 DataSource 和 JdbcTemplate，而业务仓储没有足够明确的限定。修复包括：创建带 `@Primary` 和 `@FlywayDat…"
-    }, {
-      "rank" : 5,
-      "fileName" : "08-测试策略与验收证据.md",
-      "chunkIndex" : 1,
-      "score" : 0.26676841528707357,
-      "contentPreview" : "SQL 和 pgvector 行为通过独立验收补足，不能只依赖 H2。 ## 前端验证 前端运行 `npm run build`，该命令先执行 TypeScript project build，再执行 Vite 生产构建。最终构建成功。浏览器冒烟检查确认四个导航入口、知识库创建表单、上传控件、Agent Builder 和对话测试台正常渲染。 ## 真实环境验证 Docker Desktop 中 MySQL 为 23306，pgvector 为 15432，二者均 healt…"
     } ]
   }, {
     "id" : "rag-006",
@@ -436,8 +436,8 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.1488,
-    "returnedSources" : [ "10-面试讲述与追问准备.md", "07-真实故障与排查复盘.md", "00-入库说明与事实口径.md", "08-测试策略与验收证据.md" ],
+    "latencyMs" : 0.0888,
+    "returnedSources" : [ "10-面试讲述与追问准备.md", "07-真实故障与排查复盘.md", "00-入库说明与事实口径.md", "08-测试策略与验收证据.md", "06-开发过程与提交时间线.md" ],
     "hits" : [ {
       "rank" : 1,
       "fileName" : "10-面试讲述与追问准备.md",
@@ -464,10 +464,10 @@
       "contentPreview" : "# Agent Studio Desktop：测试策略与验收证据 ## 自动化测试 后端当前有 17 个测试，最终执行结果是 17 个通过、0 失败、0 错误。 `AgentStudioApplicationTests` 验证 Spring 上下文能加载。`SystemStatusControllerTests` 验证健康状态接口。`AgentBuilderIntegrationTests` 验证模型配置、草稿发布和不可变版本：发布 v1 后修改模型与草稿，再发布 v2，必须…"
     }, {
       "rank" : 5,
-      "fileName" : "08-测试策略与验收证据.md",
+      "fileName" : "06-开发过程与提交时间线.md",
       "chunkIndex" : 1,
-      "score" : 0.23480604062409416,
-      "contentPreview" : "SQL 和 pgvector 行为通过独立验收补足，不能只依赖 H2。 ## 前端验证 前端运行 `npm run build`，该命令先执行 TypeScript project build，再执行 Vite 生产构建。最终构建成功。浏览器冒烟检查确认四个导航入口、知识库创建表单、上传控件、Agent Builder 和对话测试台正常渲染。 ## 真实环境验证 Docker Desktop 中 MySQL 为 23306，pgvector 为 15432，二者均 healt…"
+      "score" : 0.22677562295779502,
+      "contentPreview" : "al workflow`。新增 Flyway V2、知识库与文档元数据、Tika 解析、文本切分、本地 384 维词法向量、pgvector 表和 HNSW 索引、知识库绑定、sources SSE 事件，以及前端知识库页面和来源展示。 真实验收创建了“科研助手验收库”和“科研知识助手”。示例 Markdown 上传后状态 READY，对话返回来源文件、chunk 0 和相似度。删除测试确认 MySQL 元数据、本地文件和向量检索结果同时消失，重新上传后恢复。 ## 开发方法…"
     } ]
   }, {
     "id" : "rag-007",
@@ -479,7 +479,7 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.1548,
+    "latencyMs" : 0.1128,
     "returnedSources" : [ "07-真实故障与排查复盘.md", "10-面试讲述与追问准备.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -522,7 +522,7 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.2124,
+    "latencyMs" : 0.1545,
     "returnedSources" : [ "07-真实故障与排查复盘.md", "10-面试讲述与追问准备.md", "06-开发过程与提交时间线.md", "03-数据模型与不可变版本.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -565,8 +565,8 @@
     "firstRelevantRank" : 2,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.1718,
-    "returnedSources" : [ "00-入库说明与事实口径.md", "09-安全边界局限与路线图.md", "05-RAG全链路与检索算法.md", "02-架构设计与技术选型.md", "08-测试策略与验收证据.md" ],
+    "latencyMs" : 0.2361,
+    "returnedSources" : [ "00-入库说明与事实口径.md", "09-安全边界局限与路线图.md", "05-RAG全链路与检索算法.md", "02-架构设计与技术选型.md", "06-开发过程与提交时间线.md" ],
     "hits" : [ {
       "rank" : 1,
       "fileName" : "00-入库说明与事实口径.md",
@@ -593,10 +593,10 @@
       "contentPreview" : "024 维向量并写入 `knowledge_chunk_v2`，记录模型和索引版本；旧 384 维表继续保留。知识库升级必须由用户显式触发重建，启动应用不会自动改写索引。 当前 Qwen 表采用精确 cosine 排序，不建立 HNSW 向量索引。原因是当前语料规模很小，近似索引没有性能必要，反而可能牺牲召回。表上只对 knowledgeBaseId 和 embeddingVersion 建范围索引。 ## 为什么不引入 Redis、MQ 和 MinIO 第一版没有缓存规模、…"
     }, {
       "rank" : 5,
-      "fileName" : "08-测试策略与验收证据.md",
-      "chunkIndex" : 1,
-      "score" : 0.25466487503251606,
-      "contentPreview" : "SQL 和 pgvector 行为通过独立验收补足，不能只依赖 H2。 ## 前端验证 前端运行 `npm run build`，该命令先执行 TypeScript project build，再执行 Vite 生产构建。最终构建成功。浏览器冒烟检查确认四个导航入口、知识库创建表单、上传控件、Agent Builder 和对话测试台正常渲染。 ## 真实环境验证 Docker Desktop 中 MySQL 为 23306，pgvector 为 15432，二者均 healt…"
+      "fileName" : "06-开发过程与提交时间线.md",
+      "chunkIndex" : 3,
+      "score" : 0.25802829919213344,
+      "contentPreview" : "可安全重放的检查点。自动化测试增至 17 个，覆盖阻塞模型调用的主动取消、总超时、terminated SSE、历史摘要和终止步骤。 提交前复核还发现一个并发窗口：取消请求可能恰好发生在最后一次信号检查之后、COMPLETED 写入之前。修复方式不是再加一次普通检查，而是让最终状态更新携带数据库前置条件；COMPLETED/FAILED 不能覆盖 CANCEL_REQUESTED，只有取消/超时/中断收口可以从非终态转为对应终态。这样把正确性落到原子状态迁移上，而不是依赖线程…"
     } ]
   }, {
     "id" : "rag-010",
@@ -608,7 +608,7 @@
     "firstRelevantRank" : 2,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.1813,
+    "latencyMs" : 0.5468,
     "returnedSources" : [ "08-测试策略与验收证据.md", "09-安全边界局限与路线图.md", "01-项目总览与业务目标.md", "04-模型调用与SSE流式对话.md", "00-入库说明与事实口径.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -651,7 +651,7 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.1586,
+    "latencyMs" : 0.2079,
     "returnedSources" : [ "01-项目总览与业务目标.md", "06-开发过程与提交时间线.md", "00-入库说明与事实口径.md", "05-RAG全链路与检索算法.md", "09-安全边界局限与路线图.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -694,7 +694,7 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.1852,
+    "latencyMs" : 0.1334,
     "returnedSources" : [ "00-入库说明与事实口径.md", "06-开发过程与提交时间线.md", "01-项目总览与业务目标.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -737,7 +737,7 @@
     "firstRelevantRank" : 0,
     "hitAt5" : false,
     "falsePositive" : false,
-    "latencyMs" : 0.1682,
+    "latencyMs" : 0.0983,
     "returnedSources" : [ "07-真实故障与排查复盘.md", "10-面试讲述与追问准备.md", "01-项目总览与业务目标.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -780,7 +780,7 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.319,
+    "latencyMs" : 0.1299,
     "returnedSources" : [ "05-RAG全链路与检索算法.md", "09-安全边界局限与路线图.md", "02-架构设计与技术选型.md", "08-测试策略与验收证据.md", "01-项目总览与业务目标.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -804,8 +804,8 @@
       "rank" : 4,
       "fileName" : "08-测试策略与验收证据.md",
       "chunkIndex" : 1,
-      "score" : 0.24631611831684638,
-      "contentPreview" : "SQL 和 pgvector 行为通过独立验收补足，不能只依赖 H2。 ## 前端验证 前端运行 `npm run build`，该命令先执行 TypeScript project build，再执行 Vite 生产构建。最终构建成功。浏览器冒烟检查确认四个导航入口、知识库创建表单、上传控件、Agent Builder 和对话测试台正常渲染。 ## 真实环境验证 Docker Desktop 中 MySQL 为 23306，pgvector 为 15432，二者均 healt…"
+      "score" : 0.24247739344560792,
+      "contentPreview" : "SQL 和 pgvector 行为通过独立验收补足，不能只依赖 H2。 ## 前端验证 前端运行 `npm run build`，该命令先执行 TypeScript project build，再执行 Vite 生产构建。最终构建成功。浏览器冒烟检查确认五个导航入口、知识库创建表单、上传控件、Agent Builder、对话测试台和运行记录正常渲染。 ## 真实环境验证 Docker Desktop 中 MySQL 为 23306，pgvector 为 15432，二者均 h…"
     }, {
       "rank" : 5,
       "fileName" : "01-项目总览与业务目标.md",
@@ -823,7 +823,7 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.3281,
+    "latencyMs" : 0.1298,
     "returnedSources" : [ "09-安全边界局限与路线图.md", "04-模型调用与SSE流式对话.md", "06-开发过程与提交时间线.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -866,32 +866,32 @@
     "firstRelevantRank" : 5,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.1914,
-    "returnedSources" : [ "01-项目总览与业务目标.md", "10-面试讲述与追问准备.md", "06-开发过程与提交时间线.md", "03-数据模型与不可变版本.md" ],
+    "latencyMs" : 0.1077,
+    "returnedSources" : [ "06-开发过程与提交时间线.md", "01-项目总览与业务目标.md", "10-面试讲述与追问准备.md", "03-数据模型与不可变版本.md" ],
     "hits" : [ {
       "rank" : 1,
+      "fileName" : "06-开发过程与提交时间线.md",
+      "chunkIndex" : 3,
+      "score" : 0.27062799476960026,
+      "contentPreview" : "可安全重放的检查点。自动化测试增至 17 个，覆盖阻塞模型调用的主动取消、总超时、terminated SSE、历史摘要和终止步骤。 提交前复核还发现一个并发窗口：取消请求可能恰好发生在最后一次信号检查之后、COMPLETED 写入之前。修复方式不是再加一次普通检查，而是让最终状态更新携带数据库前置条件；COMPLETED/FAILED 不能覆盖 CANCEL_REQUESTED，只有取消/超时/中断收口可以从非终态转为对应终态。这样把正确性落到原子状态迁移上，而不是依赖线程…"
+    }, {
+      "rank" : 2,
       "fileName" : "01-项目总览与业务目标.md",
       "chunkIndex" : 0,
       "score" : 0.26090845176525457,
       "contentPreview" : "# Agent Studio Desktop：项目总览与业务目标 ## 一句话定位 Agent Studio Desktop 是一个运行在个人电脑上的智能体搭建与调试工具。用户不需要修改 Java 代码，就能配置 OpenAI 兼容模型、系统提示词和知识库，发布一个固定版本的 Agent，并在本地网页中流式对话、查看检索来源。 它不是公网 SaaS，也不是高并发多租户平台。产品的核心价值是让“模型连接、提示词、知识和版本”变成可配置资产，同时让本地开发环境简单、过程可观察、结…"
     }, {
-      "rank" : 2,
+      "rank" : 3,
       "fileName" : "10-面试讲述与追问准备.md",
       "chunkIndex" : 0,
       "score" : 0.259912523627633,
       "contentPreview" : "# Agent Studio Desktop：面试讲述与追问准备 ## 90 秒项目介绍 我主导做了一个单机优先的智能体搭建工具 Agent Studio Desktop，目标是让用户不改 Java 代码，就能配置 OpenAI 兼容模型、提示词和知识库，发布固定版本的 Agent，并在网页上做流式问答和查看引用来源。后端采用 Java 21 和 Spring Boot 模块化单体，前端是 React + TypeScript，MySQL 保存业务配置，PostgreSQL …"
     }, {
-      "rank" : 3,
+      "rank" : 4,
       "fileName" : "10-面试讲述与追问准备.md",
       "chunkIndex" : 3,
       "score" : 0.2572721074253712,
       "contentPreview" : "职责清晰，但跨存储一致性需要后续补偿机制。 问：词法哈希算 embedding 吗？答：它产生固定维度、可做向量距离的数值表示，但不是训练得到的语义 embedding。它是零依赖检索基线，不能夸大语义能力。 问：为什么换了 Qwen 还不把无答案阈值调高？答：阈值扫描显示误召回下降时 Recall 也明显下降，正负样本分数重叠。固定阈值不是充分的相关性判别，需要独立开发集、分数间隔、rerank 或回答阶段证据判断。 问：为什么 Qwen 没有默认加检索 instructi…"
-    }, {
-      "rank" : 4,
-      "fileName" : "06-开发过程与提交时间线.md",
-      "chunkIndex" : 3,
-      "score" : 0.2525523067945462,
-      "contentPreview" : "可安全重放的检查点。自动化测试增至 17 个，覆盖阻塞模型调用的主动取消、总超时、terminated SSE、历史摘要和终止步骤。 提交前复核还发现一个并发窗口：取消请求可能恰好发生在最后一次信号检查之后、COMPLETED 写入之前。修复方式不是再加一次普通检查，而是让最终状态更新携带数据库前置条件；COMPLETED/FAILED 不能覆盖 CANCEL_REQUESTED，只有取消/超时/中断收口可以从非终态转为对应终态。这样把正确性落到原子状态迁移上，而不是依赖线程…"
     }, {
       "rank" : 5,
       "fileName" : "03-数据模型与不可变版本.md",
@@ -909,7 +909,7 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.1657,
+    "latencyMs" : 0.1121,
     "returnedSources" : [ "04-模型调用与SSE流式对话.md", "05-RAG全链路与检索算法.md", "06-开发过程与提交时间线.md", "03-数据模型与不可变版本.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -952,7 +952,7 @@
     "firstRelevantRank" : 2,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.1363,
+    "latencyMs" : 0.0949,
     "returnedSources" : [ "07-真实故障与排查复盘.md", "10-面试讲述与追问准备.md", "06-开发过程与提交时间线.md", "02-架构设计与技术选型.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -995,7 +995,7 @@
     "firstRelevantRank" : 2,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.1378,
+    "latencyMs" : 0.1005,
     "returnedSources" : [ "10-面试讲述与追问准备.md", "06-开发过程与提交时间线.md", "07-真实故障与排查复盘.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -1007,7 +1007,7 @@
       "rank" : 2,
       "fileName" : "06-开发过程与提交时间线.md",
       "chunkIndex" : 3,
-      "score" : 0.31288640402802076,
+      "score" : 0.3351753287756666,
       "contentPreview" : "可安全重放的检查点。自动化测试增至 17 个，覆盖阻塞模型调用的主动取消、总超时、terminated SSE、历史摘要和终止步骤。 提交前复核还发现一个并发窗口：取消请求可能恰好发生在最后一次信号检查之后、COMPLETED 写入之前。修复方式不是再加一次普通检查，而是让最终状态更新携带数据库前置条件；COMPLETED/FAILED 不能覆盖 CANCEL_REQUESTED，只有取消/超时/中断收口可以从非终态转为对应终态。这样把正确性落到原子状态迁移上，而不是依赖线程…"
     }, {
       "rank" : 3,
@@ -1038,7 +1038,7 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.151,
+    "latencyMs" : 0.1022,
     "returnedSources" : [ "10-面试讲述与追问准备.md", "01-项目总览与业务目标.md", "06-开发过程与提交时间线.md", "07-真实故障与排查复盘.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -1081,7 +1081,7 @@
     "firstRelevantRank" : 0,
     "hitAt5" : false,
     "falsePositive" : false,
-    "latencyMs" : 0.1222,
+    "latencyMs" : 0.1025,
     "returnedSources" : [ "00-入库说明与事实口径.md", "10-面试讲述与追问准备.md", "06-开发过程与提交时间线.md", "02-架构设计与技术选型.md", "01-项目总览与业务目标.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -1124,7 +1124,7 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.1478,
+    "latencyMs" : 0.1188,
     "returnedSources" : [ "09-安全边界局限与路线图.md", "05-RAG全链路与检索算法.md", "00-入库说明与事实口径.md", "07-真实故障与排查复盘.md", "10-面试讲述与追问准备.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -1167,7 +1167,7 @@
     "firstRelevantRank" : 0,
     "hitAt5" : false,
     "falsePositive" : false,
-    "latencyMs" : 0.1904,
+    "latencyMs" : 0.0951,
     "returnedSources" : [ "06-开发过程与提交时间线.md", "10-面试讲述与追问准备.md", "08-测试策略与验收证据.md", "04-模型调用与SSE流式对话.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -1185,8 +1185,8 @@
       "rank" : 3,
       "fileName" : "08-测试策略与验收证据.md",
       "chunkIndex" : 1,
-      "score" : 0.25237059074996,
-      "contentPreview" : "SQL 和 pgvector 行为通过独立验收补足，不能只依赖 H2。 ## 前端验证 前端运行 `npm run build`，该命令先执行 TypeScript project build，再执行 Vite 生产构建。最终构建成功。浏览器冒烟检查确认四个导航入口、知识库创建表单、上传控件、Agent Builder 和对话测试台正常渲染。 ## 真实环境验证 Docker Desktop 中 MySQL 为 23306，pgvector 为 15432，二者均 healt…"
+      "score" : 0.2547417377337626,
+      "contentPreview" : "SQL 和 pgvector 行为通过独立验收补足，不能只依赖 H2。 ## 前端验证 前端运行 `npm run build`，该命令先执行 TypeScript project build，再执行 Vite 生产构建。最终构建成功。浏览器冒烟检查确认五个导航入口、知识库创建表单、上传控件、Agent Builder、对话测试台和运行记录正常渲染。 ## 真实环境验证 Docker Desktop 中 MySQL 为 23306，pgvector 为 15432，二者均 h…"
     }, {
       "rank" : 4,
       "fileName" : "06-开发过程与提交时间线.md",
@@ -1210,7 +1210,7 @@
     "firstRelevantRank" : 1,
     "hitAt5" : true,
     "falsePositive" : false,
-    "latencyMs" : 0.1664,
+    "latencyMs" : 0.0872,
     "returnedSources" : [ "00-入库说明与事实口径.md", "07-真实故障与排查复盘.md", "10-面试讲述与追问准备.md", "06-开发过程与提交时间线.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -1253,7 +1253,7 @@
     "firstRelevantRank" : 0,
     "hitAt5" : false,
     "falsePositive" : true,
-    "latencyMs" : 0.1349,
+    "latencyMs" : 0.09,
     "returnedSources" : [ "01-项目总览与业务目标.md", "09-安全边界局限与路线图.md", "03-数据模型与不可变版本.md", "00-入库说明与事实口径.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -1296,7 +1296,7 @@
     "firstRelevantRank" : 0,
     "hitAt5" : false,
     "falsePositive" : true,
-    "latencyMs" : 0.1472,
+    "latencyMs" : 0.1065,
     "returnedSources" : [ "09-安全边界局限与路线图.md", "05-RAG全链路与检索算法.md", "00-入库说明与事实口径.md", "08-测试策略与验收证据.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -1326,8 +1326,8 @@
       "rank" : 5,
       "fileName" : "08-测试策略与验收证据.md",
       "chunkIndex" : 1,
-      "score" : 0.2340294183327709,
-      "contentPreview" : "SQL 和 pgvector 行为通过独立验收补足，不能只依赖 H2。 ## 前端验证 前端运行 `npm run build`，该命令先执行 TypeScript project build，再执行 Vite 生产构建。最终构建成功。浏览器冒烟检查确认四个导航入口、知识库创建表单、上传控件、Agent Builder 和对话测试台正常渲染。 ## 真实环境验证 Docker Desktop 中 MySQL 为 23306，pgvector 为 15432，二者均 healt…"
+      "score" : 0.23342890461700205,
+      "contentPreview" : "SQL 和 pgvector 行为通过独立验收补足，不能只依赖 H2。 ## 前端验证 前端运行 `npm run build`，该命令先执行 TypeScript project build，再执行 Vite 生产构建。最终构建成功。浏览器冒烟检查确认五个导航入口、知识库创建表单、上传控件、Agent Builder、对话测试台和运行记录正常渲染。 ## 真实环境验证 Docker Desktop 中 MySQL 为 23306，pgvector 为 15432，二者均 h…"
     } ]
   }, {
     "id" : "rag-027",
@@ -1339,8 +1339,8 @@
     "firstRelevantRank" : 0,
     "hitAt5" : false,
     "falsePositive" : true,
-    "latencyMs" : 0.1319,
-    "returnedSources" : [ "10-面试讲述与追问准备.md", "05-RAG全链路与检索算法.md", "08-测试策略与验收证据.md", "06-开发过程与提交时间线.md", "03-数据模型与不可变版本.md" ],
+    "latencyMs" : 0.0939,
+    "returnedSources" : [ "10-面试讲述与追问准备.md", "05-RAG全链路与检索算法.md", "06-开发过程与提交时间线.md", "08-测试策略与验收证据.md", "03-数据模型与不可变版本.md" ],
     "hits" : [ {
       "rank" : 1,
       "fileName" : "10-面试讲述与追问准备.md",
@@ -1355,16 +1355,16 @@
       "contentPreview" : "# Agent Studio Desktop：RAG 全链路与检索算法 ## 上传和元数据 用户在前端选择知识库并上传文档，单文件上限 20 MB。后端先校验知识库和非空文件，清理文件名，读取字节，计算 SHA-256，然后把文件写入 `data/knowledge/{knowledgeBaseId}/{documentId}.{extension}`。所有路径都会归一化并检查必须位于 dataRoot 下，防止路径越界。 MySQL 文档记录最初是 PROCESSING。解…"
     }, {
       "rank" : 3,
-      "fileName" : "08-测试策略与验收证据.md",
-      "chunkIndex" : 1,
-      "score" : 0.29795494332851746,
-      "contentPreview" : "SQL 和 pgvector 行为通过独立验收补足，不能只依赖 H2。 ## 前端验证 前端运行 `npm run build`，该命令先执行 TypeScript project build，再执行 Vite 生产构建。最终构建成功。浏览器冒烟检查确认四个导航入口、知识库创建表单、上传控件、Agent Builder 和对话测试台正常渲染。 ## 真实环境验证 Docker Desktop 中 MySQL 为 23306，pgvector 为 15432，二者均 healt…"
-    }, {
-      "rank" : 4,
       "fileName" : "06-开发过程与提交时间线.md",
       "chunkIndex" : 0,
       "score" : 0.29196515810614554,
       "contentPreview" : "# Agent Studio Desktop：开发过程与提交时间线 ## 阶段 0：独立工程基线 第一个提交是 `de8dd90 chore: establish agent studio desktop baseline`。这一阶段建立独立 Git 仓库、Spring Boot 单体、React + TypeScript + Vite 前端、Docker Compose、健康检查、README、架构决策和来源边界记录。 实际环境确认 Maven 使用 Java 21.0.4…"
+    }, {
+      "rank" : 4,
+      "fileName" : "08-测试策略与验收证据.md",
+      "chunkIndex" : 1,
+      "score" : 0.2916575954536439,
+      "contentPreview" : "SQL 和 pgvector 行为通过独立验收补足，不能只依赖 H2。 ## 前端验证 前端运行 `npm run build`，该命令先执行 TypeScript project build，再执行 Vite 生产构建。最终构建成功。浏览器冒烟检查确认五个导航入口、知识库创建表单、上传控件、Agent Builder、对话测试台和运行记录正常渲染。 ## 真实环境验证 Docker Desktop 中 MySQL 为 23306，pgvector 为 15432，二者均 h…"
     }, {
       "rank" : 5,
       "fileName" : "03-数据模型与不可变版本.md",
@@ -1382,7 +1382,7 @@
     "firstRelevantRank" : 0,
     "hitAt5" : false,
     "falsePositive" : true,
-    "latencyMs" : 0.1447,
+    "latencyMs" : 0.0867,
     "returnedSources" : [ "00-入库说明与事实口径.md", "01-项目总览与业务目标.md", "02-架构设计与技术选型.md", "06-开发过程与提交时间线.md", "09-安全边界局限与路线图.md" ],
     "hits" : [ {
       "rank" : 1,
@@ -1425,8 +1425,8 @@
     "firstRelevantRank" : 0,
     "hitAt5" : false,
     "falsePositive" : true,
-    "latencyMs" : 0.1746,
-    "returnedSources" : [ "01-项目总览与业务目标.md", "05-RAG全链路与检索算法.md", "06-开发过程与提交时间线.md", "07-真实故障与排查复盘.md" ],
+    "latencyMs" : 0.1355,
+    "returnedSources" : [ "01-项目总览与业务目标.md", "05-RAG全链路与检索算法.md", "07-真实故障与排查复盘.md", "06-开发过程与提交时间线.md" ],
     "hits" : [ {
       "rank" : 1,
       "fileName" : "01-项目总览与业务目标.md",
@@ -1441,22 +1441,22 @@
       "contentPreview" : "# Agent Studio Desktop：RAG 全链路与检索算法 ## 上传和元数据 用户在前端选择知识库并上传文档，单文件上限 20 MB。后端先校验知识库和非空文件，清理文件名，读取字节，计算 SHA-256，然后把文件写入 `data/knowledge/{knowledgeBaseId}/{documentId}.{extension}`。所有路径都会归一化并检查必须位于 dataRoot 下，防止路径越界。 MySQL 文档记录最初是 PROCESSING。解…"
     }, {
       "rank" : 3,
-      "fileName" : "06-开发过程与提交时间线.md",
-      "chunkIndex" : 3,
-      "score" : 0.41636861688932036,
-      "contentPreview" : "可安全重放的检查点。自动化测试增至 17 个，覆盖阻塞模型调用的主动取消、总超时、terminated SSE、历史摘要和终止步骤。 提交前复核还发现一个并发窗口：取消请求可能恰好发生在最后一次信号检查之后、COMPLETED 写入之前。修复方式不是再加一次普通检查，而是让最终状态更新携带数据库前置条件；COMPLETED/FAILED 不能覆盖 CANCEL_REQUESTED，只有取消/超时/中断收口可以从非终态转为对应终态。这样把正确性落到原子状态迁移上，而不是依赖线程…"
-    }, {
-      "rank" : 4,
       "fileName" : "07-真实故障与排查复盘.md",
       "chunkIndex" : 2,
       "score" : 0.40929745394576283,
       "contentPreview" : "struction-aware 模型的常见建议，为每个问题添加统一中文任务说明。复测后 Recall 没变，但 MRR 降到 0.6917，相关文档更常排在后面。 这不是接口或维度错误，而是提示前缀改变了向量空间中的查询表达。修复是保留 queryInstruction 配置能力但默认置空，并重新运行同一冻结题集，MRR 恢复到 0.8160。知识包扩充后又在新语料上复测，仍采用无前缀方案。经验是 embedding 的 prompt 必须在本领域语料上做消融，而且语料变更后…"
     }, {
-      "rank" : 5,
+      "rank" : 4,
       "fileName" : "05-RAG全链路与检索算法.md",
       "chunkIndex" : 1,
       "score" : 0.4057982835844604,
       "contentPreview" : "1 - cosine distance`。新模型的 0.05 仅保留现有召回行为，不代表有效拒答阈值。 检索结果一方面通过 SSE `sources` 发送给前端，另一方面拼成系统上下文注入模型。这样用户能看到证据，模型也能据此作答。 ## 删除闭环 删除文档时先删除 pgvector 中对应 documentId 的 chunk，再删除 MySQL 文档元数据，最后删除本地文件。验收时确认删除后文档列表为空、本地文件不存在，并且再次提问不再出现 sources；随后重新上传…"
+    }, {
+      "rank" : 5,
+      "fileName" : "06-开发过程与提交时间线.md",
+      "chunkIndex" : 3,
+      "score" : 0.39747091800786627,
+      "contentPreview" : "可安全重放的检查点。自动化测试增至 17 个，覆盖阻塞模型调用的主动取消、总超时、terminated SSE、历史摘要和终止步骤。 提交前复核还发现一个并发窗口：取消请求可能恰好发生在最后一次信号检查之后、COMPLETED 写入之前。修复方式不是再加一次普通检查，而是让最终状态更新携带数据库前置条件；COMPLETED/FAILED 不能覆盖 CANCEL_REQUESTED，只有取消/超时/中断收口可以从非终态转为对应终态。这样把正确性落到原子状态迁移上，而不是依赖线程…"
     } ]
   }, {
     "id" : "rag-030",
@@ -1468,7 +1468,7 @@
     "firstRelevantRank" : 0,
     "hitAt5" : false,
     "falsePositive" : true,
-    "latencyMs" : 0.1265,
+    "latencyMs" : 0.1374,
     "returnedSources" : [ "09-安全边界局限与路线图.md", "07-真实故障与排查复盘.md", "00-入库说明与事实口径.md", "01-项目总览与业务目标.md" ],
     "hits" : [ {
       "rank" : 1,
