@@ -53,17 +53,53 @@ public class RunRepository {
         return step;
     }
 
-    public void finish(String runId, String status, String errorMessage) {
-        jdbc.update("""
+    public boolean finish(String runId, String status, String errorMessage) {
+        var termination = switch (status) {
+            case "CANCELLED", "TIMED_OUT", "INTERRUPTED" -> true;
+            default -> false;
+        };
+        var guard = termination
+                ? "status NOT IN ('CANCELLED', 'TIMED_OUT', 'INTERRUPTED', 'COMPLETED', 'FAILED')"
+                : "status NOT IN ('CANCEL_REQUESTED', 'CANCELLED', 'TIMED_OUT', 'INTERRUPTED', 'COMPLETED', 'FAILED')";
+        return jdbc.update("""
                 UPDATE agent_run SET status = :status, completed_at = :completedAt, error_message = :errorMessage
-                WHERE id = :id
-                """, new MapSqlParameterSource().addValue("id", runId).addValue("status", status)
-                .addValue("completedAt", Timestamp.from(Instant.now())).addValue("errorMessage", errorMessage));
+                WHERE id = :id AND %s
+                """.formatted(guard), new MapSqlParameterSource().addValue("id", runId).addValue("status", status)
+                .addValue("completedAt", Timestamp.from(Instant.now())).addValue("errorMessage", errorMessage)) == 1;
     }
 
     public void updateStatus(String runId, String status) {
-        jdbc.update("UPDATE agent_run SET status = :status WHERE id = :id",
+        jdbc.update("""
+                UPDATE agent_run SET status = :status WHERE id = :id
+                AND status NOT IN ('CANCEL_REQUESTED', 'CANCELLED', 'TIMED_OUT', 'INTERRUPTED', 'COMPLETED', 'FAILED')
+                """,
                 Map.of("id", runId, "status", status));
+    }
+
+    public boolean requestCancellation(String runId) {
+        return jdbc.update("""
+                UPDATE agent_run SET status='CANCEL_REQUESTED'
+                WHERE id=:id AND status NOT IN ('CANCELLED', 'TIMED_OUT', 'INTERRUPTED', 'COMPLETED', 'FAILED')
+                """, Map.of("id", runId)) == 1;
+    }
+
+    public int interruptUnfinished(String reason) {
+        return jdbc.update("""
+                UPDATE agent_run SET status='INTERRUPTED', completed_at=:completedAt, error_message=:reason
+                WHERE status NOT IN ('CANCELLED', 'TIMED_OUT', 'INTERRUPTED', 'COMPLETED', 'FAILED')
+                """, new MapSqlParameterSource().addValue("completedAt", Timestamp.from(Instant.now()))
+                .addValue("reason", reason));
+    }
+
+    public List<RunSummary> list(int limit) {
+        return jdbc.query("""
+                SELECT r.*, (SELECT COUNT(*) FROM run_step s WHERE s.run_id=r.id) AS step_count
+                FROM agent_run r ORDER BY r.started_at DESC LIMIT :limit
+                """, Map.of("limit", Math.max(1, Math.min(limit, 100))), (rs, row) ->
+                new RunSummary(rs.getString("id"), rs.getString("conversation_id"),
+                        rs.getString("agent_version_id"), rs.getString("status"),
+                        rs.getTimestamp("started_at").toInstant(), instant(rs, "completed_at"),
+                        rs.getString("error_message"), rs.getInt("step_count")));
     }
 
     public Optional<AgentRun> find(String runId) {

@@ -1,6 +1,7 @@
 package com.agentstudio.conversation;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Map;
 
@@ -13,6 +14,8 @@ import com.agentstudio.knowledge.KnowledgeRetriever;
 import com.agentstudio.knowledge.RagSource;
 import com.agentstudio.system.ApiException;
 import com.agentstudio.runtime.RunRepository;
+import com.agentstudio.runtime.RunControlService;
+import com.agentstudio.runtime.RunTerminatedException;
 import com.agentstudio.runtime.RunStep;
 import com.agentstudio.tool.ToolRegistry;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -33,15 +36,18 @@ public class ChatService {
     private final RunRepository runs;
     private final ToolRegistry tools;
     private final ApprovalService approvals;
+    private final RunControlService controls;
+    private final Duration totalTimeout;
     private final int maxRounds;
     private final int maxCallsPerRound;
 
     public ChatService(AgentService agents, ConversationRepository conversations,
                        StreamingModelGateway modelGateway, KnowledgeRetriever knowledgeRetriever,
                        @Qualifier("chatTaskExecutor") TaskExecutor taskExecutor,
-                       RunRepository runs, ToolRegistry tools, ApprovalService approvals,
+                       RunRepository runs, ToolRegistry tools, ApprovalService approvals, RunControlService controls,
                        @Value("${agent-studio.runtime.max-tool-rounds:4}") int maxRounds,
-                       @Value("${agent-studio.runtime.max-tool-calls-per-round:4}") int maxCallsPerRound) {
+                       @Value("${agent-studio.runtime.max-tool-calls-per-round:4}") int maxCallsPerRound,
+                       @Value("${agent-studio.runtime.total-timeout:120s}") Duration totalTimeout) {
         this.agents = agents;
         this.conversations = conversations;
         this.modelGateway = modelGateway;
@@ -50,8 +56,13 @@ public class ChatService {
         this.runs = runs;
         this.tools = tools;
         this.approvals = approvals;
+        this.controls = controls;
         this.maxRounds = maxRounds;
         this.maxCallsPerRound = maxCallsPerRound;
+        if (totalTimeout.isZero() || totalTimeout.isNegative()) {
+            throw new IllegalArgumentException("运行总超时必须大于 0");
+        }
+        this.totalTimeout = totalTimeout;
     }
 
     public SseEmitter stream(ChatStreamRequest request) {
@@ -59,7 +70,7 @@ public class ChatService {
         var conversationId = resolveConversation(request.conversationId(), version.id());
         conversations.addMessage(conversationId, "user", request.message().trim());
 
-        var emitter = new SseEmitter(120_000L);
+        var emitter = new SseEmitter(totalTimeout.plusSeconds(10).toMillis());
         taskExecutor.execute(() -> executeStream(emitter, conversationId, version));
         return emitter;
     }
@@ -80,16 +91,19 @@ public class ChatService {
                                com.agentstudio.agent.AgentVersion version) {
         var answer = new StringBuilder();
         var run = runs.start(conversationId, version.id());
+        controls.register(run.id(), Thread.currentThread(), totalTimeout);
         try {
             send(emitter, "run", Map.of(
                     "runId", run.id(),
                     "conversationId", conversationId,
                     "agentVersionId", version.id(),
                     "versionNumber", version.versionNumber()));
+            controls.check(run.id());
             var modelMessages = new ArrayList<ModelMessage>();
             modelMessages.add(new ModelMessage("system", version.systemPrompt()));
             var sources = knowledgeRetriever.retrieve(version.knowledgeBaseId(),
                     conversations.messages(conversationId).getLast().content());
+            controls.check(run.id());
             if (!sources.isEmpty()) {
                 send(emitter, "sources", Map.of("items", sources));
                 modelMessages.add(new ModelMessage("system", knowledgeContext(sources)));
@@ -98,6 +112,7 @@ public class ChatService {
             if (version.toolNames().isEmpty()) {
                 runs.updateStatus(run.id(), "THINKING");
                 modelGateway.stream(version, modelMessages, delta -> {
+                    controls.check(run.id());
                     answer.append(delta);
                     sendUnchecked(emitter, "delta", Map.of("content", delta));
                 });
@@ -106,18 +121,38 @@ public class ChatService {
             } else {
                 executeReAct(emitter, run.id(), version, modelMessages, answer);
             }
+            controls.check(run.id());
+            if (!runs.finish(run.id(), "COMPLETED", null)) {
+                controls.check(run.id());
+                throw new IllegalStateException("运行状态已在完成前发生变化");
+            }
             conversations.addMessage(conversationId, "assistant", answer.toString());
-            runs.finish(run.id(), "COMPLETED", null);
             send(emitter, "done", Map.of("conversationId", conversationId));
             emitter.complete();
         } catch (Exception exception) {
-            runs.finish(run.id(), "FAILED", truncate(safeMessage(exception)));
+            var termination = exception instanceof RunTerminatedException terminated
+                    ? terminated.termination() : controls.termination(run.id());
+            if (termination != null) {
+                approvals.cancelPending(run.id(), termination.reason());
+                runs.addStep(run.id(), "RUN_TERMINATION", termination.status(), null, null,
+                        null, truncate(termination.reason()), null);
+                runs.finish(run.id(), termination.status(), truncate(termination.reason()));
+            } else {
+                runs.finish(run.id(), "FAILED", truncate(safeMessage(exception)));
+            }
             try {
-                send(emitter, "error", Map.of("message", safeMessage(exception)));
+                if (termination == null) {
+                    send(emitter, "error", Map.of("message", safeMessage(exception)));
+                } else {
+                    send(emitter, "terminated", Map.of(
+                            "runId", run.id(), "status", termination.status(), "message", termination.reason()));
+                }
                 emitter.complete();
             } catch (IOException ignored) {
                 emitter.completeWithError(exception);
             }
+        } finally {
+            controls.unregister(run.id());
         }
     }
 
@@ -129,8 +164,10 @@ public class ChatService {
         sourceMessages.forEach(message -> messages.add(ReActMessage.text(message.role(), message.content())));
         var descriptors = tools.descriptors(version.toolNames());
         for (int round = 1; round <= maxRounds; round++) {
+            controls.check(runId);
             runs.updateStatus(runId, "THINKING");
             var turn = modelGateway.complete(version, messages, descriptors);
+            controls.check(runId);
             emitStep(emitter, runs.addStep(runId, "MODEL_CALL",
                     turn.toolCalls().isEmpty() ? "COMPLETED" : "TOOL_REQUESTED",
                     null, null, null, truncate(turn.content()), null));
@@ -147,6 +184,7 @@ public class ChatService {
             }
             messages.add(ReActMessage.assistant(turn));
             for (var call : turn.toolCalls()) {
+                controls.check(runId);
                 if (!version.toolNames().contains(call.name())) {
                     throw new IllegalStateException("模型请求了未绑定工具：" + call.name());
                 }
@@ -160,6 +198,7 @@ public class ChatService {
                     runs.updateStatus(runId, "WAITING_APPROVAL");
                     send(emitter, "approval_required", approval);
                     var outcome = approvals.await(approval);
+                    controls.check(runId);
                     emitStep(emitter, runs.addStep(runId, "APPROVAL_RESULT", outcome.status(), call.id(),
                             call.name(), null, truncate(outcome.reason()), null));
                     if (!outcome.approved()) {
@@ -179,6 +218,7 @@ public class ChatService {
                     messages.add(ReActMessage.observation(call.id(), output));
                     runs.updateStatus(runId, "OBSERVING");
                 } catch (Exception exception) {
+                    controls.check(runId);
                     var failure = "工具执行失败：" + safeMessage(exception);
                     emitStep(emitter, runs.addStep(runId, "TOOL_RESULT", "FAILED", call.id(),
                             call.name(), null, truncate(failure), null));

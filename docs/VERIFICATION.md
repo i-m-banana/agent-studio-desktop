@@ -163,9 +163,30 @@
 
 当前限制：等待中的运行不能跨应用重启恢复，尚无登录/RBAC、审批人身份、主动取消、SSH、MCP 或通用命令执行。
 
+用户人工验收补充：拒绝 `approval-reject-test.md` 后未执行写入；批准 `approval-accept-test.md` 后文件创建成功，真实审批双分支通过。
+
 知识包最终同步回归：
 
 - 更新后的 00–10 为 11 份文档、27 个 chunk，SHA-256 `e3338b860bd32c6bd6891c2ff981a81f3f1cba0446b22af153a0ea4c7a479ccb`；
 - Qwen Recall@5 100%、MRR 0.8854、改写题 MRR 0.8958、p95 245.068 ms；
 - 同语料 LocalHash Recall@5 87.50%、MRR 0.6632、改写题 MRR 0.5903；
 - 两者无答案误召回率仍为 100%，审批材料扩充没有改变既有拒答短板。
+
+## 阶段 7：运行取消、总时限与历史详情（2026-09-05）
+
+- 新增 RunControlService，以 runId 绑定执行线程和默认 120 秒截止时间；配置项为 `AGENT_RUN_TIMEOUT`；
+- `POST /api/runs/{id}/cancel` 先持久化 CANCEL_REQUESTED，再中断执行线程；最终区分 CANCELLED 与 TIMED_OUT；
+- 模型流、ReAct、审批等待和工具失败边界均检查终止信号，终止写入 RUN_TERMINATION 并发送 `terminated` SSE；
+- `GET /api/runs` 返回最近运行摘要，`GET /api/runs/{id}` 返回完整步骤；前端新增停止按钮和运行记录页面；
+- 应用启动时把旧进程遗留的非终态运行关闭为 INTERRUPTED、待决审批改为 EXPIRED；这是状态收口，不是断点续跑；
+- 后端 17 个测试通过，其中阻塞模型测试覆盖主动取消、300 ms 总超时、历史摘要和终止步骤；前端生产构建通过。
+- 提交前并发复核补上最终状态的条件更新，防止 `COMPLETED`/`FAILED` 在取消竞态中覆盖 `CANCEL_REQUESTED`；完整 17 测试与前端构建再次通过。
+
+当前限制：Java 中断是协作式取消；第三方工具仍需提供自己的取消能力。系统按单实例设计，多实例共享数据库前需要实例租约。客户端直接断开还不会自动提交取消，应用重启也不会从 RunStep 继续。
+
+知识包同步回归：
+
+- 00–10 扩充为 11 份文档、31 个 chunk，SHA-256 `21c1e28952098038520784d0fff71c734052abee0e2457e4aa92f53e1e023442`；
+- Qwen Recall@5 100%、MRR 0.7674、改写题 MRR 0.7014、p95 255.336 ms；
+- LocalHash Recall@5 83.33%、MRR 0.6958；两者无答案误召回率仍为 100%；
+- 语料增长后 Qwen MRR 低于上一版 0.8854，已如实记录为结构化切块与 rerank 的后续输入，没有用旧语料指标覆盖。

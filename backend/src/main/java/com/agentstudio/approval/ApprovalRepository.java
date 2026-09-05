@@ -5,6 +5,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Map;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -49,6 +50,15 @@ public class ApprovalRepository {
                 UPDATE approval_request SET status='CONSUMED'
                 WHERE id=:id AND status='APPROVED' AND arguments_sha256=:argumentsSha256
                 """, Map.of("id", id, "argumentsSha256", argumentsSha256)) == 1;
+    }
+
+    public List<ApprovalRequest> findAllPending() {
+        return jdbc.query("SELECT * FROM approval_request WHERE status='PENDING'", ApprovalRepository::map);
+    }
+
+    public List<ApprovalRequest> findPendingByRun(String runId) {
+        return jdbc.query("SELECT * FROM approval_request WHERE run_id=:runId AND status='PENDING'",
+                Map.of("runId", runId), ApprovalRepository::map);
     }
 
     private MapSqlParameterSource parameters(ApprovalRequest request) {

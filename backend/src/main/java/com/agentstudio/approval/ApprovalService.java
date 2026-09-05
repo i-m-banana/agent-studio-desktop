@@ -78,6 +78,19 @@ public class ApprovalService {
         return repository.find(id).orElseThrow();
     }
 
+    public void cancelPending(String runId, String reason) {
+        repository.findPendingByRun(runId).forEach(request -> {
+            if (repository.decide(request.id(), "CANCELLED", reason, Instant.now())) {
+                complete(request.id(), new ApprovalOutcome("CANCELLED", reason));
+            }
+        });
+    }
+
+    public void expireAllPending(String reason) {
+        repository.findAllPending().forEach(request ->
+                repository.decide(request.id(), "EXPIRED", reason, Instant.now()));
+    }
+
     private void complete(String id, ApprovalOutcome outcome) {
         var waiter = waiters.get(id);
         if (waiter != null) waiter.complete(outcome);

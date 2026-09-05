@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react'
 
 type BackendState = 'checking' | 'online' | 'offline'
-type View = 'models' | 'knowledge' | 'agents' | 'chat'
+type View = 'models' | 'knowledge' | 'agents' | 'chat' | 'runs'
 type ModelProfile = { id: string; name: string; provider: string; baseUrl: string; modelName: string; apiKeyEnv: string; temperature: number }
 type KnowledgeBase = { id: string; name: string; description: string }
 type KnowledgeDocument = { id: string; fileName: string; fileSize: number; status: string; chunkCount: number; errorMessage?: string }
@@ -13,6 +13,8 @@ type AgentVersion = { id: string; agentDefinitionId: string; versionNumber: numb
 type ChatMessage = { role: 'user' | 'assistant'; content: string }
 type RunStep = { id: string; stepNumber: number; stepType: string; status: string; toolName?: string; inputJson?: string; outputText?: string; durationMs?: number }
 type ApprovalRequest = { id: string; toolName: string; argumentsJson: string; argumentsSha256: string; status: string; expiresAt: string }
+type RunSummary = { id: string; conversationId: string; agentVersionId: string; status: string; startedAt: string; completedAt?: string; errorMessage?: string; stepCount: number }
+type AgentRun = Omit<RunSummary, 'stepCount'> & { steps: RunStep[] }
 
 const emptyModel = { name: '', provider: 'OPENAI_COMPATIBLE', baseUrl: 'https://api.openai.com/v1', modelName: '', apiKeyEnv: 'OPENAI_API_KEY', temperature: 0.7 }
 const emptyAgent = { name: '', description: '', modelProfileId: '', knowledgeBaseId: '', systemPrompt: '', toolNames: [] as string[] }
@@ -48,6 +50,10 @@ function App() {
   const [runSteps, setRunSteps] = useState<RunStep[]>([])
   const [pendingApproval, setPendingApproval] = useState<ApprovalRequest>()
   const [approvalBusy, setApprovalBusy] = useState(false)
+  const [currentRunId, setCurrentRunId] = useState<string>()
+  const [cancelBusy, setCancelBusy] = useState(false)
+  const [runHistory, setRunHistory] = useState<RunSummary[]>([])
+  const [selectedRun, setSelectedRun] = useState<AgentRun>()
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState('')
 
@@ -58,9 +64,9 @@ function App() {
 
   async function refresh() {
     try {
-      const [nextModels, nextAgents, nextBases, nextTools] = await Promise.all([api<ModelProfile[]>('/api/models'), api<AgentDefinition[]>('/api/agents'), api<KnowledgeBase[]>('/api/knowledge-bases'), api<ToolDefinition[]>('/api/tools')])
+      const [nextModels, nextAgents, nextBases, nextTools, nextRuns] = await Promise.all([api<ModelProfile[]>('/api/models'), api<AgentDefinition[]>('/api/agents'), api<KnowledgeBase[]>('/api/knowledge-bases'), api<ToolDefinition[]>('/api/tools'), api<RunSummary[]>('/api/runs?limit=50')])
       const groups = await Promise.all(nextAgents.map((agent) => api<AgentVersion[]>(`/api/agents/${agent.id}/versions`)))
-      setModels(nextModels); setAgents(nextAgents); setVersions(groups.flat()); setKnowledgeBases(nextBases); setTools(nextTools); setBackendState('online')
+      setModels(nextModels); setAgents(nextAgents); setVersions(groups.flat()); setKnowledgeBases(nextBases); setTools(nextTools); setRunHistory(nextRuns); setBackendState('online')
       const baseId = selectedKnowledgeBase || nextBases[0]?.id || ''
       setSelectedKnowledgeBase(baseId)
       setDocuments(baseId ? await api<KnowledgeDocument[]>(`/api/knowledge-bases/${baseId}/documents`) : [])
@@ -166,7 +172,7 @@ function App() {
     event.preventDefault()
     const input = chatInput.trim()
     if (!input || !selectedVersion || busy) return
-    setChatInput(''); setMessages((current) => [...current, { role: 'user', content: input }, { role: 'assistant', content: '' }]); setSources([]); setRunSteps([]); setPendingApproval(undefined); setBusy(true); setNotice('')
+    setChatInput(''); setMessages((current) => [...current, { role: 'user', content: input }, { role: 'assistant', content: '' }]); setSources([]); setRunSteps([]); setPendingApproval(undefined); setCurrentRunId(undefined); setBusy(true); setNotice('')
     try {
       const response = await fetch('/api/chat/stream', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' }, body: JSON.stringify({ agentVersionId: selectedVersion, conversationId, message: input }) })
       if (!response.ok || !response.body) {
@@ -174,17 +180,41 @@ function App() {
         throw new Error(body.message ?? '无法建立流式连接')
       }
       await readSse(response.body, (eventName, data) => {
-        if (eventName === 'run') setConversationId(String(data.conversationId))
+        if (eventName === 'run') { setConversationId(String(data.conversationId)); setCurrentRunId(String(data.runId)) }
         if (eventName === 'sources') setSources((data.items as RagSource[]) ?? [])
         if (eventName === 'step') setRunSteps((current) => [...current, data as RunStep])
         if (eventName === 'approval_required') setPendingApproval(data as ApprovalRequest)
         if (eventName === 'delta') setMessages((current) => current.map((message, index) => index === current.length - 1 ? { ...message, content: message.content + String(data.content ?? '') } : message))
+        if (eventName === 'terminated') {
+          const text = String(data.message ?? '运行已停止')
+          setMessages((current) => current.map((message, index) => index === current.length - 1 && !message.content ? { ...message, content: text } : message))
+          setNotice(`${String(data.status)}：${text}`)
+        }
         if (eventName === 'error') throw new Error(String(data.message ?? '模型调用失败'))
       })
     } catch (error) {
       const text = error instanceof Error ? error.message : '模型调用失败'
       setMessages((current) => current.map((message, index) => index === current.length - 1 && !message.content ? { ...message, content: `调用失败：${text}` } : message)); setNotice(text)
-    } finally { setBusy(false); setPendingApproval(undefined) }
+    } finally {
+      setBusy(false); setPendingApproval(undefined); setCurrentRunId(undefined)
+      api<RunSummary[]>('/api/runs?limit=50').then(setRunHistory).catch(() => undefined)
+    }
+  }
+
+  async function cancelCurrentRun() {
+    if (!currentRunId || cancelBusy) return
+    setCancelBusy(true)
+    try {
+      await api<AgentRun>(`/api/runs/${currentRunId}/cancel`, { method: 'POST', body: '{}' })
+      setNotice('取消请求已提交，正在停止模型或工具调用。')
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : '取消运行失败')
+    } finally { setCancelBusy(false) }
+  }
+
+  async function openRun(id: string) {
+    try { setSelectedRun(await api<AgentRun>(`/api/runs/${id}`)) }
+    catch (error) { setNotice(error instanceof Error ? error.message : '读取运行详情失败') }
   }
 
   async function decideApproval(approved: boolean) {
@@ -209,6 +239,7 @@ function App() {
         <button className={view === 'knowledge' ? 'active' : ''} onClick={() => setView('knowledge')}><span>02</span>知识库</button>
         <button className={view === 'agents' ? 'active' : ''} onClick={() => setView('agents')}><span>03</span>Agent Builder</button>
         <button className={view === 'chat' ? 'active' : ''} onClick={() => setView('chat')}><span>04</span>对话测试台</button>
+        <button className={view === 'runs' ? 'active' : ''} onClick={() => { setView('runs'); void refresh() }}><span>05</span>运行记录</button>
       </nav>
       <div className={`connection connection--${backendState}`}><i />{backendState === 'online' ? '后端已连接' : backendState === 'checking' ? '正在连接' : '后端未连接'}</div>
     </aside>
@@ -258,8 +289,12 @@ function App() {
       {view === 'chat' && <section><PageHeader number="04" title="对话测试台" description="选择已发布版本；绑定知识库的版本会展示本次检索来源。" />
         <div className="chat-toolbar"><label>Agent 版本<select value={selectedVersion} onChange={(e) => switchVersion(e.target.value)}><option value="">选择已发布版本</option>{versionLabels.map((version) => <option key={version.id} value={version.id}>{version.label}</option>)}</select></label><span>{conversationId ? `会话 ${conversationId.slice(0, 8)}` : '新会话'}</span><button className="ghost" onClick={() => { setConversationId(undefined); setMessages([]); setSources([]); setRunSteps([]); setPendingApproval(undefined) }}>清空会话</button></div>
         <div className="chat-panel"><div className="messages">{pendingApproval && <aside className="approval-card"><strong>等待高风险操作审批</strong><p>工具：<code>{pendingApproval.toolName}</code></p><pre>{pendingApproval.argumentsJson}</pre><small>参数摘要：{pendingApproval.argumentsSha256.slice(0, 16)}… · {new Date(pendingApproval.expiresAt).toLocaleTimeString()} 前有效</small><div><button className="danger" disabled={approvalBusy} onClick={() => void decideApproval(false)}>拒绝</button><button className="primary" disabled={approvalBusy} onClick={() => void decideApproval(true)}>批准执行一次</button></div></aside>}{sources.length > 0 && <aside className="sources"><strong>本次检索来源</strong>{sources.map((source) => <details key={`${source.documentId}-${source.chunkIndex}`}><summary>{source.fileName} · chunk {source.chunkIndex} · {Math.round(source.score * 100)}%</summary><p>{source.content}</p></details>)}</aside>}{runSteps.length > 0 && <aside className="run-steps"><strong>运行步骤</strong>{runSteps.map((step) => <details key={step.id} open={step.stepType === 'TOOL_RESULT' || step.stepType.startsWith('APPROVAL')}><summary>#{step.stepNumber} {step.stepType}{step.toolName ? ` · ${step.toolName}` : ''}<span className={`step-status step-status--${step.status.toLowerCase()}`}>{step.status}</span></summary>{step.inputJson && <pre>输入：{step.inputJson}</pre>}{step.outputText && <pre>输出：{step.outputText}</pre>}{step.durationMs != null && <small>{step.durationMs} ms</small>}</details>)}</aside>}{messages.length === 0 ? <Empty text={versions.length ? '选择版本并发送第一条消息' : '请先发布一个 Agent 版本'} /> : messages.map((message, index) => <article className={`message message--${message.role}`} key={index}><span>{message.role === 'user' ? 'YOU' : 'AGENT'}</span><p>{message.content || <i className="typing">正在生成</i>}</p></article>)}</div>
-          <form className="composer" onSubmit={sendMessage}><textarea rows={3} value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder="输入测试问题……" onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); e.currentTarget.form?.requestSubmit() } }} /><button className="primary" disabled={busy || !selectedVersion || !chatInput.trim()}>{busy ? '生成中' : '发送'}</button></form>
+          <form className="composer" onSubmit={sendMessage}><textarea rows={3} value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder="输入测试问题……" onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); e.currentTarget.form?.requestSubmit() } }} /><div className="composer-actions"><button className="primary" disabled={busy || !selectedVersion || !chatInput.trim()}>{busy ? '生成中' : '发送'}</button>{busy && currentRunId && <button className="danger" type="button" disabled={cancelBusy} onClick={() => void cancelCurrentRun()}>{cancelBusy ? '停止中' : '停止运行'}</button>}</div></form>
         </div>
+      </section>}
+      {view === 'runs' && <section><PageHeader number="05" title="运行记录" description="查看每次 AgentRun 的最终状态、耗时、错误和完整步骤。" />
+        <div className="two-column run-history-layout"><div className="panel list-panel"><div className="section-head"><h2>最近运行 <small>{runHistory.length}</small></h2><button className="ghost" onClick={() => void refresh()}>刷新</button></div>{runHistory.length === 0 ? <Empty text="尚无运行记录" /> : runHistory.map((run) => <button className={`run-card ${selectedRun?.id === run.id ? 'active' : ''}`} key={run.id} onClick={() => void openRun(run.id)}><div><strong>{run.id.slice(0, 8)}</strong><span className={`badge badge--${run.status.toLowerCase()}`}>{run.status}</span></div><p>{new Date(run.startedAt).toLocaleString()} · {run.stepCount} 步</p>{run.errorMessage && <small>{run.errorMessage}</small>}</button>)}</div>
+          <div className="panel run-detail">{!selectedRun ? <Empty text="选择一条运行查看完整步骤" /> : <><div className="card-head"><div><strong>运行 {selectedRun.id.slice(0, 8)}</strong><p>会话 {selectedRun.conversationId.slice(0, 8)}</p></div><span className={`badge badge--${selectedRun.status.toLowerCase()}`}>{selectedRun.status}</span></div><dl><div><dt>AgentVersion</dt><dd>{selectedRun.agentVersionId}</dd></div><div><dt>开始</dt><dd>{new Date(selectedRun.startedAt).toLocaleString()}</dd></div>{selectedRun.completedAt && <div><dt>结束</dt><dd>{new Date(selectedRun.completedAt).toLocaleString()}</dd></div>}</dl>{selectedRun.errorMessage && <p className="run-error">{selectedRun.errorMessage}</p>}<aside className="run-steps"><strong>完整步骤</strong>{selectedRun.steps.map((step) => <details key={step.id}><summary>#{step.stepNumber} {step.stepType}{step.toolName ? ` · ${step.toolName}` : ''}<span className={`step-status step-status--${step.status.toLowerCase()}`}>{step.status}</span></summary>{step.inputJson && <pre>输入：{step.inputJson}</pre>}{step.outputText && <pre>输出：{step.outputText}</pre>}{step.durationMs != null && <small>{step.durationMs} ms</small>}</details>)}</aside></>}</div></div>
       </section>}
     </main>
   </div>
