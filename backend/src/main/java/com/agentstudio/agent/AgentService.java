@@ -44,11 +44,13 @@ public class AgentService {
 
     @Transactional
     public AgentDefinition create(AgentDefinitionRequest request) {
+        var name = request.name().trim();
+        validateUniqueName(name, null);
         modelProfiles.get(request.modelProfileId());
         validateKnowledgeBase(request.knowledgeBaseId());
         var toolNames = normalizedTools(request.toolNames());
         var now = Instant.now();
-        var definition = new AgentDefinition(UUID.randomUUID().toString(), request.name().trim(),
+        var definition = new AgentDefinition(UUID.randomUUID().toString(), name,
                 text(request.description()), request.modelProfileId(), request.knowledgeBaseId(), request.systemPrompt().trim(),
                 toolNames, 0, now, now);
         repository.insert(definition);
@@ -59,10 +61,12 @@ public class AgentService {
     @Transactional
     public AgentDefinition update(String id, AgentDefinitionRequest request) {
         var existing = get(id);
+        var name = request.name().trim();
+        validateUniqueName(name, id);
         modelProfiles.get(request.modelProfileId());
         validateKnowledgeBase(request.knowledgeBaseId());
         var toolNames = normalizedTools(request.toolNames());
-        var updated = new AgentDefinition(existing.id(), request.name().trim(), text(request.description()),
+        var updated = new AgentDefinition(existing.id(), name, text(request.description()),
                 request.modelProfileId(), request.knowledgeBaseId(), request.systemPrompt().trim(), toolNames,
                 existing.latestVersionNumber(),
                 existing.createdAt(), Instant.now());
@@ -108,6 +112,12 @@ public class AgentService {
                 .map(String::trim).distinct().sorted().toList();
         tools.validateNames(names);
         return names;
+    }
+
+    private void validateUniqueName(String name, String excludedId) {
+        if (repository.existsByName(name, excludedId)) {
+            throw new ApiException(HttpStatus.CONFLICT, "Agent 名称已存在，请换一个名称或编辑已有 Agent");
+        }
     }
 
     private AgentDefinition withDraftTools(AgentDefinition definition) {

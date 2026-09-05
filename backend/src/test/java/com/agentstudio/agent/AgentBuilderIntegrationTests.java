@@ -1,6 +1,7 @@
 package com.agentstudio.agent;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -29,6 +30,10 @@ class AgentBuilderIntegrationTests {
                 "model-a", "TEST_MODEL_KEY", new BigDecimal("0.4")));
         var agent = agents.create(new AgentDefinitionRequest(
                 "agent-" + suffix, "test", model.id(), null, "prompt-v1", List.of("current_time")));
+
+        assertThatThrownBy(() -> agents.create(new AgentDefinitionRequest(
+                agent.name(), "duplicate", model.id(), null, "prompt", List.of())))
+                .hasMessage("Agent 名称已存在，请换一个名称或编辑已有 Agent");
 
         var versionOne = agents.publish(agent.id());
 

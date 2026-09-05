@@ -38,6 +38,7 @@ function App() {
   const [versions, setVersions] = useState<AgentVersion[]>([])
   const [modelForm, setModelForm] = useState(emptyModel)
   const [agentForm, setAgentForm] = useState(emptyAgent)
+  const [editingAgentId, setEditingAgentId] = useState<string>()
   const [selectedVersion, setSelectedVersion] = useState('')
   const [conversationId, setConversationId] = useState<string>()
   const [chatInput, setChatInput] = useState('')
@@ -129,10 +130,24 @@ function App() {
   async function submitAgent(event: FormEvent) {
     event.preventDefault()
     await perform(async () => {
-      await api('/api/agents', { method: 'POST', body: JSON.stringify(agentForm) })
-      setAgentForm({ ...emptyAgent, modelProfileId: models[0]?.id ?? '' }); await refresh()
-      setNotice('Agent 草稿已创建。发布后会生成不可变版本。')
+      const editing = editingAgentId
+      await api(editing ? `/api/agents/${editing}` : '/api/agents', { method: editing ? 'PUT' : 'POST', body: JSON.stringify(agentForm) })
+      setEditingAgentId(undefined); setAgentForm({ ...emptyAgent, modelProfileId: models[0]?.id ?? '' }); await refresh()
+      setNotice(editing ? 'Agent 草稿已更新；请发布新版本使修改生效。' : 'Agent 草稿已创建。发布后会生成不可变版本。')
     })
+  }
+
+  function editAgent(agent: AgentDefinition) {
+    setEditingAgentId(agent.id)
+    setAgentForm({ name: agent.name, description: agent.description, modelProfileId: agent.draftModelProfileId, knowledgeBaseId: agent.draftKnowledgeBaseId ?? '', systemPrompt: agent.draftSystemPrompt, toolNames: [...agent.draftToolNames] })
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    setNotice(`正在编辑“${agent.name}”的草稿配置。`)
+  }
+
+  function cancelAgentEdit() {
+    setEditingAgentId(undefined)
+    setAgentForm({ ...emptyAgent, modelProfileId: models[0]?.id ?? '' })
+    setNotice('已取消编辑。')
   }
 
   async function publish(agentId: string) {
@@ -211,16 +226,17 @@ function App() {
         <div className="panel list-panel"><h2>文档 <small>{documents.length}</small></h2>{documents.length === 0 ? <Empty text="选择知识库并上传第一份文档" /> : documents.map((document) => <article className="document-card" key={document.id}><div><div><strong>{document.fileName}</strong><p>{formatBytes(document.fileSize)} · {document.chunkCount} chunks</p></div><span className={`badge badge--${document.status.toLowerCase()}`}>{document.status}</span></div>{document.errorMessage && <p className="error-text">{document.errorMessage}</p>}<button className="danger" onClick={() => void deleteDocument(document.id)}>删除</button></article>)}</div>
       </div></section>}
       {view === 'agents' && <section><PageHeader number="03" title="Agent Builder" description="编辑草稿，然后发布不可变版本；历史运行始终绑定原版本。" /><div className="two-column">
-        <form className="panel form" onSubmit={submitAgent}><h2>创建 Agent 草稿</h2>
+        <form className="panel form" onSubmit={submitAgent}><h2>{editingAgentId ? '编辑 Agent 草稿' : '创建 Agent 草稿'}</h2>
+          {editingAgentId && <p className="edit-hint">保存只会更新草稿，已发布版本不会改变。</p>}
           <Field label="Agent 名称"><input required value={agentForm.name} onChange={(e) => setAgentForm({ ...agentForm, name: e.target.value })} /></Field>
           <Field label="简介"><input value={agentForm.description} onChange={(e) => setAgentForm({ ...agentForm, description: e.target.value })} /></Field>
           <Field label="模型配置"><select required value={agentForm.modelProfileId} onChange={(e) => setAgentForm({ ...agentForm, modelProfileId: e.target.value })}><option value="">请选择</option>{models.map((model) => <option key={model.id} value={model.id}>{model.name} · {model.modelName}</option>)}</select></Field>
           <Field label="知识库（可选）"><select value={agentForm.knowledgeBaseId} onChange={(e) => setAgentForm({ ...agentForm, knowledgeBaseId: e.target.value })}><option value="">不使用知识库</option>{knowledgeBases.map((base) => <option key={base.id} value={base.id}>{base.name}</option>)}</select></Field>
           <Field label="工具（可选）"><div className="tool-options">{tools.length === 0 ? <p className="hint">暂无可用工具</p> : tools.map((tool) => <label className="tool-option" key={tool.name}><input type="checkbox" checked={agentForm.toolNames.includes(tool.name)} onChange={(e) => setAgentForm({ ...agentForm, toolNames: e.target.checked ? [...agentForm.toolNames, tool.name] : agentForm.toolNames.filter((name) => name !== tool.name) })} /><span><b>{tool.displayName}</b><small>{tool.capability} · {tool.riskLevel} · {tool.timeoutSeconds}s</small><em>{tool.description}</em></span></label>)}</div></Field>
           <Field label="系统提示词"><textarea required rows={8} value={agentForm.systemPrompt} onChange={(e) => setAgentForm({ ...agentForm, systemPrompt: e.target.value })} placeholder="定义 Agent 的身份、目标和边界" /></Field>
-          <button className="primary" disabled={busy || models.length === 0}>创建草稿</button>
+          <div className="form-actions"><button className="primary" disabled={busy || models.length === 0}>{editingAgentId ? '保存草稿修改' : '创建草稿'}</button>{editingAgentId && <button className="ghost" type="button" disabled={busy} onClick={cancelAgentEdit}>取消编辑</button>}</div>
         </form>
-        <div className="panel list-panel"><h2>Agent 列表 <small>{agents.length}</small></h2>{agents.length === 0 ? <Empty text="先配置模型，再创建 Agent" /> : agents.map((agent) => <article className="agent-card" key={agent.id}><div className="card-head"><div><strong>{agent.name}</strong><p>{agent.description || '暂无简介'}</p></div><span className={`badge badge--${(agent.status ?? 'DRAFT').toLowerCase()}`}>{agent.status ?? 'DRAFT'}</span></div>{agent.draftToolNames.length > 0 && <div className="tool-chips">{agent.draftToolNames.map((name) => <span key={name}>{name}</span>)}</div>}<div className="agent-meta"><span>最新版本</span><b>{agent.latestVersionNumber ? `v${agent.latestVersionNumber}` : '未发布'}</b></div><button className="secondary" disabled={busy} onClick={() => void publish(agent.id)}>发布新版本</button></article>)}</div>
+        <div className="panel list-panel"><h2>Agent 列表 <small>{agents.length}</small></h2>{agents.length === 0 ? <Empty text="先配置模型，再创建 Agent" /> : agents.map((agent) => <article className="agent-card" key={agent.id}><div className="card-head"><div><strong>{agent.name}</strong><p>{agent.description || '暂无简介'}</p></div><span className={`badge badge--${(agent.status ?? 'DRAFT').toLowerCase()}`}>{agent.status ?? 'DRAFT'}</span></div>{agent.draftToolNames.length > 0 && <div className="tool-chips">{agent.draftToolNames.map((name) => <span key={name}>{name}</span>)}</div>}<div className="agent-meta"><span>最新版本</span><b>{agent.latestVersionNumber ? `v${agent.latestVersionNumber}` : '未发布'}</b></div><div className="card-actions"><button className="ghost" disabled={busy} onClick={() => editAgent(agent)}>编辑草稿</button><button className="secondary" disabled={busy} onClick={() => void publish(agent.id)}>发布新版本</button></div></article>)}</div>
       </div></section>}
       {view === 'chat' && <section><PageHeader number="04" title="对话测试台" description="选择已发布版本；绑定知识库的版本会展示本次检索来源。" />
         <div className="chat-toolbar"><label>Agent 版本<select value={selectedVersion} onChange={(e) => switchVersion(e.target.value)}><option value="">选择已发布版本</option>{versionLabels.map((version) => <option key={version.id} value={version.id}>{version.label}</option>)}</select></label><span>{conversationId ? `会话 ${conversationId.slice(0, 8)}` : '新会话'}</span><button className="ghost" onClick={() => { setConversationId(undefined); setMessages([]); setSources([]); setRunSteps([]) }}>清空会话</button></div>

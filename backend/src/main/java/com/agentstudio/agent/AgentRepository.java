@@ -37,6 +37,16 @@ public class AgentRepository {
         return queryDefinition("SELECT * FROM agent_definition WHERE id = :id FOR UPDATE", id);
     }
 
+    public boolean existsByName(String name, String excludedId) {
+        var sql = excludedId == null
+                ? "SELECT COUNT(*) FROM agent_definition WHERE name = :name"
+                : "SELECT COUNT(*) FROM agent_definition WHERE name = :name AND id <> :excludedId";
+        var parameters = new MapSqlParameterSource().addValue("name", name);
+        if (excludedId != null) parameters.addValue("excludedId", excludedId);
+        var count = jdbc.queryForObject(sql, parameters, Integer.class);
+        return count != null && count > 0;
+    }
+
     private Optional<AgentDefinition> queryDefinition(String sql, String id) {
         return jdbc.query(sql, Map.of("id", id), DEFINITION_MAPPER).stream().findFirst();
     }

@@ -29,6 +29,10 @@ nav button.active span { color: #68d6a4; }
 .panel h2 { margin: 0 0 26px; font-size: 18px; }
 .panel h2 small { margin-left: 8px; color: #68d6a4; font-family: ui-monospace, monospace; }
 .form { display: grid; gap: 18px; padding: 28px; }
+.edit-hint { margin: -12px 0 0; padding: 10px 12px; color: #9bc8b0; border-left: 2px solid #68d6a4; background: rgba(104, 214, 164, .06); font-size: 12px; }
+.form-actions, .card-actions { display: flex; gap: 10px; align-items: center; }
+.form-actions .primary { flex: 1; }
+.card-actions { justify-content: flex-end; }
 .panel-stack { display: grid; gap: 18px; }
 .hint { margin: 0; color: #7f9087; font-size: 12px; line-height: 1.6; }
 .field { display: grid; gap: 8px; }
