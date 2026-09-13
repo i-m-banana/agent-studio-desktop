@@ -22,14 +22,20 @@ import java.util.concurrent.TimeoutException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.agentstudio.system.BuildVersion;
+import com.agentstudio.secret.SecretResolver;
 import org.springframework.stereotype.Component;
 
 /** MCP stdio transport. Every operation owns a short-lived child process for isolation and reliable cleanup. */
 @Component
 public class StdioMcpClient implements McpTransportClient {
     private final ObjectMapper objectMapper;
+    private final SecretResolver secrets;
 
-    public StdioMcpClient(ObjectMapper objectMapper) { this.objectMapper = objectMapper; }
+    public StdioMcpClient(ObjectMapper objectMapper, SecretResolver secrets) {
+        this.objectMapper = objectMapper;
+        this.secrets = secrets;
+    }
 
     @Override
     public String transport() { return "STDIO"; }
@@ -126,7 +132,7 @@ public class StdioMcpClient implements McpTransportClient {
         var response = session.request("initialize", Map.of(
                 "protocolVersion", StreamableHttpMcpClient.REQUESTED_PROTOCOL,
                 "capabilities", Map.of(),
-                "clientInfo", Map.of("name", "agent-studio-desktop", "version", "0.1.0")),
+                "clientInfo", Map.of("name", "agent-studio-desktop", "version", BuildVersion.VALUE)),
                 Duration.ofSeconds(15));
         var result = response.path("result");
         var protocol = requiredText(result, "protocolVersion");
@@ -157,10 +163,8 @@ public class StdioMcpClient implements McpTransportClient {
             if (value != null && !value.isBlank()) childEnvironment.put(name, value);
         }
         for (var binding : server.environment().entrySet()) {
-            var value = System.getenv(binding.getValue());
-            if (value == null || value.isBlank()) {
-                throw new IOException("宿主环境变量 " + binding.getValue() + " 未设置，无法注入 " + binding.getKey());
-            }
+            var value = secrets.resolve(binding.getValue()).orElseThrow(() ->
+                    new IOException("宿主凭据 " + binding.getValue() + " 未配置，无法注入 " + binding.getKey()));
             childEnvironment.put(binding.getKey(), value);
         }
         return new Session(builder.start());

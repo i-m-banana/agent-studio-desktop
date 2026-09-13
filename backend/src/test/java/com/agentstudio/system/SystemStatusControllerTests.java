@@ -22,7 +22,17 @@ class SystemStatusControllerTests {
         mockMvc.perform(get("/api/system/status"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.application").value("agent-studio-backend"))
+                .andExpect(jsonPath("$.version").value("1.0.0"))
                 .andExpect(jsonPath("$.status").value("UP"));
     }
-}
 
+    @Test
+    void exposesReleaseReadinessWithoutLeakingSecretValues() throws Exception {
+        mockMvc.perform(get("/api/system/readiness"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.version").value("1.0.0"))
+                .andExpect(jsonPath("$.checks").isArray())
+                .andExpect(jsonPath("$.checks[?(@.id == 'mysql')]").exists())
+                .andExpect(jsonPath("$.checks[?(@.id == 'embedding')]").exists());
+    }
+}

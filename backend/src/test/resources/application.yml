@@ -9,6 +9,8 @@ spring:
     locations: classpath:db/migration
 
 agent-studio:
+  version: 1.0.0
+  data-dir: target/test-data
   embedding:
     provider: local-hash
   vector:

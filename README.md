@@ -1,6 +1,6 @@
 # Agent Studio Desktop
 
-一个单机优先、配置驱动的智能体搭建工具。当前已跑通模型配置、知识库、Agent 草稿、不可变版本发布、检索增强和流式对话主链。
+一个单机优先、配置驱动的智能体搭建工具。当前版本为 `1.0.0`，已于 2026-09-13 完成首个单机正式版验收。
 
 ## 当前已具备
 
@@ -17,16 +17,28 @@
 - AgentRun 主动取消、120 秒总时限、遗留运行关闭和运行历史详情；
 - OpenAI Chat Completions 兼容接口及 SSE 流式返回；
 - 模型配置、Agent 创建/发布和对话测试页面；
-- 密钥仅通过环境变量读取，数据库只保存环境变量名；
+- 密钥可在前端写入 Windows DPAPI 安全存储，环境变量仍可高优先级覆盖；数据库和接口只保存/返回凭据名称，不返回密钥；
+- Agent 历史版本支持归档与恢复；对话默认只展示最新版本，零引用的误发版本可在归档后永久删除；
+- 系统诊断逐项检查 MySQL、pgvector、Embedding、模型密钥、数据目录和 MCP；
+- 无检索证据时确定性拒答，有候选片段时执行严格的答案证据契约；
+- 一键启动/停止、发布检查、MySQL/pgvector/data 备份与受确认保护的恢复脚本；
 - 来源项目、设计边界和验证结果的文档目录。
 
 ## 当前边界
 
-当前默认通过本机 Ollama 的 `qwen3-embedding:0.6b` 生成 1024 维语义向量，并保留 384 维词法哈希作为可配置回退。工具能力已包含 LOW/READ 的 `current_time`、HIGH/WRITE 的 `write_workspace_note` 和动态 MCP 工具；所有工具统一经过 Schema 校验、安全执行网关和 AuditEvent，HIGH 调用还必须经过参数绑定、限时、一次性审批。运行支持主动取消和总超时，重启会关闭遗留状态但不会断点续跑。MCP 支持 `2025-06-18` Streamable HTTP 与本机 stdio 的 tools、resources 和 prompts 核心闭环，以及 Server 编辑、启停、受保护删除、同步历史、配置导入导出与单工具信任策略；OAuth、sampling、elicitation、roots、resource templates、订阅通知、SSH、Coding、身份体系、OS 级进程沙箱和真正的崩溃续跑尚未实现，无答案拒答仍是已知限制。
+当前默认通过本机 Ollama 的 `qwen3-embedding:0.6b` 生成 1024 维语义向量，并保留 384 维词法哈希作为可配置回退。工具能力已包含 LOW/READ 的 `current_time`、HIGH/WRITE 的 `write_workspace_note` 和动态 MCP 工具；所有工具统一经过 Schema 校验、安全执行网关和 AuditEvent，HIGH 调用还必须经过参数绑定、限时、一次性审批。运行支持主动取消和总超时，重启会关闭遗留状态但不会断点续跑。MCP 支持 `2025-06-18` Streamable HTTP 与本机 stdio 的 tools、resources 和 prompts 核心闭环，以及 Server 编辑、启停、受保护删除、同步历史、配置导入导出与单工具信任策略；OAuth、sampling、elicitation、roots、resource templates、订阅通知、SSH、Coding、身份体系、OS 级进程沙箱和真正的崩溃续跑尚未实现。无答案场景已有确定性空召回拒答和答案证据契约，但向量检索本身的负例误召回率仍是独立待优化指标。
 
 ## 本地启动
 
 要求：JDK 21、Maven 3.9+、Node.js 22+、Docker Desktop、Ollama。
+
+推荐直接使用一键启动，再到“01 模型与凭据”保存密钥；保存一次后，同一 Windows 用户后续启动无需重复设置：
+
+```powershell
+.\scripts\start.ps1
+```
+
+脚本会先检查 Maven 实际使用的 Java 版本、Docker、Node、Ollama 和数据目录，然后启动数据库、后端和前端。首次启动后到“01 模型与凭据”输入 DeepSeek/Tavily 密钥，再到“07 系统诊断”查看业务就绪状态。密钥以当前 Windows 用户绑定的 DPAPI 密文保存在 `data/secrets`，不会写入 MySQL 或返回前端；若同时设置环境变量，则环境变量优先。停止应用使用 `.\scripts\stop.ps1`；增加 `-StopDatabases` 才会同时停止数据库容器。
 
 ```powershell
 # 中间件
@@ -52,13 +64,15 @@ npm run dev
 
 打开 `http://localhost:5173`。前端开发服务器将 `/api` 转发到 `http://localhost:8080`。
 
+发布多个 Agent 版本后，对话测试台默认只列出每个 Agent 的最新版本，可用“显示历史版本”临时展开仍在使用的旧版本。Agent Builder 的“管理历史版本”可以归档旧版本；归档不会改写既有会话和运行。只有已归档、没有任何会话或运行引用、且不是最新版的误发版本才能永久删除。
+
 进入“知识库”创建资料库并上传文档，再在 Agent Builder 中绑定该知识库并发布版本。知识库文件保存在本机 `data/knowledge`，元数据位于 MySQL，检索向量位于 PostgreSQL + pgvector。删除文档会同步清理这三处数据。
 
 测试工具调用时，在 Agent Builder 新建或编辑草稿，勾选“获取当前时间”，然后发布新版本；已有发布版本不会自动获得后来新增的工具。对该新版本询问“现在上海时间几点”，对话页会展示模型调用、工具调用和工具结果步骤。工具版本当前采用非流式 Chat Completions 完成每一轮决策，最终答案以一个 `delta` 事件返回；未绑定工具的普通对话仍保持 token 流式输出。
 
 测试审批时可绑定“写入受控工作区笔记”并发布新版本。模型请求写入后，对话页会展示文件名、内容、参数 SHA-256 摘要和过期时间；拒绝或超时不会写文件，批准只能按所展示参数消费一次，且只允许在 `data/tool-workspace` 新建 `.md/.txt`，不会覆盖已有文件。
 
-运行开始后，对话输入区会出现“停止运行”。默认总时限为 120 秒，可用 `AGENT_RUN_TIMEOUT` 调整。运行结束后可在“运行记录”查看最终状态、错误和完整步骤；应用重启会把上一进程遗留的运行标为 `INTERRUPTED`，不会自动续跑。
+运行开始后，对话输入区会出现“停止运行”。默认总时限为 120 秒，可用 `AGENT_RUN_TIMEOUT` 调整。高风险审批会固定显示并倒计时；工具轮数预算耗尽后，平台会关闭工具并让模型依据已有结果完成一次最终回答，而不是丢弃已取得的结果。运行结束后可在“运行记录”查看最终状态、错误和完整步骤；应用重启会把上一进程遗留的运行标为 `INTERRUPTED`，不会自动续跑。
 
 工具运行完成后，在“运行记录”选择对应运行可以查看“安全审计”。审计展示参数校验、审批决定、执行开始、完成、跳过或失败，但只保存参数摘要和结果概况，不复制原始参数及完整输出。
 
@@ -94,13 +108,13 @@ docker compose -f docker/compose.yml ps
 ## 验证
 
 ```powershell
-cd backend
-mvn test
-
-cd ../web
-npm run build
+.\scripts\release-check.ps1
 ```
+
+数据备份运行 `.\scripts\backup.ps1`。恢复会覆盖当前数据，必须显式传入 backups 下的目录和 `-ConfirmRestore`；完整正式版清单见 [`docs/RELEASE_CHECKLIST.md`](docs/RELEASE_CHECKLIST.md)。
 
 架构和来源边界见 [`docs`](docs/README.md)。
 
-用于手工上传和 RAG/面试复盘的完整项目知识包见 [`examples/project-knowledge-pack`](examples/project-knowledge-pack/00-入库说明与事实口径.md)。建议先上传 00–10，保留第 11 份题库在知识库外做盲测。
+用于手工上传和 RAG/面试复盘的完整项目知识包见 [`examples/project-knowledge-pack`](examples/project-knowledge-pack/00-入库说明与事实口径.md)。建议上传除 11 号盲测题库和 12 号系统提示词外的其余文档。
+
+当前成熟开发锚点见 [`16-成熟版本开发锚点与面试全景.md`](examples/project-knowledge-pack/16-成熟版本开发锚点与面试全景.md)，锚点后的分阶段路线见 [`17-锚点后的未来开发计划.md`](examples/project-knowledge-pack/17-锚点后的未来开发计划.md)。

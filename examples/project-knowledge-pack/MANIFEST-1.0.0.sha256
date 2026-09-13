@@ -1,0 +1,22 @@
+# Agent Studio Desktop knowledge snapshot
+# Generated: 2026-09-13 Asia/Shanghai
+# Scope: Markdown files 00-17 at the v1.0.0 formal acceptance anchor.
+# Upload corpus: include 00-10 and 13-17; keep 11 and 12 outside the RAG knowledge base.
+6263cbb9284c31d528f29dd4e97788b35c0f433b11fa2454266eecae053dd87e  00-入库说明与事实口径.md
+78765abd00314bd5b1616e94901a6acbd1ef30aa32e499a560ac1d1b1c6cdb07  01-项目总览与业务目标.md
+369dda05af5fddf9cc65d7f17c3e438901139566db77e8241fe4d00e95f692a9  02-架构设计与技术选型.md
+e0819bb6fa53999376b3781c3d3f3fb7f0d7a879c5f90f07e5ac642699d0d43a  03-数据模型与不可变版本.md
+9bf81f2d92c588728daf98161cced765bc719656d831f4068a620f6d36d63a6f  04-模型调用与SSE流式对话.md
+9b73b6413e8f5167f73560405150d140880d95f0cff25cafe9ccd47f9ab1094e  05-RAG全链路与检索算法.md
+757df2f5c7753b837e18b17b6e460469a65d1a468272929de7f1cb8a8b09442e  06-开发过程与提交时间线.md
+09d5da5c42e1dbc59f139e34dc5b16a3d3f68613e77354264bf10f626731589d  07-真实故障与排查复盘.md
+870195f72934b7270e6c11d83b98f874a67d5c19ed602943bc08e91c79e32790  08-测试策略与验收证据.md
+f6fed2d815724d26d552ecc116fecf527d5e471bf2430b190ed559f0ccf1d7cf  09-安全边界局限与路线图.md
+d77afdb2410b1c421717325fdf17b603c589fb1f005cd956c2a860c38d0586a0  10-面试讲述与追问准备.md
+d0997b301ad98207b6c258ebfca8cb6256a1e641e8d6c5121280820acc2b89e8  11-RAG测试题与标准答案.md
+55c0b8c2a1f3d7627aeecd1e9c09089a7a4672fca387949cbe96cd0426be4f35  12-推荐Agent系统提示词-不要入库.md
+9497aa1c0d300fa51a953fcd0469a3d30380f3d700ebd01a5b876184bbc405fc  13-正式版发布加固与运维.md
+ecaa0b298015ada988fcd68f24143e414dc1d09209fc40722661abb1e39c42c0  14-MCP网络检索与多轮运行收口.md
+d90dcd698a74ccad67c40956e49c92fa36c511fe182a1845a5ab7ae5444cbd01  15-安全凭据与版本生命周期.md
+d7193ead537bc3fe60f34fd0e8d4440f57b8e3f245c6a6e377dd563ccdad518d  16-成熟版本开发锚点与面试全景.md
+f86223517c0c9649b1ed5ed64713451e59e951fd107d7f424cb12db192e56d1f  17-锚点后的未来开发计划.md

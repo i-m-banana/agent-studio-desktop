@@ -87,15 +87,52 @@ public class AgentService {
         var version = new AgentVersion(UUID.randomUUID().toString(), definition.id(),
                 definition.latestVersionNumber() + 1, definition.draftKnowledgeBaseId(), model.id(), model.name(), model.provider(),
                 model.baseUrl(), model.modelName(), model.apiKeyEnv(), model.temperature(),
-                definition.draftSystemPrompt(), toolNames, now);
+                definition.draftSystemPrompt(), toolNames, now, null, 0);
         repository.insertVersionAndAdvance(version, now);
         repository.snapshotVersionTools(version.id(), toolNames);
         return version;
     }
 
-    public List<AgentVersion> versions(String id) {
+    public List<AgentVersion> versions(String id) { return versions(id, false); }
+
+    public List<AgentVersion> versions(String id, boolean includeArchived) {
         get(id);
-        return repository.findVersions(id).stream().map(this::withVersionTools).toList();
+        return repository.findVersions(id, includeArchived).stream().map(this::withVersionTools).toList();
+    }
+
+    @Transactional
+    public AgentVersion archiveVersion(String definitionId, String versionId) {
+        var definition = get(definitionId);
+        var version = ownedVersion(definitionId, versionId);
+        if (version.versionNumber() == definition.latestVersionNumber()) {
+            throw new ApiException(HttpStatus.CONFLICT, "最新版本不能归档；请先发布替代版本");
+        }
+        if (!version.archived()) repository.archiveVersion(versionId, Instant.now());
+        return getVersion(versionId);
+    }
+
+    @Transactional
+    public AgentVersion restoreVersion(String definitionId, String versionId) {
+        var version = ownedVersion(definitionId, versionId);
+        if (version.archived()) repository.restoreVersion(versionId);
+        return getVersion(versionId);
+    }
+
+    @Transactional
+    public void deleteVersion(String definitionId, String versionId) {
+        var definition = get(definitionId);
+        var version = ownedVersion(definitionId, versionId);
+        if (version.versionNumber() == definition.latestVersionNumber()) {
+            throw new ApiException(HttpStatus.CONFLICT, "最新版本不能删除；请先发布替代版本");
+        }
+        if (!version.archived()) {
+            throw new ApiException(HttpStatus.CONFLICT, "请先归档该版本，再执行永久删除");
+        }
+        var usage = repository.countVersionUsage(versionId);
+        if (usage > 0) {
+            throw new ApiException(HttpStatus.CONFLICT, "该版本已有会话或运行记录，只能归档，不能永久删除");
+        }
+        repository.deleteVersion(versionId);
     }
 
     private String text(String value) {
@@ -137,6 +174,15 @@ public class AgentService {
         return new AgentVersion(version.id(), version.agentDefinitionId(), version.versionNumber(),
                 version.knowledgeBaseId(), version.modelProfileId(), version.modelProfileName(), version.provider(),
                 version.baseUrl(), version.modelName(), version.apiKeyEnv(), version.temperature(),
-                version.systemPrompt(), repository.findVersionTools(version.id()), version.publishedAt());
+                version.systemPrompt(), repository.findVersionTools(version.id()), version.publishedAt(),
+                version.archivedAt(), repository.countVersionUsage(version.id()));
+    }
+
+    private AgentVersion ownedVersion(String definitionId, String versionId) {
+        var version = getVersion(versionId);
+        if (!version.agentDefinitionId().equals(definitionId)) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "Agent 版本不存在");
+        }
+        return version;
     }
 }

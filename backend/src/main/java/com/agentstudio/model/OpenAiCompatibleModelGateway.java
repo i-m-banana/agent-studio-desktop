@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 import com.agentstudio.agent.AgentVersion;
+import com.agentstudio.secret.SecretResolver;
 import com.agentstudio.tool.ToolDescriptor;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -22,10 +23,12 @@ public class OpenAiCompatibleModelGateway implements StreamingModelGateway {
 
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
+    private final SecretResolver secrets;
 
-    public OpenAiCompatibleModelGateway(HttpClient httpClient, ObjectMapper objectMapper) {
+    public OpenAiCompatibleModelGateway(HttpClient httpClient, ObjectMapper objectMapper, SecretResolver secrets) {
         this.httpClient = httpClient;
         this.objectMapper = objectMapper;
+        this.secrets = secrets;
     }
 
     @Override
@@ -126,11 +129,8 @@ public class OpenAiCompatibleModelGateway implements StreamingModelGateway {
     }
 
     private String apiKey(AgentVersion version) {
-        var apiKey = System.getenv(version.apiKeyEnv());
-        if (apiKey == null || apiKey.isBlank()) {
-            throw new IllegalStateException("环境变量 " + version.apiKeyEnv() + " 未设置");
-        }
-        return apiKey;
+        return secrets.resolve(version.apiKeyEnv()).orElseThrow(() ->
+                new IllegalStateException("凭据 " + version.apiKeyEnv() + " 未配置"));
     }
 
     private URI chatCompletionsUri(String baseUrl) {

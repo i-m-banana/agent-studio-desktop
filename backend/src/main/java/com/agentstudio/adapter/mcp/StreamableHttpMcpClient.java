@@ -15,6 +15,8 @@ import java.util.UUID;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.agentstudio.system.BuildVersion;
+import com.agentstudio.secret.SecretResolver;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -22,10 +24,12 @@ public class StreamableHttpMcpClient implements McpTransportClient {
     static final String REQUESTED_PROTOCOL = "2025-06-18";
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
+    private final SecretResolver secrets;
 
-    public StreamableHttpMcpClient(HttpClient httpClient, ObjectMapper objectMapper) {
+    public StreamableHttpMcpClient(HttpClient httpClient, ObjectMapper objectMapper, SecretResolver secrets) {
         this.httpClient = httpClient;
         this.objectMapper = objectMapper;
+        this.secrets = secrets;
     }
 
     @Override
@@ -146,7 +150,7 @@ public class StreamableHttpMcpClient implements McpTransportClient {
         var response = post(server, null, null, jsonRpc(id, "initialize", Map.of(
                 "protocolVersion", REQUESTED_PROTOCOL,
                 "capabilities", Map.of(),
-                "clientInfo", Map.of("name", "agent-studio-desktop", "version", "0.1.0"))),
+                "clientInfo", Map.of("name", "agent-studio-desktop", "version", BuildVersion.VALUE))),
                 Duration.ofSeconds(15));
         var body = responseNode(response);
         if (body.has("error")) {
@@ -233,8 +237,8 @@ public class StreamableHttpMcpClient implements McpTransportClient {
 
     private void authorize(HttpRequest.Builder builder, McpServer server) {
         if (server.apiKeyEnv() == null || server.apiKeyEnv().isBlank()) return;
-        var value = System.getenv(server.apiKeyEnv());
-        if (value == null || value.isBlank()) throw new IllegalStateException("环境变量 " + server.apiKeyEnv() + " 未设置");
+        var value = secrets.resolve(server.apiKeyEnv()).orElseThrow(() ->
+                new IllegalStateException("凭据 " + server.apiKeyEnv() + " 未配置"));
         builder.header("Authorization", "Bearer " + value);
     }
 

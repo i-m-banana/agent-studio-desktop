@@ -71,6 +71,9 @@ public class ChatService {
 
     public SseEmitter stream(ChatStreamRequest request) {
         var version = agents.getVersion(request.agentVersionId());
+        if (version.archived() && (request.conversationId() == null || request.conversationId().isBlank())) {
+            throw new ApiException(HttpStatus.CONFLICT, "该 Agent 版本已归档，不能创建新会话");
+        }
         var conversationId = resolveConversation(request.conversationId(), version.id());
         conversations.addMessage(conversationId, "user", request.message().trim());
 
@@ -108,22 +111,35 @@ public class ChatService {
             var sources = knowledgeRetriever.retrieve(version.knowledgeBaseId(),
                     conversations.messages(conversationId).getLast().content());
             controls.check(run.id());
-            if (!sources.isEmpty()) {
-                send(emitter, "sources", Map.of("items", sources));
-                modelMessages.add(new ModelMessage("system", knowledgeContext(sources)));
-            }
-            modelMessages.addAll(conversations.messages(conversationId));
-            if (version.toolNames().isEmpty()) {
-                runs.updateStatus(run.id(), "THINKING");
-                modelGateway.stream(version, modelMessages, delta -> {
-                    controls.check(run.id());
-                    answer.append(delta);
-                    sendUnchecked(emitter, "delta", Map.of("content", delta));
-                });
-                emitStep(emitter, runs.addStep(run.id(), "MODEL_CALL", "COMPLETED",
-                        null, null, null, truncate(answer.toString()), null));
+            if (version.knowledgeBaseId() != null && sources.isEmpty() && version.toolNames().isEmpty()) {
+                var noEvidence = "知识库中没有足够证据回答该问题。";
+                send(emitter, "evidence", Map.of("status", "INSUFFICIENT", "message", noEvidence));
+                answer.append(noEvidence);
+                send(emitter, "delta", Map.of("content", noEvidence));
+                emitStep(emitter, runs.addStep(run.id(), "EVIDENCE_CHECK", "INSUFFICIENT",
+                        null, null, null, noEvidence, null));
             } else {
-                executeReAct(emitter, run.id(), conversationId, version, modelMessages, answer);
+                if (!sources.isEmpty()) {
+                    send(emitter, "sources", Map.of("items", sources));
+                    send(emitter, "evidence", Map.of("status", "REVIEW_REQUIRED",
+                            "message", "已召回候选片段，最终答案必须逐项核对证据。"));
+                    modelMessages.add(new ModelMessage("system", knowledgeContext(sources)));
+                } else if (version.knowledgeBaseId() != null) {
+                    modelMessages.add(new ModelMessage("system", noEvidenceContext()));
+                }
+                modelMessages.addAll(conversations.messages(conversationId));
+                if (version.toolNames().isEmpty()) {
+                    runs.updateStatus(run.id(), "THINKING");
+                    modelGateway.stream(version, modelMessages, delta -> {
+                        controls.check(run.id());
+                        answer.append(delta);
+                        sendUnchecked(emitter, "delta", Map.of("content", delta));
+                    });
+                    emitStep(emitter, runs.addStep(run.id(), "MODEL_CALL", "COMPLETED",
+                            null, null, null, truncate(answer.toString()), null));
+                } else {
+                    executeReAct(emitter, run.id(), conversationId, version, modelMessages, answer);
+                }
             }
             controls.check(run.id());
             if (!runs.finish(run.id(), "COMPLETED", null)) {
@@ -166,6 +182,10 @@ public class ChatService {
                               StringBuilder answer) throws Exception {
         var messages = new ArrayList<ReActMessage>();
         sourceMessages.forEach(message -> messages.add(ReActMessage.text(message.role(), message.content())));
+        messages.add(ReActMessage.text("system", """
+                工具调用应保持必要且最少：已有结果足以回答时立即生成最终答案，不要用语义相近的查询重复验证同一事实。
+                你最多拥有 %d 轮工具调用预算；预算耗尽后必须依据已经获得的结果作答。
+                """.formatted(maxRounds).trim()));
         var descriptors = tools.descriptors(version.toolNames());
         for (int round = 1; round <= maxRounds; round++) {
             controls.check(runId);
@@ -211,10 +231,11 @@ public class ChatService {
                         runs.updateStatus(runId, "OBSERVING");
                         continue;
                     }
-                    var output = truncate(result.output());
+                    var rawOutput = result.output();
+                    var output = truncate(rawOutput);
                     emitStep(emitter, runs.addStep(runId, "TOOL_RESULT", "COMPLETED", call.id(),
                             call.name(), null, output, result.durationMs()));
-                    messages.add(ReActMessage.observation(call.id(), output));
+                    messages.add(ReActMessage.observation(call.id(), toolContext(rawOutput)));
                     runs.updateStatus(runId, "OBSERVING");
                 } catch (Exception exception) {
                     controls.check(runId);
@@ -226,7 +247,24 @@ public class ChatService {
                 }
             }
         }
-        throw new IllegalStateException("达到最大工具轮数 " + maxRounds + "，运行已安全停止");
+        controls.check(runId);
+        runs.updateStatus(runId, "THINKING");
+        messages.add(ReActMessage.text("system", """
+                工具调用预算已经用完。现在不得再调用任何工具；请仅依据前面已经返回的工具结果生成最终答案。
+                若现有证据仍不足，应明确说明不足之处。不要声称执行了尚未执行的操作。
+                """.trim()));
+        var finalTurn = modelGateway.complete(version, messages, java.util.List.of());
+        controls.check(runId);
+        if (!finalTurn.toolCalls().isEmpty()) {
+            throw new IllegalStateException("工具预算耗尽后模型仍请求工具，运行已安全停止");
+        }
+        if (finalTurn.content() == null || finalTurn.content().isBlank()) {
+            throw new IllegalStateException("工具预算耗尽后模型未返回最终答案");
+        }
+        emitStep(emitter, runs.addStep(runId, "MODEL_FINALIZATION", "COMPLETED",
+                null, null, "{\"reason\":\"MAX_TOOL_ROUNDS\"}", truncate(finalTurn.content()), null));
+        answer.append(finalTurn.content());
+        send(emitter, "delta", Map.of("content", finalTurn.content()));
     }
 
     private void emitStep(SseEmitter emitter, RunStep step) throws IOException {
@@ -255,13 +293,31 @@ public class ChatService {
         return value.length() <= 4000 ? value : value.substring(0, 4000) + "…";
     }
 
+    private String toolContext(String value) {
+        if (value == null) return "";
+        int limit = 16000;
+        return value.length() <= limit ? value : value.substring(0, limit)
+                + "\n[工具结果过长，模型上下文已在 16000 字符处截断]";
+    }
+
     private String knowledgeContext(java.util.List<RagSource> sources) {
-        var context = new StringBuilder("以下是本次问题检索到的知识库片段。优先依据片段回答；若证据不足请明确说明。\n\n");
+        var context = new StringBuilder("""
+                以下内容只是检索候选片段，不代表其中一定有答案。请先执行证据充分性判断，再回答。
+                规则：
+                1. 只陈述片段直接支持的事实，不得用常识、猜测或相近概念补全缺失信息。
+                2. 若问题要求具体数字、名称、版本、人员、许可、平台支持或承诺，而片段未明确给出，回答“知识库中没有足够证据回答该问题。”
+                3. 有充分证据时，在关键结论后标注来源文件名；相关但不能回答问题的片段不算证据。
+
+                """);
         for (var source : sources) {
             context.append("[来源：").append(source.fileName()).append("，chunk ")
                     .append(source.chunkIndex()).append("]\n")
                     .append(source.content()).append("\n\n");
         }
         return context.toString();
+    }
+
+    private String noEvidenceContext() {
+        return "本次知识库检索没有得到满足阈值的片段。不得使用模型自身知识猜测；若工具也不能提供证据，回答“知识库中没有足够证据回答该问题。”";
     }
 }

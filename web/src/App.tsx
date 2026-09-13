@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react'
 
 type BackendState = 'checking' | 'online' | 'offline'
-type View = 'models' | 'knowledge' | 'mcp' | 'agents' | 'chat' | 'runs'
+type View = 'models' | 'knowledge' | 'mcp' | 'agents' | 'chat' | 'runs' | 'system'
 type ModelProfile = { id: string; name: string; provider: string; baseUrl: string; modelName: string; apiKeyEnv: string; temperature: number }
 type KnowledgeBase = { id: string; name: string; description: string }
 type KnowledgeDocument = { id: string; fileName: string; fileSize: number; status: string; chunkCount: number; errorMessage?: string }
@@ -9,7 +9,7 @@ type ReindexResult = { knowledgeBaseId: string; embedding: string; documentCount
 type RagSource = { documentId: string; fileName: string; chunkIndex: number; content: string; score: number }
 type ToolDefinition = { name: string; displayName: string; description: string; source: string; capability: string; riskLevel: string; timeoutSeconds: number }
 type AgentDefinition = { id: string; name: string; description: string; draftModelProfileId: string; draftKnowledgeBaseId?: string; draftSystemPrompt: string; draftToolNames: string[]; latestVersionNumber: number; status: 'DRAFT' | 'PUBLISHED' }
-type AgentVersion = { id: string; agentDefinitionId: string; versionNumber: number; modelProfileName: string; modelName: string; systemPrompt: string; toolNames: string[] }
+type AgentVersion = { id: string; agentDefinitionId: string; versionNumber: number; modelProfileName: string; modelName: string; systemPrompt: string; toolNames: string[]; publishedAt: string; archivedAt?: string; archived: boolean; usageCount: number; deletable: boolean }
 type ChatMessage = { role: 'user' | 'assistant'; content: string }
 type RunStep = { id: string; stepNumber: number; stepType: string; status: string; toolName?: string; inputJson?: string; outputText?: string; durationMs?: number }
 type ApprovalRequest = { id: string; toolName: string; capability: string; riskLevel: string; targetEnvironment: string; argumentsJson: string; argumentsSha256: string; status: string; expiresAt: string }
@@ -24,6 +24,9 @@ type McpPrompt = { publicName: string; remoteName: string; displayName: string; 
 type McpPromptResult = { description: string; messages: { role: string; content: unknown }[] }
 type McpSyncEvent = { id: string; status: string; protocolVersion?: string; toolCount: number; resourceCount: number; promptCount: number; added: number; removed: number; unchanged: number; errorMessage?: string; createdAt: string }
 type McpConfiguration = { name: string; transport: 'STREAMABLE_HTTP' | 'STDIO'; endpointUrl?: string; apiKeyEnv?: string; command?: string; arguments: string[]; workingDirectory?: string; environment: Record<string, string> }
+type ReadinessCheck = { id: string; name: string; status: 'READY' | 'WARNING' | 'FAILED'; detail: string; action: string; required: boolean }
+type SystemReadiness = { application: string; version: string; status: 'READY' | 'DEGRADED' | 'NOT_READY'; timestamp: string; checks: ReadinessCheck[] }
+type SecretStatus = { name: string; configured: boolean; source: 'ENVIRONMENT' | 'SECURE_STORE' | 'NONE'; usedBy: string[] }
 
 const emptyModel = { name: '', provider: 'OPENAI_COMPATIBLE', baseUrl: 'https://api.openai.com/v1', modelName: '', apiKeyEnv: 'OPENAI_API_KEY', temperature: 0.7 }
 const emptyAgent = { name: '', description: '', modelProfileId: '', knowledgeBaseId: '', systemPrompt: '', toolNames: [] as string[] }
@@ -65,6 +68,7 @@ function App() {
   const [sources, setSources] = useState<RagSource[]>([])
   const [runSteps, setRunSteps] = useState<RunStep[]>([])
   const [pendingApproval, setPendingApproval] = useState<ApprovalRequest>()
+  const [approvalSecondsLeft, setApprovalSecondsLeft] = useState(0)
   const [approvalBusy, setApprovalBusy] = useState(false)
   const [currentRunId, setCurrentRunId] = useState<string>()
   const [cancelBusy, setCancelBusy] = useState(false)
@@ -73,17 +77,23 @@ function App() {
   const [selectedAuditEvents, setSelectedAuditEvents] = useState<AuditEvent[]>([])
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState('')
+  const [readiness, setReadiness] = useState<SystemReadiness>()
+  const [readinessBusy, setReadinessBusy] = useState(false)
+  const [secrets, setSecrets] = useState<SecretStatus[]>([])
+  const [secretValues, setSecretValues] = useState<Record<string, string>>({})
+  const [showHistoricalVersions, setShowHistoricalVersions] = useState(false)
 
   const versionLabels = useMemo(() => {
     const names = new Map(agents.map((agent) => [agent.id, agent.name]))
-    return versions.map((version) => ({ ...version, label: `${names.get(version.agentDefinitionId) ?? 'Agent'} · v${version.versionNumber} · ${version.modelName}${version.toolNames.length ? ` · ${version.toolNames.length} 工具` : ''}` }))
-  }, [agents, versions])
+    return versions.filter((version) => !version.archived && (showHistoricalVersions || agents.find((agent) => agent.id === version.agentDefinitionId)?.latestVersionNumber === version.versionNumber))
+      .map((version) => ({ ...version, label: `${names.get(version.agentDefinitionId) ?? 'Agent'} · v${version.versionNumber} · ${version.modelName}${version.toolNames.length ? ` · ${version.toolNames.length} 工具` : ''}` }))
+  }, [agents, versions, showHistoricalVersions])
 
   async function refresh() {
     try {
       const [nextModels, nextAgents, nextBases, nextTools, nextRuns, nextMcpServers] = await Promise.all([api<ModelProfile[]>('/api/models'), api<AgentDefinition[]>('/api/agents'), api<KnowledgeBase[]>('/api/knowledge-bases'), api<ToolDefinition[]>('/api/tools'), api<RunSummary[]>('/api/runs?limit=50'), api<McpServer[]>('/api/mcp/servers')])
-      const groups = await Promise.all(nextAgents.map((agent) => api<AgentVersion[]>(`/api/agents/${agent.id}/versions`)))
-      setModels(nextModels); setAgents(nextAgents); setVersions(groups.flat()); setKnowledgeBases(nextBases); setTools(nextTools); setRunHistory(nextRuns); setMcpServers(nextMcpServers); setBackendState('online')
+      const [groups, nextSecrets] = await Promise.all([Promise.all(nextAgents.map((agent) => api<AgentVersion[]>(`/api/agents/${agent.id}/versions?includeArchived=true`))), api<SecretStatus[]>('/api/secrets')])
+      setModels(nextModels); setAgents(nextAgents); setVersions(groups.flat()); setSecrets(nextSecrets); setKnowledgeBases(nextBases); setTools(nextTools); setRunHistory(nextRuns); setMcpServers(nextMcpServers); setBackendState('online')
       const assetPairs = await Promise.all(nextMcpServers.map(async (server) => {
         try { return [server.id, { resources: await api<McpResource[]>(`/api/mcp/servers/${server.id}/resources`), prompts: await api<McpPrompt[]>(`/api/mcp/servers/${server.id}/prompts`) }] as const }
         catch { return [server.id, { resources: [], prompts: [] }] as const }
@@ -103,6 +113,25 @@ function App() {
 
   useEffect(() => { void refresh() }, [])
 
+  useEffect(() => {
+    if (!pendingApproval) { setApprovalSecondsLeft(0); return }
+    const previousTitle = document.title
+    document.title = `待审批 · ${pendingApproval.toolName}`
+    const updateCountdown = () => {
+      setApprovalSecondsLeft(Math.max(0, Math.ceil((new Date(pendingApproval.expiresAt).getTime() - Date.now()) / 1000)))
+    }
+    updateCountdown()
+    const timer = window.setInterval(updateCountdown, 1000)
+    return () => { window.clearInterval(timer); document.title = previousTitle }
+  }, [pendingApproval])
+
+  async function inspectReadiness() {
+    setReadinessBusy(true); setNotice('')
+    try { setReadiness(await api<SystemReadiness>('/api/system/readiness')); setBackendState('online') }
+    catch (error) { setBackendState('offline'); setNotice(error instanceof Error ? error.message : '系统诊断失败') }
+    finally { setReadinessBusy(false) }
+  }
+
   async function perform(action: () => Promise<void>) {
     setBusy(true); setNotice('')
     try { await action() } catch (error) { setNotice(error instanceof Error ? error.message : '操作失败') } finally { setBusy(false) }
@@ -113,7 +142,7 @@ function App() {
     await perform(async () => {
       await api('/api/models', { method: 'POST', body: JSON.stringify(modelForm) })
       setModelForm(emptyModel); await refresh()
-      setNotice('模型配置已保存。密钥值不会写入数据库，请在启动后端前设置对应环境变量。')
+      setNotice('模型配置已保存。现在可以在下方“安全凭据”中保存对应密钥。')
     })
   }
 
@@ -308,6 +337,42 @@ function App() {
     })
   }
 
+  async function saveSecret(name: string) {
+    const value = secretValues[name]?.trim()
+    if (!value) { setNotice('请输入密钥后再保存。'); return }
+    await perform(async () => {
+      await api<SecretStatus>(`/api/secrets/${encodeURIComponent(name)}`, { method: 'PUT', body: JSON.stringify({ value }) })
+      setSecretValues((current) => ({ ...current, [name]: '' }))
+      await refresh()
+      setNotice(`${name} 已使用 Windows 安全存储保存；页面和接口不会回显密钥。`)
+    })
+  }
+
+  async function deleteSecret(name: string) {
+    if (!window.confirm(`确定删除本机保存的 ${name} 吗？依赖它的模型或 MCP 将无法调用。`)) return
+    await perform(async () => {
+      const response = await fetch(`/api/secrets/${encodeURIComponent(name)}`, { method: 'DELETE' })
+      if (!response.ok) { const body = await response.json().catch(() => ({ message: '删除失败' })); throw new Error(body.message) }
+      await refresh()
+      setNotice(`${name} 的本机安全凭据已删除。`)
+    })
+  }
+
+  async function changeVersionLifecycle(agent: AgentDefinition, version: AgentVersion, action: 'archive' | 'restore' | 'delete') {
+    if (action === 'delete' && !window.confirm(`永久删除 ${agent.name} v${version.versionNumber}？此操作不可恢复。`)) return
+    await perform(async () => {
+      if (action === 'delete') {
+        const response = await fetch(`/api/agents/${agent.id}/versions/${version.id}`, { method: 'DELETE' })
+        if (!response.ok) { const body = await response.json().catch(() => ({ message: '删除失败' })); throw new Error(body.message) }
+      } else {
+        await api<AgentVersion>(`/api/agents/${agent.id}/versions/${version.id}/${action}`, { method: 'POST', body: '{}' })
+      }
+      if (selectedVersion === version.id && action !== 'restore') switchVersion('')
+      await refresh()
+      setNotice(action === 'archive' ? `v${version.versionNumber} 已归档，不再出现在对话选择中。` : action === 'restore' ? `v${version.versionNumber} 已恢复。` : `未被使用的 v${version.versionNumber} 已永久删除。`)
+    })
+  }
+
   async function sendMessage(event: FormEvent) {
     event.preventDefault()
     const input = chatInput.trim()
@@ -322,6 +387,7 @@ function App() {
       await readSse(response.body, (eventName, data) => {
         if (eventName === 'run') { setConversationId(String(data.conversationId)); setCurrentRunId(String(data.runId)) }
         if (eventName === 'sources') setSources((data.items as RagSource[]) ?? [])
+        if (eventName === 'evidence' && data.status === 'INSUFFICIENT') setNotice(String(data.message ?? '知识库证据不足'))
         if (eventName === 'step') setRunSteps((current) => [...current, data as RunStep])
         if (eventName === 'approval_required') setPendingApproval(data as ApprovalRequest)
         if (eventName === 'delta') setMessages((current) => current.map((message, index) => index === current.length - 1 ? { ...message, content: message.content + String(data.content ?? '') } : message))
@@ -384,12 +450,13 @@ function App() {
         <button className={view === 'agents' ? 'active' : ''} onClick={() => setView('agents')}><span>04</span>Agent Builder</button>
         <button className={view === 'chat' ? 'active' : ''} onClick={() => setView('chat')}><span>05</span>对话测试台</button>
         <button className={view === 'runs' ? 'active' : ''} onClick={() => { setView('runs'); void refresh() }}><span>06</span>运行记录</button>
+        <button className={view === 'system' ? 'active' : ''} onClick={() => { setView('system'); void inspectReadiness() }}><span>07</span>系统诊断</button>
       </nav>
       <div className={`connection connection--${backendState}`}><i />{backendState === 'online' ? '后端已连接' : backendState === 'checking' ? '正在连接' : '后端未连接'}</div>
     </aside>
     <main className="workspace">
       {notice && <div className="notice">{notice}<button onClick={() => setNotice('')}>×</button></div>}
-      {view === 'models' && <section><PageHeader number="01" title="模型配置" description="仅保存连接参数和密钥环境变量名，不保存密钥明文。" /><div className="two-column">
+      {view === 'models' && <section><PageHeader number="01" title="模型与凭据" description="连接参数保存在业务数据库；密钥由当前 Windows 用户的安全存储保护，也可由环境变量覆盖。" /><div className="two-column">
         <form className="panel form" onSubmit={submitModel}><h2>新增模型连接</h2>
           <Field label="显示名称"><input required value={modelForm.name} onChange={(e) => setModelForm({ ...modelForm, name: e.target.value })} placeholder="例如：OpenAI 主模型" /></Field>
           <Field label="兼容 API 地址"><input required type="url" value={modelForm.baseUrl} onChange={(e) => setModelForm({ ...modelForm, baseUrl: e.target.value })} /></Field>
@@ -400,6 +467,9 @@ function App() {
         </form>
         <div className="panel list-panel"><h2>已配置模型 <small>{models.length}</small></h2>{models.length === 0 ? <Empty text="尚无模型配置" /> : models.map((model) => <article className="model-card" key={model.id}><div><strong>{model.name}</strong><span>{model.modelName}</span></div><code>{model.baseUrl}</code><p>密钥：{model.apiKeyEnv} · 温度 {model.temperature}</p></article>)}</div>
       </div>
+        <div className="panel secret-panel"><div className="section-head"><div><h2>安全凭据 <small>{secrets.filter((item) => item.configured).length}/{secrets.length}</small></h2><p className="hint">密钥只会提交给本机后端并加密保存，页面和接口永不回显。环境变量的优先级更高。</p></div></div>
+          {secrets.length === 0 ? <Empty text="创建模型或填写 MCP 凭据名称后，这里会出现对应项目" /> : <div className="secret-list">{secrets.map((secret) => <article key={secret.name} className="secret-card"><div><strong>{secret.name}</strong><span className={`badge badge--${secret.configured ? 'ready' : 'warning'}`}>{secret.configured ? secret.source === 'ENVIRONMENT' ? '环境变量' : '安全存储' : '未配置'}</span><p>{secret.usedBy.join(' · ')}</p></div><input type="password" autoComplete="new-password" value={secretValues[secret.name] ?? ''} onChange={(e) => setSecretValues((current) => ({ ...current, [secret.name]: e.target.value }))} placeholder={secret.configured ? '输入新值可替换' : '输入密钥'} /><div className="card-actions"><button className="secondary" disabled={busy || !(secretValues[secret.name]?.trim())} onClick={() => void saveSecret(secret.name)}>{secret.configured ? '更新' : '安全保存'}</button>{secret.configured && <button className="danger compact" disabled={busy || secret.source === 'ENVIRONMENT'} title={secret.source === 'ENVIRONMENT' ? '环境变量需在程序外清除' : undefined} onClick={() => void deleteSecret(secret.name)}>删除</button>}</div></article>)}</div>}
+        </div>
       </section>}
       {view === 'knowledge' && <section><PageHeader number="02" title="知识库" description="文档保存在本机，切分结果写入 pgvector；删除操作会同步清理文件和向量。" /><div className="two-column">
         <div className="panel-stack">
@@ -461,17 +531,26 @@ function App() {
           <Field label="系统提示词"><textarea required rows={8} value={agentForm.systemPrompt} onChange={(e) => setAgentForm({ ...agentForm, systemPrompt: e.target.value })} placeholder="定义 Agent 的身份、目标和边界" /></Field>
           <div className="form-actions"><button className="primary" disabled={busy || models.length === 0}>{editingAgentId ? '保存草稿修改' : '创建草稿'}</button>{editingAgentId && <button className="ghost" type="button" disabled={busy} onClick={cancelAgentEdit}>取消编辑</button>}</div>
         </form>
-        <div className="panel list-panel"><h2>Agent 列表 <small>{agents.length}</small></h2>{agents.length === 0 ? <Empty text="先配置模型，再创建 Agent" /> : agents.map((agent) => <article className="agent-card" key={agent.id}><div className="card-head"><div><strong>{agent.name}</strong><p>{agent.description || '暂无简介'}</p></div><span className={`badge badge--${(agent.status ?? 'DRAFT').toLowerCase()}`}>{agent.status ?? 'DRAFT'}</span></div>{agent.draftToolNames.length > 0 && <div className="tool-chips">{agent.draftToolNames.map((name) => <span key={name}>{name}</span>)}</div>}<div className="agent-meta"><span>最新版本</span><b>{agent.latestVersionNumber ? `v${agent.latestVersionNumber}` : '未发布'}</b></div><div className="card-actions"><button className="ghost" disabled={busy} onClick={() => editAgent(agent)}>编辑草稿</button><button className="secondary" disabled={busy} onClick={() => void publish(agent.id)}>发布新版本</button></div></article>)}</div>
+        <div className="panel list-panel"><h2>Agent 列表 <small>{agents.length}</small></h2>{agents.length === 0 ? <Empty text="先配置模型，再创建 Agent" /> : agents.map((agent) => {
+          const agentVersions = versions.filter((version) => version.agentDefinitionId === agent.id)
+          return <article className="agent-card" key={agent.id}><div className="card-head"><div><strong>{agent.name}</strong><p>{agent.description || '暂无简介'}</p></div><span className={`badge badge--${(agent.status ?? 'DRAFT').toLowerCase()}`}>{agent.status ?? 'DRAFT'}</span></div>{agent.draftToolNames.length > 0 && <div className="tool-chips">{agent.draftToolNames.map((name) => <span key={name}>{name}</span>)}</div>}<div className="agent-meta"><span>最新版本</span><b>{agent.latestVersionNumber ? `v${agent.latestVersionNumber}` : '未发布'}</b></div>{agentVersions.length > 0 && <details className="version-manager"><summary>管理历史版本（{agentVersions.length}）</summary>{agentVersions.map((version) => <div className={`version-row ${version.archived ? 'version-row--archived' : ''}`} key={version.id}><div><b>v{version.versionNumber}</b><span>{version.archived ? '已归档' : version.versionNumber === agent.latestVersionNumber ? '当前版本' : '历史版本'} · {version.usageCount} 条引用</span></div><div>{version.archived ? <><button className="ghost" disabled={busy} onClick={() => void changeVersionLifecycle(agent, version, 'restore')}>恢复</button>{version.deletable && <button className="danger compact" disabled={busy} onClick={() => void changeVersionLifecycle(agent, version, 'delete')}>永久删除</button>}</> : version.versionNumber !== agent.latestVersionNumber && <button className="ghost" disabled={busy} onClick={() => void changeVersionLifecycle(agent, version, 'archive')}>归档</button>}</div></div>)}</details>}<div className="card-actions"><button className="ghost" disabled={busy} onClick={() => editAgent(agent)}>编辑草稿</button><button className="secondary" disabled={busy} onClick={() => void publish(agent.id)}>发布新版本</button></div></article>
+        })}</div>
       </div></section>}
       {view === 'chat' && <section><PageHeader number="05" title="对话测试台" description="选择已发布版本；MCP 工具与内置工具共享审批和运行记录。" />
-        <div className="chat-toolbar"><label>Agent 版本<select value={selectedVersion} onChange={(e) => switchVersion(e.target.value)}><option value="">选择已发布版本</option>{versionLabels.map((version) => <option key={version.id} value={version.id}>{version.label}</option>)}</select></label><span>{conversationId ? `会话 ${conversationId.slice(0, 8)}` : '新会话'}</span><button className="ghost" onClick={() => { setConversationId(undefined); setMessages([]); setSources([]); setRunSteps([]); setPendingApproval(undefined) }}>清空会话</button></div>
-        <div className="chat-panel"><div className="messages">{pendingApproval && <aside className="approval-card"><strong>等待高风险操作审批</strong><p>工具：<code>{pendingApproval.toolName}</code> · {pendingApproval.capability}/{pendingApproval.riskLevel}</p><p>目标：{pendingApproval.targetEnvironment}</p><pre>{pendingApproval.argumentsJson}</pre><small>参数摘要：{pendingApproval.argumentsSha256.slice(0, 16)}… · {new Date(pendingApproval.expiresAt).toLocaleTimeString()} 前有效</small><div><button className="danger" disabled={approvalBusy} onClick={() => void decideApproval(false)}>拒绝</button><button className="primary" disabled={approvalBusy} onClick={() => void decideApproval(true)}>批准执行一次</button></div></aside>}{sources.length > 0 && <aside className="sources"><strong>本次检索来源</strong>{sources.map((source) => <details key={`${source.documentId}-${source.chunkIndex}`}><summary>{source.fileName} · chunk {source.chunkIndex} · {Math.round(source.score * 100)}%</summary><p>{source.content}</p></details>)}</aside>}{runSteps.length > 0 && <aside className="run-steps"><strong>运行步骤</strong>{runSteps.map((step) => <details key={step.id} open={step.stepType === 'TOOL_RESULT' || step.stepType.startsWith('APPROVAL')}><summary>#{step.stepNumber} {step.stepType}{step.toolName ? ` · ${step.toolName}` : ''}<span className={`step-status step-status--${step.status.toLowerCase()}`}>{step.status}</span></summary>{step.inputJson && <pre>输入：{step.inputJson}</pre>}{step.outputText && <pre>输出：{step.outputText}</pre>}{step.durationMs != null && <small>{step.durationMs} ms</small>}</details>)}</aside>}{messages.length === 0 ? <Empty text={versions.length ? '选择版本并发送第一条消息' : '请先发布一个 Agent 版本'} /> : messages.map((message, index) => <article className={`message message--${message.role}`} key={index}><span>{message.role === 'user' ? 'YOU' : 'AGENT'}</span><p>{message.content || <i className="typing">正在生成</i>}</p></article>)}</div>
+        <div className="chat-toolbar"><label>Agent 版本<select value={selectedVersion} onChange={(e) => switchVersion(e.target.value)}><option value="">选择已发布版本</option>{versionLabels.map((version) => <option key={version.id} value={version.id}>{version.label}</option>)}</select></label><label className="history-toggle"><input type="checkbox" checked={showHistoricalVersions} onChange={(e) => setShowHistoricalVersions(e.target.checked)} />显示历史版本</label><span>{conversationId ? `会话 ${conversationId.slice(0, 8)}` : '新会话'}</span><button className="ghost" onClick={() => { setConversationId(undefined); setMessages([]); setSources([]); setRunSteps([]); setPendingApproval(undefined) }}>清空会话</button></div>
+        <div className="chat-panel"><div className="messages">{pendingApproval && <aside className="approval-card" role="alert" aria-live="assertive"><div className="approval-heading"><strong>等待高风险操作审批</strong><b>{approvalSecondsLeft > 0 ? `${approvalSecondsLeft} 秒` : '已过期'}</b></div><p>工具：<code>{pendingApproval.toolName}</code> · {pendingApproval.capability}/{pendingApproval.riskLevel}</p><p>目标：{pendingApproval.targetEnvironment}</p><pre>{pendingApproval.argumentsJson}</pre><small>参数摘要：{pendingApproval.argumentsSha256.slice(0, 16)}… · {new Date(pendingApproval.expiresAt).toLocaleTimeString()} 前有效</small><div><button className="danger" disabled={approvalBusy || approvalSecondsLeft <= 0} onClick={() => void decideApproval(false)}>拒绝</button><button className="primary" disabled={approvalBusy || approvalSecondsLeft <= 0} onClick={() => void decideApproval(true)}>批准执行一次</button></div></aside>}{sources.length > 0 && <aside className="sources"><strong>本次检索来源</strong>{sources.map((source) => <details key={`${source.documentId}-${source.chunkIndex}`}><summary>{source.fileName} · chunk {source.chunkIndex} · {Math.round(source.score * 100)}%</summary><p>{source.content}</p></details>)}</aside>}{runSteps.length > 0 && <aside className="run-steps"><strong>运行步骤</strong>{runSteps.map((step) => <details key={step.id} open={step.stepType === 'TOOL_RESULT' || step.stepType.startsWith('APPROVAL')}><summary>#{step.stepNumber} {step.stepType}{step.toolName ? ` · ${step.toolName}` : ''}<span className={`step-status step-status--${step.status.toLowerCase()}`}>{step.status}</span></summary>{step.inputJson && <pre>输入：{step.inputJson}</pre>}{step.outputText && <pre>输出：{step.outputText}</pre>}{step.durationMs != null && <small>{step.durationMs} ms</small>}</details>)}</aside>}{messages.length === 0 ? <Empty text={versions.length ? '选择版本并发送第一条消息' : '请先发布一个 Agent 版本'} /> : messages.map((message, index) => <article className={`message message--${message.role}`} key={index}><span>{message.role === 'user' ? 'YOU' : 'AGENT'}</span><p>{message.content || <i className="typing">正在生成</i>}</p></article>)}</div>
           <form className="composer" onSubmit={sendMessage}><textarea rows={3} value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder="输入测试问题……" onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); e.currentTarget.form?.requestSubmit() } }} /><div className="composer-actions"><button className="primary" disabled={busy || !selectedVersion || !chatInput.trim()}>{busy ? '生成中' : '发送'}</button>{busy && currentRunId && <button className="danger" type="button" disabled={cancelBusy} onClick={() => void cancelCurrentRun()}>{cancelBusy ? '停止中' : '停止运行'}</button>}</div></form>
         </div>
       </section>}
       {view === 'runs' && <section><PageHeader number="06" title="运行记录" description="查看每次 AgentRun 的最终状态、耗时、错误和完整步骤。" />
         <div className="two-column run-history-layout"><div className="panel list-panel"><div className="section-head"><h2>最近运行 <small>{runHistory.length}</small></h2><button className="ghost" onClick={() => void refresh()}>刷新</button></div>{runHistory.length === 0 ? <Empty text="尚无运行记录" /> : runHistory.map((run) => <button className={`run-card ${selectedRun?.id === run.id ? 'active' : ''}`} key={run.id} onClick={() => void openRun(run.id)}><div><strong>{run.id.slice(0, 8)}</strong><span className={`badge badge--${run.status.toLowerCase()}`}>{run.status}</span></div><p>{new Date(run.startedAt).toLocaleString()} · {run.stepCount} 步</p>{run.errorMessage && <small>{run.errorMessage}</small>}</button>)}</div>
           <div className="panel run-detail">{!selectedRun ? <Empty text="选择一条运行查看完整步骤" /> : <><div className="card-head"><div><strong>运行 {selectedRun.id.slice(0, 8)}</strong><p>会话 {selectedRun.conversationId.slice(0, 8)}</p></div><span className={`badge badge--${selectedRun.status.toLowerCase()}`}>{selectedRun.status}</span></div><dl><div><dt>AgentVersion</dt><dd>{selectedRun.agentVersionId}</dd></div><div><dt>开始</dt><dd>{new Date(selectedRun.startedAt).toLocaleString()}</dd></div>{selectedRun.completedAt && <div><dt>结束</dt><dd>{new Date(selectedRun.completedAt).toLocaleString()}</dd></div>}</dl>{selectedRun.errorMessage && <p className="run-error">{selectedRun.errorMessage}</p>}<aside className="run-steps"><strong>完整步骤</strong>{selectedRun.steps.map((step) => <details key={step.id}><summary>#{step.stepNumber} {step.stepType}{step.toolName ? ` · ${step.toolName}` : ''}<span className={`step-status step-status--${step.status.toLowerCase()}`}>{step.status}</span></summary>{step.inputJson && <pre>输入：{step.inputJson}</pre>}{step.outputText && <pre>输出：{step.outputText}</pre>}{step.durationMs != null && <small>{step.durationMs} ms</small>}</details>)}</aside><aside className="audit-events"><strong>安全审计</strong>{selectedAuditEvents.length === 0 ? <p>该运行没有工具审计事件</p> : selectedAuditEvents.map((event) => <article key={event.id}><div><b>{event.eventType}</b><span className={`step-status step-status--${event.status.toLowerCase()}`}>{event.status}</span></div><small>{new Date(event.createdAt).toLocaleTimeString()} · {event.toolName} · {event.capability}/{event.riskLevel}</small>{event.argumentsSha256 && <code>参数摘要 {event.argumentsSha256.slice(0, 16)}…</code>}{event.details && <p>{event.details}</p>}</article>)}</aside></>}</div></div>
+      </section>}
+      {view === 'system' && <section><PageHeader number="07" title="系统诊断" description="正式使用前逐项确认数据库、向量模型、密钥、数据目录和 MCP 是否真正可用。" />
+        <div className="panel readiness-panel">
+          <div className="section-head"><div><h2>版本 {readiness?.version ?? '读取中'}</h2>{readiness && <p className="hint">上次检查 {new Date(readiness.timestamp).toLocaleString()}</p>}</div><div className="readiness-summary"><span className={`badge badge--${(readiness?.status ?? 'checking').toLowerCase()}`}>{readiness?.status ?? 'CHECKING'}</span><button className="secondary" disabled={readinessBusy} onClick={() => void inspectReadiness()}>{readinessBusy ? '检查中…' : '重新检查'}</button></div></div>
+          {!readiness ? <Empty text="正在检查本机运行环境" /> : <div className="readiness-list">{readiness.checks.map((check) => <article key={check.id} className={`readiness-card readiness-card--${check.status.toLowerCase()}`}><div><strong>{check.name}</strong><span className={`badge badge--${check.status.toLowerCase()}`}>{check.status}</span></div><p>{check.detail}</p>{check.action && <small>建议：{check.action}</small>}</article>)}</div>}
+        </div>
       </section>}
     </main>
   </div>

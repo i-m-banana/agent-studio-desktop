@@ -16,6 +16,7 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import static org.mockito.Mockito.mock;
 import org.junit.jupiter.api.Test;
 
 class StreamableHttpMcpClientTests {
@@ -29,7 +30,7 @@ class StreamableHttpMcpClientTests {
         httpServer = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         httpServer.createContext("/mcp", this::handle);
         httpServer.start();
-        client = new StreamableHttpMcpClient(HttpClient.newHttpClient(), objectMapper);
+        client = new StreamableHttpMcpClient(HttpClient.newHttpClient(), objectMapper, mock(com.agentstudio.secret.SecretResolver.class));
     }
 
     @AfterEach

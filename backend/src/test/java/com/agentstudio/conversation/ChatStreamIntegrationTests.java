@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -106,6 +108,74 @@ class ChatStreamIntegrationTests {
     }
 
     @Test
+    void returnsDeterministicNoEvidenceAnswerWithoutCallingModel() throws Exception {
+        when(knowledgeRetriever.retrieve(any(), any())).thenReturn(List.of());
+        var suffix = UUID.randomUUID().toString();
+        var model = modelProfiles.create(new ModelProfileRequest(
+                "no-evidence-model-" + suffix, "OPENAI_COMPATIBLE", "https://example.com/v1",
+                "test-model", "TEST_MODEL_KEY", new BigDecimal("0.2")));
+        var knowledgeBase = knowledge.createBase(new KnowledgeBaseRequest("no-evidence-kb-" + suffix, "test"));
+        var agent = agents.create(new AgentDefinitionRequest(
+                "no-evidence-agent-" + suffix, "test", model.id(), knowledgeBase.id(), "只依据知识库回答", List.of()));
+        var version = agents.publish(agent.id());
+
+        var result = mockMvc.perform(post("/api/chat/stream")
+                        .contentType(MediaType.APPLICATION_JSON).accept(MediaType.TEXT_EVENT_STREAM)
+                        .content("""
+                                {"agentVersionId":"%s","message":"知识库没有写过的事实是什么？"}
+                                """.formatted(version.id())))
+                .andExpect(request().asyncStarted()).andReturn();
+        mockMvc.perform(asyncDispatch(result))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("event:evidence")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("INSUFFICIENT")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("EVIDENCE_CHECK")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("event:sources"))))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("event:done")));
+        verify(modelGateway, never()).stream(any(), any(), any());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void keepsTwoConcurrentConversationsIsolated() throws Exception {
+        when(knowledgeRetriever.retrieve(any(), any())).thenReturn(List.of());
+        var gate = new java.util.concurrent.CountDownLatch(2);
+        doAnswer(invocation -> {
+            java.util.List<com.agentstudio.model.ModelMessage> modelMessages = invocation.getArgument(1);
+            Consumer<String> consumer = invocation.getArgument(2);
+            var ownQuestion = modelMessages.getLast().content();
+            gate.countDown();
+            assertThat(gate.await(3, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+            consumer.accept("answer-for:" + ownQuestion);
+            return null;
+        }).when(modelGateway).stream(any(), any(), any());
+        var suffix = UUID.randomUUID().toString();
+        var model = modelProfiles.create(new ModelProfileRequest(
+                "parallel-model-" + suffix, "OPENAI_COMPATIBLE", "https://example.com/v1",
+                "test-model", "TEST_MODEL_KEY", new BigDecimal("0.2")));
+        var agent = agents.create(new AgentDefinitionRequest(
+                "parallel-agent-" + suffix, "test", model.id(), null, "隔离测试", List.of()));
+        var version = agents.publish(agent.id());
+
+        var first = mockMvc.perform(post("/api/chat/stream").contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.TEXT_EVENT_STREAM)
+                        .content("{\"agentVersionId\":\"%s\",\"message\":\"alpha-only\"}".formatted(version.id())))
+                .andExpect(request().asyncStarted()).andReturn();
+        var second = mockMvc.perform(post("/api/chat/stream").contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.TEXT_EVENT_STREAM)
+                        .content("{\"agentVersionId\":\"%s\",\"message\":\"beta-only\"}".formatted(version.id())))
+                .andExpect(request().asyncStarted()).andReturn();
+        var firstBody = mockMvc.perform(asyncDispatch(first)).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        var secondBody = mockMvc.perform(asyncDispatch(second)).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertThat(firstBody).contains("answer-for:alpha-only").doesNotContain("beta-only");
+        assertThat(secondBody).contains("answer-for:beta-only").doesNotContain("alpha-only");
+        var pattern = java.util.regex.Pattern.compile("\\\"conversationId\\\":\\\"([^\\\"]+)\\\"");
+        var firstId = pattern.matcher(firstBody); var secondId = pattern.matcher(secondBody);
+        assertThat(firstId.find()).isTrue(); assertThat(secondId.find()).isTrue();
+        assertThat(firstId.group(1)).isNotEqualTo(secondId.group(1));
+    }
+
+    @Test
     void executesBoundToolAndPersistsRunSteps() throws Exception {
         when(knowledgeRetriever.retrieve(any(), any())).thenReturn(List.of());
         when(modelGateway.complete(any(), any(), any()))
@@ -153,10 +223,18 @@ class ChatStreamIntegrationTests {
     }
 
     @Test
-    void stopsAndMarksRunFailedAtMaximumToolRounds() throws Exception {
+    void finalizesWithExistingResultsAtMaximumToolRounds() throws Exception {
         when(knowledgeRetriever.retrieve(any(), any())).thenReturn(List.of());
-        when(modelGateway.complete(any(), any(), any())).thenReturn(new ModelTurn("", List.of(
-                new ModelToolCall("repeat-call", "current_time", "{}"))));
+        var modelCalls = new java.util.concurrent.atomic.AtomicInteger();
+        when(modelGateway.complete(any(), any(), any())).thenAnswer(invocation -> {
+            if (modelCalls.incrementAndGet() <= 4) {
+                return new ModelTurn("", List.of(new ModelToolCall(
+                        "repeat-call-" + modelCalls.get(), "current_time", "{}")));
+            }
+            java.util.List<?> availableTools = invocation.getArgument(2);
+            assertThat(availableTools).isEmpty();
+            return new ModelTurn("finalized from existing tool results", List.of());
+        });
         var suffix = UUID.randomUUID().toString();
         var model = modelProfiles.create(new ModelProfileRequest(
                 "loop-model-" + suffix, "OPENAI_COMPATIBLE", "https://example.com/v1",
@@ -175,13 +253,19 @@ class ChatStreamIntegrationTests {
                 .andExpect(request().asyncStarted()).andReturn();
         var response = mockMvc.perform(asyncDispatch(result))
                 .andExpect(status().isOk())
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("event:error")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("MODEL_FINALIZATION")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("finalized from existing tool results")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("event:done")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(
+                        org.hamcrest.Matchers.containsString("达到最大工具轮数"))))
                 .andReturn().getResponse().getContentAsString();
+        assertThat(modelCalls).hasValue(5);
         var matcher = java.util.regex.Pattern.compile("\\\"runId\\\":\\\"([^\\\"]+)\\\"").matcher(response);
         assertThat(matcher.find()).isTrue();
         mockMvc.perform(get("/api/runs/{id}", matcher.group(1)))
                 .andExpect(status().isOk())
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("\"status\":\"FAILED\"")));
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("\"status\":\"COMPLETED\"")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("MODEL_FINALIZATION")));
     }
 
     @Test

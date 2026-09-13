@@ -11,6 +11,14 @@
 - `decisions/0009-mcp-streamable-http-adapter.md`：MCP 动态发现、稳定命名、版本修订与统一安全入口；
 - `decisions/0010-mcp-stdio-and-trust-policy.md`：stdio 子进程生命周期、Server 管理与显式信任策略；
 - `decisions/0011-mcp-resources-prompts-and-completion-boundary.md`：Resources、Prompts、知识库导入、同步历史和协议完成边界；
+- `decisions/0012-release-readiness-and-grounded-answer.md`：发布就绪诊断、证据边界和运维脚本；
+- `decisions/0013-tool-budget-finalization-and-approval-visibility.md`：网络检索实测暴露的工具预算收尾、结果上下文和审批可见性；
+- `decisions/0014-secure-credentials-and-version-lifecycle.md`：Windows DPAPI 凭据、环境覆盖优先级，以及 Agent 历史版本归档和受限删除；
+- `RELEASE_CHECKLIST.md`：从 `1.0.0-rc1` 升为正式版前的自动检查、人工验收和备份要求；
+- `MATURITY_BASELINE_1.0.0-rc1.md`：后续开发不得破坏的基线不变量、证据和正式代码锚点条件；
+- `RELEASE_NOTES_1.0.0.md`：首个单机正式版的验收结论、能力边界和锚点规则；
 - `SOURCE_REFERENCES.md`：三个来源项目的版本、状态、许可证口径和参考边界；
 - `VERIFICATION.md`：每阶段的实际验证证据与未验证项。
 - `../examples/project-knowledge-pack`：可逐份上传的项目知识、开发复盘、面试讲述与 RAG 盲测题库。
+- `../examples/project-knowledge-pack/16-成熟版本开发锚点与面试全景.md`：当前版本的全局知识入口；
+- `../examples/project-knowledge-pack/17-锚点后的未来开发计划.md`：按优先级、依赖和验收标准拆分的路线图。

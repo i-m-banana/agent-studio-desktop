@@ -15,3 +15,5 @@ web/vite.config.d.ts
 !.env.example
 data/*
 !data/.gitkeep
+.run/
+backups/

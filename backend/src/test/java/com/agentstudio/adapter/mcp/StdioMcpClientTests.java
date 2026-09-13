@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 
 class StdioMcpClientTests {
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final StdioMcpClient client = new StdioMcpClient(objectMapper);
+    private final StdioMcpClient client = new StdioMcpClient(objectMapper, org.mockito.Mockito.mock(com.agentstudio.secret.SecretResolver.class));
 
     @Test
     void discoversAndCallsToolOverNewlineDelimitedStdio() throws Exception {

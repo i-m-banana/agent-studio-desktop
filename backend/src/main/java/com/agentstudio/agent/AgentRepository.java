@@ -106,12 +106,13 @@ public class AgentRepository {
                 "id", version.agentDefinitionId()));
     }
 
-    public List<AgentVersion> findVersions(String definitionId) {
+    public List<AgentVersion> findVersions(String definitionId, boolean includeArchived) {
         return jdbc.query("""
                 SELECT * FROM agent_version
                 WHERE agent_definition_id = :definitionId
+                  AND (:includeArchived = TRUE OR archived_at IS NULL)
                 ORDER BY version_number DESC
-                """, Map.of("definitionId", definitionId), VERSION_MAPPER);
+                """, Map.of("definitionId", definitionId, "includeArchived", includeArchived), VERSION_MAPPER);
     }
 
     public Optional<AgentVersion> findVersion(String versionId) {
@@ -152,6 +153,28 @@ public class AgentRepository {
                 """, Map.of("versionId", versionId), (rs, row) -> rs.getString("tool_name"));
     }
 
+    public long countVersionUsage(String versionId) {
+        var count = jdbc.queryForObject("""
+                SELECT (SELECT COUNT(*) FROM conversation WHERE agent_version_id = :id)
+                     + (SELECT COUNT(*) FROM agent_run WHERE agent_version_id = :id)
+                """, Map.of("id", versionId), Long.class);
+        return count == null ? 0 : count;
+    }
+
+    public void archiveVersion(String versionId, Instant archivedAt) {
+        jdbc.update("UPDATE agent_version SET archived_at = :archivedAt WHERE id = :id",
+                Map.of("id", versionId, "archivedAt", Timestamp.from(archivedAt)));
+    }
+
+    public void restoreVersion(String versionId) {
+        jdbc.update("UPDATE agent_version SET archived_at = NULL WHERE id = :id", Map.of("id", versionId));
+    }
+
+    public void deleteVersion(String versionId) {
+        jdbc.update("DELETE FROM agent_version_tool WHERE agent_version_id = :id", Map.of("id", versionId));
+        jdbc.update("DELETE FROM agent_version WHERE id = :id", Map.of("id", versionId));
+    }
+
     private static MapSqlParameterSource definitionParameters(AgentDefinition definition) {
         return new MapSqlParameterSource()
                 .addValue("id", definition.id())
@@ -181,10 +204,16 @@ public class AgentRepository {
                 rs.getString("model_profile_id"), rs.getString("model_profile_name"),
                 rs.getString("provider"), rs.getString("base_url"), rs.getString("model_name"),
                 rs.getString("api_key_env"), rs.getBigDecimal("temperature"),
-                rs.getString("system_prompt"), List.of(), instant(rs, "published_at"));
+                rs.getString("system_prompt"), List.of(), instant(rs, "published_at"),
+                nullableInstant(rs, "archived_at"), 0);
     }
 
     private static Instant instant(ResultSet rs, String column) throws SQLException {
         return rs.getTimestamp(column).toInstant();
+    }
+
+    private static Instant nullableInstant(ResultSet rs, String column) throws SQLException {
+        var timestamp = rs.getTimestamp(column);
+        return timestamp == null ? null : timestamp.toInstant();
     }
 }

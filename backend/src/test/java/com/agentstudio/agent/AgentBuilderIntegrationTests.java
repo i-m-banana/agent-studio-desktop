@@ -56,5 +56,14 @@ class AgentBuilderIntegrationTests {
         assertThat(versionTwo.toolNames()).isEmpty();
         assertThat(agents.versions(agent.id())).extracting(AgentVersion::versionNumber)
                 .containsExactly(2, 1);
+
+        var archived = agents.archiveVersion(agent.id(), versionOne.id());
+        assertThat(archived.archived()).isTrue();
+        assertThat(agents.versions(agent.id())).extracting(AgentVersion::versionNumber).containsExactly(2);
+        assertThat(agents.versions(agent.id(), true)).hasSize(2);
+        agents.deleteVersion(agent.id(), versionOne.id());
+        assertThat(agents.versions(agent.id(), true)).extracting(AgentVersion::versionNumber).containsExactly(2);
+        assertThatThrownBy(() -> agents.archiveVersion(agent.id(), versionTwo.id()))
+                .hasMessage("最新版本不能归档；请先发布替代版本");
     }
 }

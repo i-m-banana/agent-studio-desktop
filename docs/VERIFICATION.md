@@ -1,5 +1,40 @@
 # 验证记录
 
+## 阶段 12：1.0.0-rc1 正式版前加固（2026-09-06）
+
+- 版本统一为 `1.0.0-rc1`，新增系统诊断 API 与前端第 07 页，检查 MySQL、pgvector、Embedding 实际调用、模型密钥变量、data 写权限和 MCP；
+- RAG 空召回且无工具时固定拒答并跳过模型，有候选片段时注入严格证据契约；
+- 后端测试由 24 个增至 31 个，新增并发会话隔离、知识库 chunk/删除隔离、MCP 配置与 Resource HTTP 入口、空召回拒答、系统诊断和 Windows DPAPI 覆盖；最终 31 个通过、0 失败、0 错误；
+- 前端 `npm run build` 通过，TypeScript 和 Vite 生产构建成功；
+- Tavily 真实多轮检索暴露的审批不可见与工具轮数收尾问题已修复：审批卡固定显示、标题提醒和秒级倒计时；第四轮工具返回后以无工具模型调用完成 `MODEL_FINALIZATION`，不再直接把已有成功结果标为失败；
+- PowerShell 运维脚本通过 Windows PowerShell 兼容解析；预检在本机确认 Maven 使用 Java 21.0.4、Docker、Node、npm、Ollama 和 data 目录可用；
+- 发布检查最初因运行中的 Vite 锁住 esbuild 而使原地 `npm ci` 失败；改为经过路径前缀校验的随机临时副本后，干净安装和生产构建通过，不干扰开发服务器；
+- 首次用户执行一键启动时，前述中断的原地 `npm ci` 已把日常 node_modules 留在不完整状态，前端日志明确显示找不到 vite；重新 `npm install` 后恢复。启动脚本因此增加本地 Vite 完整性检查和自动补装，并改用隐藏 cmd 子进程，避免隐藏 PowerShell Host 在 Maven 设置控制台标题时抛出异常；复测还发现 Windows 可能把 `localhost` 解析到 IPv6，造成 Vite 已启动而 IPv4 健康检查误报超时，现已把 Vite 明确绑定到 `127.0.0.1`，并让停止脚本容忍清理瞬间的进程退出竞态。最终实测启动脚本约 14 秒成功返回，后端状态为 `UP`、版本为 `1.0.0-rc1`，前端返回 HTTP 200，停止脚本随后完整关闭两个进程树；
+- Docker 真实备份演练成功，生成非空 MySQL SQL、pgvector SQL、data.zip 和带 `1.0.0-rc1` 的 manifest；恢复脚本的强制确认保护已验证，未在用户当前数据库执行破坏性恢复；
+- 备份演练先后发现并修复旧版 PowerShell 解析差异、MySQL 应用账号缺少 PROCESS 权限、管道覆盖原始退出码三个问题。最终使用 `--no-tablespaces` 并在写文件前固定保存退出码，避免半份备份误报成功。
+
+尚待用户集中人工验收：重启日常后端后查看“系统诊断”，完成真实 DeepSeek 普通/无答案问答、一次并发双会话、HIGH 工具批准与拒绝，以及 HTTP/stdio MCP 集中链路。通过后才从 rc1 升为 `1.0.0`。
+
+## 阶段 13：真实网络检索后的运行收口（2026-09-07）
+
+- Tavily Streamable HTTP 使用 Bearer 环境变量成功同步并执行。运行 `ddcba638` 中首次 search 已完成并产生额度，后续 extract 审批未在视口内被发现，90 秒过期后又触发重试，最终碰到 120 秒总时限。
+- 运行 `4b7783e1` 的四个工具轮次全部获批并完成，包含多次 search 与 extract；最后已取得 MCP 官方规范和 GitHub Release 证据，却因循环结束后没有最终模型调用而失败。
+- 修复后审批卡在消息滚动区内 sticky 显示，浏览器标题提示待审批，页面显示实时剩余秒数，过期后按钮禁用。
+- ReAct 在正常轮次中加入“最少必要调用”约束；工具预算耗尽后移除全部工具并追加一次强制总结，记录为 `MODEL_FINALIZATION/COMPLETED`。模型若仍返回工具请求或空答案才安全失败。
+- 运行记录继续只保留 4000 字符工具输出，模型观察上下文单独提高到 16000 字符，避免 Tavily 多来源结果因展示截断而迫使模型反复搜索。
+- 回归测试把原“达到轮数即失败”用例改为“第五次无工具总结并完成”；目标测试 6 个通过，全量后端 30 个测试通过、0 失败、0 错误，前端 TypeScript 与 Vite 生产构建通过。
+
+## 阶段 14：安全凭据与 Agent 版本生命周期（2026-09-07）
+
+- 新增统一 SecretResolver，模型调用、HTTP MCP、stdio MCP 和系统诊断都按“进程环境变量优先、Windows DPAPI 次之”解析；
+- 前端仅提交密钥新值并展示 ENVIRONMENT/SECURE_STORE/NONE 状态，后端 API、MySQL、AgentVersion 和 MCP 配置均不返回或持久化明文；
+- SecretStore 专项测试真实执行 DPAPI 写入、解密与删除，并确认磁盘文件不含原始字符串；
+- Flyway V10 为 AgentVersion 增加 archived_at；对话默认只显示每个 Agent 最新版本，历史版本可显式展开，归档版本不能通过 API 创建新会话；
+- 永久删除要求“非最新版 + 已归档 + Conversation/AgentRun 零引用”，避免破坏历史运行；Agent 集成测试覆盖归档隐藏、管理查询、零引用删除和最新版拒绝归档；
+- H2 从空库顺序执行 V1–V10，最终全量后端 31 个测试通过、0 失败、0 错误；前端 TypeScript 与 Vite 生产构建通过；`git diff --check` 无空白错误。
+
+尚待用户本机人工验收：启动后由 MySQL 执行 V10，在页面保存 DeepSeek/Tavily 凭据并重启验证持久可用；发布两个测试版本，确认默认下拉、历史开关、归档/恢复和有引用版本禁止删除均符合提示。
+
 ## 阶段 0：工程基线（2026-09-02）
 
 验证结果：

@@ -18,5 +18,11 @@ public record AgentVersion(
         BigDecimal temperature,
         String systemPrompt,
         List<String> toolNames,
-        Instant publishedAt) {
+        Instant publishedAt,
+        Instant archivedAt,
+        long usageCount) {
+
+    public boolean archived() { return archivedAt != null; }
+
+    public boolean deletable() { return archived() && usageCount == 0; }
 }

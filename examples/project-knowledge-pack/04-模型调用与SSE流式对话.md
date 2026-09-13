@@ -4,7 +4,7 @@
 
 项目没有直接绑定某个厂商 SDK，而是使用 Java `HttpClient` 调用 OpenAI Chat Completions 兼容接口。网关从 AgentVersion 读取 baseUrl、modelName、temperature 和 apiKeyEnv。如果 baseUrl 没有以 `/chat/completions` 结束，网关自动补齐路径。
 
-请求体包含 `model`、`temperature`、`stream: true` 和 messages。密钥通过 `System.getenv(apiKeyEnv)` 在运行时读取，并以 Bearer Token 发送。如果环境变量不存在，服务通过 SSE 返回明确错误，例如“环境变量 DEEPSEEK_API_KEY 未设置”。数据库、接口响应和 Git 都不包含真实密钥。
+请求体包含 `model`、`temperature`、`stream: true` 和 messages。密钥由统一 SecretResolver 按“进程环境变量优先、Windows DPAPI 安全存储次之”的顺序解析，并以 Bearer Token 发送。如果两处都没有，服务返回明确错误，例如“凭据 DEEPSEEK_API_KEY 未配置”。数据库、接口响应和 Git 都不包含真实密钥。
 
 ## SSE 事件协议
 

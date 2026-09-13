@@ -6,12 +6,14 @@ import java.util.List;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @RestController
 @RequestMapping("/api/agents")
@@ -45,7 +47,24 @@ public class AgentController {
     }
 
     @GetMapping("/{id}/versions")
-    List<AgentVersion> versions(@PathVariable String id) {
-        return service.versions(id);
+    List<AgentVersion> versions(@PathVariable String id,
+                                @RequestParam(defaultValue = "false") boolean includeArchived) {
+        return service.versions(id, includeArchived);
+    }
+
+    @PostMapping("/{id}/versions/{versionId}/archive")
+    AgentVersion archive(@PathVariable String id, @PathVariable String versionId) {
+        return service.archiveVersion(id, versionId);
+    }
+
+    @PostMapping("/{id}/versions/{versionId}/restore")
+    AgentVersion restore(@PathVariable String id, @PathVariable String versionId) {
+        return service.restoreVersion(id, versionId);
+    }
+
+    @DeleteMapping("/{id}/versions/{versionId}")
+    ResponseEntity<Void> deleteVersion(@PathVariable String id, @PathVariable String versionId) {
+        service.deleteVersion(id, versionId);
+        return ResponseEntity.noContent().build();
     }
 }
