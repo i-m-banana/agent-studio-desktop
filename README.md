@@ -14,6 +14,7 @@
 - 高风险工具审批：展示原始参数、参数摘要、过期时间，并支持批准一次或拒绝；
 - MCP Streamable HTTP 与 stdio：工具、Resources、Prompts 发现与调用，Resource 导入知识库，Server 管理、同步历史、配置导入导出、Agent 绑定与安全审计；
 - 统一安全执行网关：通用参数 Schema 校验、风险判断、审批、限时执行和结构化审计；
+- Coding 只读第一阶段：单根授权工作区、目录浏览、轻量文件路径搜索和 UTF-8 文本分段读取；真实验收仍在进行；
 - AgentRun 主动取消、120 秒总时限、遗留运行关闭和运行历史详情；
 - OpenAI Chat Completions 兼容接口及 SSE 流式返回；
 - 模型配置、Agent 创建/发布和对话测试页面；
@@ -26,7 +27,7 @@
 
 ## 当前边界
 
-当前默认通过本机 Ollama 的 `qwen3-embedding:0.6b` 生成 1024 维语义向量，并保留 384 维词法哈希作为可配置回退。工具能力已包含 LOW/READ 的 `current_time`、HIGH/WRITE 的 `write_workspace_note` 和动态 MCP 工具；所有工具统一经过 Schema 校验、安全执行网关和 AuditEvent，HIGH 调用还必须经过参数绑定、限时、一次性审批。运行支持主动取消和总超时，重启会关闭遗留状态但不会断点续跑。MCP 支持 `2025-06-18` Streamable HTTP 与本机 stdio 的 tools、resources 和 prompts 核心闭环，以及 Server 编辑、启停、受保护删除、同步历史、配置导入导出与单工具信任策略；OAuth、sampling、elicitation、roots、resource templates、订阅通知、SSH、Coding、身份体系、OS 级进程沙箱和真正的崩溃续跑尚未实现。无答案场景已有确定性空召回拒答和答案证据契约，但向量检索本身的负例误召回率仍是独立待优化指标。
+当前默认通过本机 Ollama 的 `qwen3-embedding:0.6b` 生成 1024 维语义向量，并保留 384 维词法哈希作为可配置回退。工具能力已包含 LOW/READ 的 `current_time`、HIGH/WRITE 的 `write_workspace_note`、Coding 只读工具和动态 MCP 工具；所有工具统一经过 Schema 校验、安全执行网关和 AuditEvent，HIGH 调用还必须经过参数绑定、限时、一次性审批。运行支持主动取消和总超时，重启会关闭遗留状态但不会断点续跑。MCP 支持 `2025-06-18` Streamable HTTP 与本机 stdio 的 tools、resources 和 prompts 核心闭环，以及 Server 编辑、启停、受保护删除、同步历史、配置导入导出与单工具信任策略；OAuth、sampling、elicitation、roots、resource templates、订阅通知、SSH/SFTP、Coding 补丁/写入/命令、身份体系、OS 级进程沙箱和真正的崩溃续跑尚未实现。无答案场景已有确定性空召回拒答和答案证据契约，但向量检索本身的负例误召回率仍是独立待优化指标。
 
 ## 本地启动
 

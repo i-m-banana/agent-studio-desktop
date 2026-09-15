@@ -16,7 +16,7 @@ MCP 三类核心能力收口后的最终 00–10 评测快照为 11 份文档、
 
 问题：项目是否已经支持 SSH 和 ReAct？
 
-标准答案：显式 ReAct 已经支持，包括两个内置工具、MCP Streamable HTTP 与 stdio 动态工具、版本快照、AgentRun/RunStep、统一安全执行网关、Schema 校验、参数审批、AuditEvent、主动取消、总超时和历史详情；MCP Resources/Prompts 也已支持，但 OAuth、sampling、elicitation、roots、resource templates、订阅通知、stdio OS 沙箱、SSH、Coding、身份和断点续跑仍未实现。因此不能回答成“完全没有 ReAct”，也不能回答成“已经是完整工具平台”。
+标准答案：显式 ReAct 已经支持，包括时间、受控笔记写入、三个 Coding 只读内置工具、MCP Streamable HTTP 与 stdio 动态工具、版本快照、AgentRun/RunStep、统一安全执行网关、Schema 校验、参数审批、AuditEvent、主动取消、总超时和历史详情；MCP Resources/Prompts 也已支持，但 OAuth 扩展、stdio OS 沙箱、SSH/SFTP、Coding 补丁/命令、身份和断点续跑仍未实现。因此不能回答成“完全没有 ReAct”，也不能回答成“已经是完整工具平台或通用 Coding Agent”。
 
 问题：RunStep 和 AuditEvent 为什么不能合成一张表？
 

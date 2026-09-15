@@ -1,5 +1,17 @@
 # 验证记录
 
+## 锚点后阶段 1：Coding 只读工作区（2026-09-14）
+
+已实现三个 `READ/LOW` 工具：`list_workspace_directory`、`search_workspace_files`、`read_workspace_text_file`。它们由 AgentTool 自动注册进入原 ToolRegistry，并继续通过 SafeExecutionGateway；没有新建数据库表或绕过 AgentVersion、RunStep、AuditEvent、审批、RAG、MCP 的既有代码路径。
+
+路径安全自动化覆盖相对路径约束、`..` 和绝对路径拒绝、Windows 数据流语法拒绝、受保护目录/`.env`/常见密钥文件拒绝、二进制拒绝、严格 UTF-8、文件大小/行数/结果数量边界、目录浏览、文件路径搜索和分段读取。集成测试让可控模型调用目录浏览工具，验证 AgentVersion 绑定、RunStep 的 TOOL_RESULT，以及 AuditEvent 的校验/开始/完成事件；审计响应不包含文件名或文件内容。
+
+2026-09-15 搜索性能修复后全量后端执行结果：38 个测试全部通过，0 失败、0 错误、0 跳过。Windows 路径测试在普通符号链接不可用时创建目录联接，验证指向工作区外的目标仍被拒绝；新增测试验证生成目录默认剪枝、显式指定剪枝目录仍可搜索，以及达到结果上限后提前停止。前端 `npm run build` 通过，29 个模块完成生产打包。
+
+人工验收已确认用户日常目录中的真实模型目录浏览、文本读取和优化后的根目录搜索通过，浏览器 RunStep 与安全审计一致。负向路径和 Windows 目录联接由自动化验证，本轮没有重复全部负向浏览器操作。证据见 `CODING_WORKSPACE_ACCEPTANCE.md`。本阶段不包含内容搜索、补丁、写入、命令、构建测试、SSH/SFTP 或部署，不能据此宣称通用 Coding 已完成。
+
+首轮真实验收中，运行 `b70a18b6-f47e-48b2-9d59-a710a50d7532` 的两次根目录 `search_workspace_files` 均在 10 秒超时；模型第三次把 `path` 缩小到 `backend` 后扫描 647 项、1995 ms 完成。该证据推动了轻量剪枝和重复路径解析优化。修复后运行 `e435a565-737a-45ab-ab42-64c2f544c11e` 不指定 `path`，首次调用扫描 333 项、跳过 7 个目录、98 ms 完成，返回两个源码文件且未包含 `target` 生成物。优化前失败记录继续保留，不能从项目历史中抹去。
+
 ## 阶段 12：1.0.0-rc1 正式版前加固（2026-09-06）
 
 - 版本统一为 `1.0.0-rc1`，新增系统诊断 API 与前端第 07 页，检查 MySQL、pgvector、Embedding 实际调用、模型密钥变量、data 写权限和 MCP；

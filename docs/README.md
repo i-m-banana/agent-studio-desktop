@@ -14,6 +14,8 @@
 - `decisions/0012-release-readiness-and-grounded-answer.md`：发布就绪诊断、证据边界和运维脚本；
 - `decisions/0013-tool-budget-finalization-and-approval-visibility.md`：网络检索实测暴露的工具预算收尾、结果上下文和审批可见性；
 - `decisions/0014-secure-credentials-and-version-lifecycle.md`：Windows DPAPI 凭据、环境覆盖优先级，以及 Agent 历史版本归档和受限删除；
+- `decisions/0015-read-only-coding-workspace.md`：单根授权代码工作区、三类只读工具、路径与输出边界；
+- `CODING_WORKSPACE_ACCEPTANCE.md`：Coding 第一阶段的正向、负向、审计与无副作用人工验收清单；
 - `RELEASE_CHECKLIST.md`：从 `1.0.0-rc1` 升为正式版前的自动检查、人工验收和备份要求；
 - `MATURITY_BASELINE_1.0.0-rc1.md`：后续开发不得破坏的基线不变量、证据和正式代码锚点条件；
 - `RELEASE_NOTES_1.0.0.md`：首个单机正式版的验收结论、能力边界和锚点规则；

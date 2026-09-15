@@ -11,6 +11,8 @@ spring:
 agent-studio:
   version: 1.0.0
   data-dir: target/test-data
+  coding:
+    workspace-root: target/test-coding-workspace
   embedding:
     provider: local-hash
   vector:

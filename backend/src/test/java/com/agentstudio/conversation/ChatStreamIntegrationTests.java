@@ -223,6 +223,51 @@ class ChatStreamIntegrationTests {
     }
 
     @Test
+    void executesCodingReadToolThroughGatewayWithRunAndAuditEvidence() throws Exception {
+        java.nio.file.Files.createDirectories(java.nio.file.Path.of("target/test-coding-workspace/src"));
+        java.nio.file.Files.writeString(java.nio.file.Path.of("target/test-coding-workspace/src/Example.java"),
+                "class Example {}", java.nio.charset.StandardCharsets.UTF_8);
+        when(knowledgeRetriever.retrieve(any(), any())).thenReturn(List.of());
+        when(modelGateway.complete(any(), any(), any()))
+                .thenReturn(new ModelTurn("", List.of(new ModelToolCall(
+                        "call-coding-list-1", "list_workspace_directory", "{\"path\":\"src\"}"))))
+                .thenReturn(new ModelTurn("workspace inspected", List.of()));
+
+        var suffix = UUID.randomUUID().toString();
+        var model = modelProfiles.create(new ModelProfileRequest(
+                "coding-model-" + suffix, "OPENAI_COMPATIBLE", "https://example.com/v1",
+                "test-model", "TEST_MODEL_KEY", new BigDecimal("0.2")));
+        var agent = agents.create(new AgentDefinitionRequest(
+                "coding-agent-" + suffix, "test", model.id(), null, "只读浏览代码工作区。",
+                List.of("list_workspace_directory")));
+        var version = agents.publish(agent.id());
+
+        var result = mockMvc.perform(post("/api/chat/stream")
+                        .contentType(MediaType.APPLICATION_JSON).accept(MediaType.TEXT_EVENT_STREAM)
+                        .content("{\"agentVersionId\":\"%s\",\"message\":\"浏览 src\"}".formatted(version.id())))
+                .andExpect(request().asyncStarted()).andReturn();
+        var response = mockMvc.perform(asyncDispatch(result))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("list_workspace_directory")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Example.java")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("workspace inspected")))
+                .andReturn().getResponse().getContentAsString();
+        var matcher = java.util.regex.Pattern.compile("\\\"runId\\\":\\\"([^\\\"]+)\\\"").matcher(response);
+        assertThat(matcher.find()).isTrue();
+        var runId = matcher.group(1);
+        mockMvc.perform(get("/api/runs/{id}", runId))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("TOOL_RESULT")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Example.java")));
+        mockMvc.perform(get("/api/audit-events").param("runId", runId))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("TOOL_REQUEST_VALIDATED")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("TOOL_EXECUTION_COMPLETED")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(
+                        org.hamcrest.Matchers.containsString("Example.java"))));
+    }
+
+    @Test
     void finalizesWithExistingResultsAtMaximumToolRounds() throws Exception {
         when(knowledgeRetriever.retrieve(any(), any())).thenReturn(List.of());
         var modelCalls = new java.util.concurrent.atomic.AtomicInteger();
