@@ -21,6 +21,7 @@ import org.apache.sshd.common.file.virtualfs.VirtualFileSystemFactory;
 import org.apache.sshd.common.keyprovider.KeyPairProvider;
 import org.apache.sshd.server.SshServer;
 import org.apache.sshd.server.keyprovider.SimpleGeneratorHostKeyProvider;
+import org.apache.sshd.sftp.SftpModuleProperties;
 import org.apache.sshd.sftp.server.SftpSubsystemFactory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,6 +40,8 @@ class RemoteSftpWorkspaceTests {
         Files.createDirectories(root.resolve("workspace/node_modules/pkg"));
         Files.writeString(root.resolve("workspace/src/App.java"), "一\n二\n三", StandardCharsets.UTF_8);
         Files.writeString(root.resolve("workspace/README.md"), "read me", StandardCharsets.UTF_8);
+        Files.writeString(root.resolve("workspace/src/Duplicate.txt"), "same\nsame", StandardCharsets.UTF_8);
+        Files.write(root.resolve("workspace/src/Binary.bin"), new byte[] { 'a', 0, 'b' });
         Files.writeString(root.resolve("workspace/.env"), "TOKEN=hidden", StandardCharsets.UTF_8);
         Files.writeString(root.resolve("workspace/node_modules/pkg/App.js"), "generated", StandardCharsets.UTF_8);
         server = SshServer.setUpDefaultServer(); server.setPort(0);
@@ -47,6 +50,8 @@ class RemoteSftpWorkspaceTests {
         server.setPasswordAuthenticator((username, password, session) ->
                 username.equals("tester") && password.equals("password"));
         server.setFileSystemFactory(new VirtualFileSystemFactory(root));
+        // Production targets OpenSSH, whose SFTP server deliberately negotiates protocol v3.
+        SftpModuleProperties.SFTP_VERSION.set(server, 3);
         server.setSubsystemFactories(List.of(new SftpSubsystemFactory.Builder().build()));
         server.start();
         var hostKey = keys.loadKeys(null).iterator().next().getPublic();
@@ -63,10 +68,14 @@ class RemoteSftpWorkspaceTests {
         var registry = new ToolRegistry(tools, objectMapper);
         assertThat(registry.descriptors()).extracting(item -> item.name()).containsExactlyInAnyOrder(
                 "list_remote_workspace_directory", "search_remote_workspace_files",
-                "read_remote_workspace_text_file");
-        assertThat(registry.descriptors()).allSatisfy(item -> {
+                "read_remote_workspace_text_file", "apply_remote_workspace_text_patch");
+        assertThat(registry.descriptor("read_remote_workspace_text_file")).satisfies(item -> {
             assertThat(item.source()).isEqualTo("SSH"); assertThat(item.capability()).isEqualTo("READ");
             assertThat(item.riskLevel()).isEqualTo("LOW");
+        });
+        assertThat(registry.descriptor("apply_remote_workspace_text_patch")).satisfies(item -> {
+            assertThat(item.source()).isEqualTo("SSH"); assertThat(item.capability()).isEqualTo("WRITE");
+            assertThat(item.riskLevel()).isEqualTo("HIGH");
         });
         assertThat(registry.targetEnvironment("read_remote_workspace_text_file"))
                 .startsWith("SSH:tester@127.0.0.1:").endsWith("/workspace");
@@ -79,6 +88,89 @@ class RemoteSftpWorkspaceTests {
         assertThat(read.path("content").asText()).isEqualTo("二");
         assertThat(read.path("sha256").asText()).hasSize(64);
         assertThat(read.path("target").asText()).contains("tester@127.0.0.1");
+    }
+
+    @Test
+    void appliesDigestBoundRemotePatchAndPreservesPermissions() throws Exception {
+        var workspace = workspace(properties);
+        var patchTool = new ApplyRemoteTextPatchTool(workspace, objectMapper);
+        var file = root.resolve("workspace/src/App.java");
+        var originalPermissions = workspace.execute(access ->
+                access.permissions(access.requireFile("src/App.java")));
+        var before = RemoteSftpWorkspace.sha256(Files.readAllBytes(file));
+        var result = objectMapper.readTree(patchTool.execute(objectMapper.readTree("""
+                {"path":"src/App.java","expectedSha256":"%s","replacements":[{"oldText":"二","newText":"two"}]}
+                """.formatted(before))));
+
+        assertThat(result.path("updated").asBoolean()).isTrue();
+        assertThat(result.path("beforeSha256").asText()).isEqualTo(before);
+        assertThat(result.path("afterSha256").asText()).hasSize(64).isNotEqualTo(before);
+        int negotiatedVersion = workspace.execute(access -> access.sftpVersion());
+        boolean posixRenameSupported = workspace.execute(access -> access.supportsPosixRename());
+        assertThat(negotiatedVersion).isEqualTo(3);
+        assertThat(posixRenameSupported).isTrue();
+        assertThat(Files.readString(file)).isEqualTo("一\ntwo\n三");
+        int updatedPermissions = workspace.execute(access ->
+                access.permissions(access.requireFile("src/App.java")));
+        assertThat(updatedPermissions).isEqualTo(originalPermissions);
+        try (var siblings = Files.list(file.getParent())) {
+            assertThat(siblings.map(Path::getFileName).map(Path::toString))
+                    .noneMatch(name -> name.startsWith(".agent-studio-patch-"));
+        }
+    }
+
+    @Test
+    void rejectsUnsafeRemotePatchesWithoutChangingFile() throws Exception {
+        var patchTool = tools(properties).get(3);
+        var file = root.resolve("workspace/src/App.java");
+        var original = Files.readAllBytes(file);
+        var sha = RemoteSftpWorkspace.sha256(original);
+
+        assertThatThrownBy(() -> patchTool.execute(objectMapper.readTree("""
+                {"path":"src/App.java","expectedSha256":"%s","replacements":[{"oldText":"missing","newText":"x"}]}
+                """.formatted(sha)))).hasMessageContaining("不存在");
+        assertThatThrownBy(() -> patchTool.execute(objectMapper.readTree("""
+                {"path":"src/App.java","expectedSha256":"%s","replacements":[{"oldText":"一","newText":"x"}]}
+                """.formatted("0".repeat(64))))).hasMessageContaining("内容已变化");
+        assertThatThrownBy(() -> patchTool.execute(objectMapper.readTree("""
+                {"path":"../outside","expectedSha256":"%s","replacements":[{"oldText":"一","newText":"x"}]}
+                """.formatted(sha)))).hasMessageContaining("越出远程工作区");
+        assertThatThrownBy(() -> patchTool.execute(objectMapper.readTree("""
+                {"path":".env","expectedSha256":"%s","replacements":[{"oldText":"TOKEN","newText":"x"}]}
+                """.formatted(sha)))).hasMessageContaining("受保护");
+        var duplicateSha = RemoteSftpWorkspace.sha256(Files.readAllBytes(root.resolve("workspace/src/Duplicate.txt")));
+        assertThatThrownBy(() -> patchTool.execute(objectMapper.readTree("""
+                {"path":"src/Duplicate.txt","expectedSha256":"%s","replacements":[{"oldText":"same","newText":"x"}]}
+                """.formatted(duplicateSha)))).hasMessageContaining("出现多次");
+        var binarySha = RemoteSftpWorkspace.sha256(Files.readAllBytes(root.resolve("workspace/src/Binary.bin")));
+        assertThatThrownBy(() -> patchTool.execute(objectMapper.readTree("""
+                {"path":"src/Binary.bin","expectedSha256":"%s","replacements":[{"oldText":"a","newText":"x"}]}
+                """.formatted(binarySha)))).hasMessageContaining("二进制");
+        assertThatThrownBy(() -> patchTool.execute(objectMapper.readTree("""
+                {"path":"src/Missing.txt","expectedSha256":"%s","replacements":[{"oldText":"a","newText":"x"}]}
+                """.formatted(sha)))).isInstanceOf(Exception.class);
+        assertThat(Files.readAllBytes(file)).isEqualTo(original);
+        assertThat(Files.readString(root.resolve("workspace/src/Duplicate.txt"))).isEqualTo("same\nsame");
+        assertThat(Files.readAllBytes(root.resolve("workspace/src/Binary.bin"))).containsExactly('a', 0, 'b');
+    }
+
+    @Test
+    void rejectsSftpV3WithoutPosixRenameInsteadOfUsingUnsafeFallback() throws Exception {
+        SftpModuleProperties.OPENSSH_EXTENSIONS.set(server, "fsync@openssh.com=1");
+        var patchTool = tools(properties).get(3);
+        var file = root.resolve("workspace/src/App.java");
+        var original = Files.readAllBytes(file);
+        var sha = RemoteSftpWorkspace.sha256(original);
+
+        assertThatThrownBy(() -> patchTool.execute(objectMapper.readTree("""
+                {"path":"src/App.java","expectedSha256":"%s","replacements":[{"oldText":"二","newText":"two"}]}
+                """.formatted(sha))))
+                .hasMessageContaining("未提供 posix-rename@openssh.com");
+        assertThat(Files.readAllBytes(file)).isEqualTo(original);
+        try (var siblings = Files.list(file.getParent())) {
+            assertThat(siblings.map(Path::getFileName).map(Path::toString))
+                    .noneMatch(name -> name.startsWith(".agent-studio-patch-"));
+        }
     }
 
     @Test
@@ -106,10 +198,15 @@ class RemoteSftpWorkspaceTests {
     }
 
     private List<com.agentstudio.tool.AgentTool> tools(SshWorkspaceProperties configured) {
+        var workspace = workspace(configured);
+        return List.of(new ListRemoteDirectoryTool(workspace, objectMapper),
+                new SearchRemoteFilesTool(workspace, objectMapper), new ReadRemoteTextFileTool(workspace, objectMapper),
+                new ApplyRemoteTextPatchTool(workspace, objectMapper));
+    }
+
+    private RemoteSftpWorkspace workspace(SshWorkspaceProperties configured) {
         var secrets = mock(SecretResolver.class);
         when(secrets.resolve("TEST_SSH_PASSWORD")).thenReturn(Optional.of("password"));
-        var workspace = new RemoteSftpWorkspace(new SftpSessionFactory(secrets), configured);
-        return List.of(new ListRemoteDirectoryTool(workspace, objectMapper),
-                new SearchRemoteFilesTool(workspace, objectMapper), new ReadRemoteTextFileTool(workspace, objectMapper));
+        return new RemoteSftpWorkspace(new SftpSessionFactory(secrets), configured);
     }
 }

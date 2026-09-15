@@ -1,5 +1,15 @@
 # 验证记录
 
+## 锚点后阶段 5：SSH/SFTP 受审远程文本补丁（2026-09-15）
+
+新增 `apply_remote_workspace_text_patch`，标记为 `SSH/WRITE/HIGH`。它只修改授权远程根内既有 UTF-8 普通文件，要求读取时 SHA-256 一致、每段旧文本唯一匹配；批准后先写同目录独占临时文件、保留原权限、再次核对摘要，再要求 SFTP Server 原子覆盖。服务器不支持原子替换时失败关闭，不退化为直接覆盖。
+
+`RemoteSftpWorkspaceTests` 使用进程内真实 SSH/SFTP Server 验证工具注册及具体 SSH 目标、摘要绑定成功补丁、权限保留、临时文件清理，以及陈旧摘要、缺失/重复文本、越界、`.env`、二进制和不存在文件失败不改。首次真实 Ubuntu/OpenSSH 验收暴露：OpenSSH 固定协商 SFTP v3，而标准 rename 的 `Atomic/Overwrite` 选项要求 v5+，客户端在发送请求前即抛出 `UnsupportedOperationException`。修复后优先检测并调用 OpenSSH `posix-rename@openssh.com` 扩展，高版本才使用标准选项；v3 又没有该扩展时继续失败关闭。专项测试现强制协商 v3，并覆盖扩展成功与扩展缺失拒绝两条分支。
+
+HIGH 审批、一次性参数绑定、拒绝跳过与审计由既有 SafeExecutionGateway/ApprovalRequest 集成回归共同覆盖。修复后全量后端为 54 个测试通过、0 失败、0 错误、0 跳过；Flyway V1–V11、RAG、MCP、运行控制与既有 Coding 回归均未破坏。前端 TypeScript 与 Vite 生产构建通过，29 个模块完成打包。
+
+真实 Ubuntu/OpenSSH 服务器与真实模型已经完成批准修改、批准恢复、审批拒绝和陈旧摘要四条分支：运行 `c02f0f09...` 将 `remote-before` 改为 `remote-after`，运行 `1349ba57...` 恢复原文，两次都返回 `updated=true` 且形成完整 HIGH 审批及完成审计；运行 `3381d12b...` 被拒绝并形成 TOOL_EXECUTION_SKIPPED；运行 `e139b076...` 在审批等待期间由人工连续修改文件，两次旧摘要执行均形成 TOOL_EXECUTION_FAILED，人工新内容未被覆盖。修复前失败运行 `33853a3f...` 作为 SFTP v3 兼容问题的发现证据保留。准确结论是远程受审单文件文本补丁已验收；远程 Shell、Git、构建测试、文件新建/删除、Docker/Nginx 和部署仍未实现。
+
 ## 锚点后阶段 4：SSH/SFTP 远程只读工作区（2026-09-15）
 
 新增 `list_remote_workspace_directory`、`search_remote_workspace_files`、`read_remote_workspace_text_file` 三个 `SSH/READ/LOW` 工具。连接要求应用外核验的 SHA-256 主机指纹，密码由环境变量或 DPAPI 安全凭据提供；远程路径限制在单一授权根，逐级拒绝符号链接并保护密钥路径。工具继续通过 AgentVersion、ToolRegistry、SafeExecutionGateway、RunStep 与 AuditEvent。

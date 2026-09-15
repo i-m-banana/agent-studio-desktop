@@ -16,6 +16,7 @@
 - 统一安全执行网关：通用参数 Schema 校验、风险判断、审批、限时执行和结构化审计；
 - Coding 工作区：已真实验收目录浏览、轻量文件路径搜索、UTF-8 文本分段读取，以及摘要绑定、HIGH 审批的精确文本补丁；
 - Coding 白名单验证：固定 Maven Test、npm Test 和 npm Build，统一进入 HIGH 审批并限制环境、输出和运行时间；自动化及真实 Maven/npm 批准/拒绝链均已验收；
+- SSH/SFTP 远程工作区：固定主机指纹、密码安全解析、单远程根的目录浏览/路径搜索/文本读取，以及摘要绑定、HIGH 审批的远程单文件精确补丁均已通过自动化和真实 Ubuntu/OpenSSH 服务器验收；
 - AgentRun 主动取消、120 秒总时限、遗留运行关闭和运行历史详情；
 - OpenAI Chat Completions 兼容接口及 SSE 流式返回；
 - 模型配置、Agent 创建/发布和对话测试页面；
@@ -28,7 +29,7 @@
 
 ## 当前边界
 
-当前默认通过本机 Ollama 的 `qwen3-embedding:0.6b` 生成 1024 维语义向量，并保留 384 维词法哈希作为可配置回退。工具能力已包含 LOW/READ 的 `current_time`、HIGH/WRITE 的 `write_workspace_note`、已验收的本地 Coding 浏览/补丁/固定验证工具、自动化通过但待真实验收的 SSH/SFTP 远程只读工具，以及动态 MCP 工具；所有工具统一经过 Schema 校验、安全执行网关和 AuditEvent，HIGH 调用还必须经过参数绑定、限时、一次性审批。运行支持主动取消和总超时，重启会关闭遗留状态但不会断点续跑。SSH 当前仅支持固定主机指纹、单远程根、密码认证的 SFTP 目录浏览、路径搜索和文本读取；远程 Shell、写入、Git、构建测试、Docker/Nginx 部署、MCP OAuth、身份体系、OS 级沙箱和真正的崩溃续跑尚未实现。
+当前默认通过本机 Ollama 的 `qwen3-embedding:0.6b` 生成 1024 维语义向量，并保留 384 维词法哈希作为可配置回退。工具能力包含已验收的本地 Coding 浏览/补丁/固定验证、SSH/SFTP 远程只读与受审文本补丁，以及动态 MCP 工具；所有工具统一经过 Schema 校验、安全执行网关和 AuditEvent，HIGH 调用还必须经过参数绑定、限时、一次性审批。运行支持主动取消和总超时，重启会关闭遗留状态但不会断点续跑。SSH 仍没有密钥认证、多目标、远程 Shell、Git、远程构建测试、Docker/Nginx 部署；远程补丁也不支持新建/删除、通用 diff 或跨文件事务。MCP OAuth、身份体系、OS 级沙箱和真正的崩溃续跑尚未实现。
 
 ## 本地启动
 

@@ -11,9 +11,11 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Supplier;
 
 import org.apache.sshd.sftp.client.SftpClient;
+import org.apache.sshd.sftp.client.extensions.openssh.OpenSSHPosixRenameExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -98,6 +100,60 @@ class RemoteSftpWorkspace {
                 }
                 return output.toByteArray();
             }
+        }
+
+        void replaceIfUnchanged(String file, String expectedSha256, byte[] updatedBytes) throws Exception {
+            var originalAttributes = safeAttributes(file);
+            if (!originalAttributes.isRegularFile()) throw new IllegalArgumentException("远程路径不是普通文件");
+            var slash = file.lastIndexOf('/');
+            var parent = slash > 0 ? file.substring(0, slash) : "/";
+            var temporary = parent + "/.agent-studio-patch-" + UUID.randomUUID() + ".tmp";
+            var temporaryCreated = false;
+            try {
+                try (var output = sftp.write(temporary, SftpClient.OpenMode.Write, SftpClient.OpenMode.Create,
+                        SftpClient.OpenMode.Exclusive)) {
+                    temporaryCreated = true;
+                    output.write(updatedBytes);
+                }
+                sftp.setStat(temporary, new SftpClient.Attributes().perms(originalAttributes.getPermissions()));
+
+                var latestBytes = read(file);
+                if (!sha256(latestBytes).equalsIgnoreCase(expectedSha256)) {
+                    throw new IllegalStateException("远程文件在补丁执行期间发生变化，未应用补丁");
+                }
+                atomicReplace(temporary, file);
+                temporaryCreated = false;
+            } finally {
+                if (temporaryCreated) {
+                    try { sftp.remove(temporary); } catch (java.io.IOException ignored) { }
+                }
+            }
+        }
+
+        private void atomicReplace(String source, String target) {
+            try {
+                // OpenSSH intentionally stays on SFTP v3 and advertises POSIX atomic rename as an extension.
+                var posixRename = sftp.getExtension(OpenSSHPosixRenameExtension.class);
+                if (posixRename != null && posixRename.isSupported()) {
+                    posixRename.posixRename(source, target);
+                    return;
+                }
+                if (sftp.getVersion() >= 5) {
+                    sftp.rename(source, target, SftpClient.CopyMode.Atomic, SftpClient.CopyMode.Overwrite);
+                    return;
+                }
+                throw new IllegalStateException("SFTP v" + sftp.getVersion()
+                        + " 未提供 posix-rename@openssh.com，无法安全原子替换文件");
+            } catch (java.io.IOException exception) {
+                throw new IllegalStateException("远程服务器的原子文件替换失败，未应用补丁", exception);
+            }
+        }
+
+        int permissions(String file) throws Exception { return safeAttributes(file).getPermissions(); }
+        int sftpVersion() { return sftp.getVersion(); }
+        boolean supportsPosixRename() {
+            var extension = sftp.getExtension(OpenSSHPosixRenameExtension.class);
+            return extension != null && extension.isSupported();
         }
 
         String relative(String path) { return policy.relative(path); }
