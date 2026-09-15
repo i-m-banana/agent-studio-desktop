@@ -54,6 +54,8 @@ public class ToolRegistry {
     }
 
     public String targetEnvironment(String name) {
+        var builtIn = tools.get(name);
+        if (builtIn != null) return builtIn.targetEnvironment();
         return mcp != null && name.startsWith("mcp_") ? mcp.targetEnvironment(name) : "LOCAL";
     }
 

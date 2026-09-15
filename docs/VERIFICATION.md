@@ -1,5 +1,13 @@
 # 验证记录
 
+## 锚点后阶段 4：SSH/SFTP 远程只读工作区（2026-09-15）
+
+新增 `list_remote_workspace_directory`、`search_remote_workspace_files`、`read_remote_workspace_text_file` 三个 `SSH/READ/LOW` 工具。连接要求应用外核验的 SHA-256 主机指纹，密码由环境变量或 DPAPI 安全凭据提供；远程路径限制在单一授权根，逐级拒绝符号链接并保护密钥路径。工具继续通过 AgentVersion、ToolRegistry、SafeExecutionGateway、RunStep 与 AuditEvent。
+
+`RemoteSftpWorkspaceTests` 使用进程内真实 SSH/SFTP Server 验证握手、密码认证、目录浏览、剪枝搜索、UTF-8 分段读取、SHA-256、具体远程目标，以及错误主机指纹、越界和 `.env` 拒绝。指纹探测会先触发不携带身份的 SSH 密钥交换，再读取主机公钥，避免只建立 TCP 会话时误报“服务器未提供主机公钥”。V11 和 `SshWorkspaceControllerTests` 进一步验证页面连接配置持久化、密码不进入配置表、根目录拒绝和工具动态读取已保存配置。加入本阶段后全量后端为 51 个测试通过、0 失败、0 错误、0 跳过，前端 TypeScript 与 Vite 生产构建通过。
+
+真实 Ubuntu 服务器和模型主链已完成三次正向、两次反向验收：目录浏览 `b8edbcb9...`、搜索 `60767fb6...`、读取 `44a6c0d4...` 均成功；越界请求 `6dc7b118...` 由模型在工具调用前拒绝；错误指纹 `e6ac26e2...` 真实形成 FAILED ToolResult 和 TOOL_EXECUTION_FAILED 审计。完整证据见 `SSH_SFTP_READONLY_ACCEPTANCE.md`。远程 Shell、写入、Git、构建、日志命令和部署仍不在本阶段。
+
 ## 锚点后阶段 3：Coding 白名单本地验证（2026-09-15）
 
 已实现 `EXECUTE/HIGH` 的 `run_workspace_verification`，只接受工作区相对目录以及 `MAVEN_TEST`、`NPM_TEST`、`NPM_BUILD` 固定任务。程序路径解析、项目标记、受限环境、75 秒进程预算、子进程树终止、约 16000 字符输出和非零退出码结果均在工具内部收口；调用继续通过 AgentVersion、ToolRegistry、SafeExecutionGateway、ApprovalRequest、RunStep 与 AuditEvent。

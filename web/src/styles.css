@@ -212,3 +212,13 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .readiness-card small { display: block; margin-top: 10px; color: #d1ad68; line-height: 1.5; }
 @media (max-width: 900px) { .app-shell { grid-template-columns: 1fr; } .sidebar { position: static; height: auto; display: grid; grid-template-columns: 1fr auto; gap: 26px; } .sidebar h1 { font-size: 34px; } .sidebar nav { grid-column: 1 / -1; grid-template-columns: repeat(3, 1fr); } .connection { grid-column: 2; grid-row: 1; } .two-column, .readiness-list { grid-template-columns: 1fr; } .secret-card { grid-template-columns: 1fr; } }
 @media (max-width: 620px) { .sidebar { padding: 24px 18px; } .sidebar nav { grid-template-columns: 1fr; } .workspace { padding: 36px 16px; } .chat-toolbar { align-items: stretch; flex-direction: column; } .composer { grid-template-columns: 1fr; } .message { grid-template-columns: 1fr; gap: 5px; } .tool-policy { grid-template-columns: 1fr; } }
+.inline-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+@media (max-width: 720px) {
+  .inline-field { grid-template-columns: 1fr; }
+}

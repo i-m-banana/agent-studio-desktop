@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 
 import com.agentstudio.adapter.mcp.McpRepository;
+import com.agentstudio.adapter.ssh.SshWorkspaceService;
 import com.agentstudio.model.ModelProfileRepository;
 import com.agentstudio.system.ApiException;
 import org.springframework.http.HttpStatus;
@@ -17,9 +18,11 @@ public class SecretService {
     private final SecretResolver resolver;
     private final ModelProfileRepository models;
     private final McpRepository mcp;
+    private final SshWorkspaceService ssh;
 
-    public SecretService(SecretStore store, SecretResolver resolver, ModelProfileRepository models, McpRepository mcp) {
-        this.store = store; this.resolver = resolver; this.models = models; this.mcp = mcp;
+    public SecretService(SecretStore store, SecretResolver resolver, ModelProfileRepository models, McpRepository mcp,
+                         SshWorkspaceService ssh) {
+        this.store = store; this.resolver = resolver; this.models = models; this.mcp = mcp; this.ssh = ssh;
     }
 
     public List<SecretStatus> list() {
@@ -29,6 +32,8 @@ public class SecretService {
             add(references, server.apiKeyEnv(), "MCP：" + server.name());
             server.environment().values().forEach(name -> add(references, name, "MCP 子进程：" + server.name()));
         });
+        var sshConfig = ssh.current();
+        if (!sshConfig.host().isBlank()) add(references, sshConfig.passwordSecret(), "SSH：" + sshConfig.target());
         return references.entrySet().stream().map(entry -> status(entry.getKey(), entry.getValue())).toList();
     }
 

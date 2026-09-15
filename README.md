@@ -28,7 +28,7 @@
 
 ## 当前边界
 
-当前默认通过本机 Ollama 的 `qwen3-embedding:0.6b` 生成 1024 维语义向量，并保留 384 维词法哈希作为可配置回退。工具能力已包含 LOW/READ 的 `current_time`、HIGH/WRITE 的 `write_workspace_note`、Coding 只读工具、已验收的 `apply_workspace_text_patch`、已验收的 `run_workspace_verification` 和动态 MCP 工具；所有工具统一经过 Schema 校验、安全执行网关和 AuditEvent，HIGH 调用还必须经过参数绑定、限时、一次性审批。运行支持主动取消和总超时，重启会关闭遗留状态但不会断点续跑。MCP 支持 `2025-06-18` Streamable HTTP 与本机 stdio 的 tools、resources 和 prompts 核心闭环，以及 Server 编辑、启停、受保护删除、同步历史、配置导入导出与单工具信任策略；OAuth、sampling、elicitation、roots、resource templates、订阅通知、SSH/SFTP、Coding 任意命令、新建/删除、身份体系、OS 级进程沙箱和真正的崩溃续跑尚未实现。无答案场景已有确定性空召回拒答和答案证据契约，但向量检索本身的负例误召回率仍是独立待优化指标。
+当前默认通过本机 Ollama 的 `qwen3-embedding:0.6b` 生成 1024 维语义向量，并保留 384 维词法哈希作为可配置回退。工具能力已包含 LOW/READ 的 `current_time`、HIGH/WRITE 的 `write_workspace_note`、已验收的本地 Coding 浏览/补丁/固定验证工具、自动化通过但待真实验收的 SSH/SFTP 远程只读工具，以及动态 MCP 工具；所有工具统一经过 Schema 校验、安全执行网关和 AuditEvent，HIGH 调用还必须经过参数绑定、限时、一次性审批。运行支持主动取消和总超时，重启会关闭遗留状态但不会断点续跑。SSH 当前仅支持固定主机指纹、单远程根、密码认证的 SFTP 目录浏览、路径搜索和文本读取；远程 Shell、写入、Git、构建测试、Docker/Nginx 部署、MCP OAuth、身份体系、OS 级沙箱和真正的崩溃续跑尚未实现。
 
 ## 本地启动
 

@@ -38,6 +38,14 @@ agent-studio:
     workspace-root: ${AGENT_STUDIO_CODING_WORKSPACE:../coding-workspace}
     maven-command: ${AGENT_STUDIO_MAVEN_COMMAND:}
     npm-command: ${AGENT_STUDIO_NPM_COMMAND:}
+  ssh:
+    host: ${AGENT_STUDIO_SSH_HOST:}
+    port: ${AGENT_STUDIO_SSH_PORT:22}
+    username: ${AGENT_STUDIO_SSH_USERNAME:}
+    remote-root: ${AGENT_STUDIO_SSH_REMOTE_ROOT:}
+    host-key-sha256: ${AGENT_STUDIO_SSH_HOST_KEY_SHA256:}
+    password-secret: ${AGENT_STUDIO_SSH_PASSWORD_SECRET:AGENT_STUDIO_SSH_PASSWORD}
+    connect-timeout: ${AGENT_STUDIO_SSH_CONNECT_TIMEOUT:10s}
   chat:
     timeout: 120s
   vector:

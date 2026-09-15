@@ -27,10 +27,13 @@ type McpConfiguration = { name: string; transport: 'STREAMABLE_HTTP' | 'STDIO'; 
 type ReadinessCheck = { id: string; name: string; status: 'READY' | 'WARNING' | 'FAILED'; detail: string; action: string; required: boolean }
 type SystemReadiness = { application: string; version: string; status: 'READY' | 'DEGRADED' | 'NOT_READY'; timestamp: string; checks: ReadinessCheck[] }
 type SecretStatus = { name: string; configured: boolean; source: 'ENVIRONMENT' | 'SECURE_STORE' | 'NONE'; usedBy: string[] }
+type SshWorkspaceStatus = { host: string; port: number; username: string; remoteRoot: string; hostKeySha256: string; passwordSecret: string; configured: boolean; passwordConfigured: boolean; status: string; lastError?: string; lastTestedAt?: string }
+type SshFingerprint = { host: string; port: number; algorithm: string; sha256: string; warning: string }
 
 const emptyModel = { name: '', provider: 'OPENAI_COMPATIBLE', baseUrl: 'https://api.openai.com/v1', modelName: '', apiKeyEnv: 'OPENAI_API_KEY', temperature: 0.7 }
 const emptyAgent = { name: '', description: '', modelProfileId: '', knowledgeBaseId: '', systemPrompt: '', toolNames: [] as string[] }
 const emptyMcp = { name: '', transport: 'STREAMABLE_HTTP' as 'STREAMABLE_HTTP' | 'STDIO', endpointUrl: 'http://127.0.0.1:3001/mcp', apiKeyEnv: '', command: 'node', argumentsText: '', workingDirectory: '', environmentText: '' }
+const emptySsh = { host: '', port: 22, username: '', remoteRoot: '', hostKeySha256: '', passwordSecret: 'AGENT_STUDIO_SSH_PASSWORD', password: '' }
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, { ...init, headers: { 'Content-Type': 'application/json', ...init?.headers } })
@@ -82,6 +85,9 @@ function App() {
   const [secrets, setSecrets] = useState<SecretStatus[]>([])
   const [secretValues, setSecretValues] = useState<Record<string, string>>({})
   const [showHistoricalVersions, setShowHistoricalVersions] = useState(false)
+  const [sshStatus, setSshStatus] = useState<SshWorkspaceStatus>()
+  const [sshForm, setSshForm] = useState(emptySsh)
+  const [sshFingerprint, setSshFingerprint] = useState<SshFingerprint>()
 
   const versionLabels = useMemo(() => {
     const names = new Map(agents.map((agent) => [agent.id, agent.name]))
@@ -91,9 +97,11 @@ function App() {
 
   async function refresh() {
     try {
-      const [nextModels, nextAgents, nextBases, nextTools, nextRuns, nextMcpServers] = await Promise.all([api<ModelProfile[]>('/api/models'), api<AgentDefinition[]>('/api/agents'), api<KnowledgeBase[]>('/api/knowledge-bases'), api<ToolDefinition[]>('/api/tools'), api<RunSummary[]>('/api/runs?limit=50'), api<McpServer[]>('/api/mcp/servers')])
+      const [nextModels, nextAgents, nextBases, nextTools, nextRuns, nextMcpServers, nextSsh] = await Promise.all([api<ModelProfile[]>('/api/models'), api<AgentDefinition[]>('/api/agents'), api<KnowledgeBase[]>('/api/knowledge-bases'), api<ToolDefinition[]>('/api/tools'), api<RunSummary[]>('/api/runs?limit=50'), api<McpServer[]>('/api/mcp/servers'), api<SshWorkspaceStatus>('/api/ssh/workspace')])
       const [groups, nextSecrets] = await Promise.all([Promise.all(nextAgents.map((agent) => api<AgentVersion[]>(`/api/agents/${agent.id}/versions?includeArchived=true`))), api<SecretStatus[]>('/api/secrets')])
       setModels(nextModels); setAgents(nextAgents); setVersions(groups.flat()); setSecrets(nextSecrets); setKnowledgeBases(nextBases); setTools(nextTools); setRunHistory(nextRuns); setMcpServers(nextMcpServers); setBackendState('online')
+      setSshStatus(nextSsh)
+      setSshForm((current) => current.host ? current : { host: nextSsh.host ?? '', port: nextSsh.port || 22, username: nextSsh.username ?? '', remoteRoot: nextSsh.remoteRoot ?? '', hostKeySha256: nextSsh.hostKeySha256 ?? '', passwordSecret: nextSsh.passwordSecret || 'AGENT_STUDIO_SSH_PASSWORD', password: '' })
       const assetPairs = await Promise.all(nextMcpServers.map(async (server) => {
         try { return [server.id, { resources: await api<McpResource[]>(`/api/mcp/servers/${server.id}/resources`), prompts: await api<McpPrompt[]>(`/api/mcp/servers/${server.id}/prompts`) }] as const }
         catch { return [server.id, { resources: [], prompts: [] }] as const }
@@ -152,6 +160,32 @@ function App() {
       const created = await api<KnowledgeBase>('/api/knowledge-bases', { method: 'POST', body: JSON.stringify(knowledgeForm) })
       setKnowledgeForm({ name: '', description: '' }); setSelectedKnowledgeBase(created.id)
       await refresh(); setNotice('知识库已创建，可以上传文档。')
+    })
+  }
+
+  async function inspectSshFingerprint() {
+    if (!sshForm.host.trim()) { setNotice('请先填写云服务器公网 IP 或域名。'); return }
+    await perform(async () => {
+      const result = await api<SshFingerprint>('/api/ssh/workspace/fingerprint', { method: 'POST', body: JSON.stringify({ host: sshForm.host, port: sshForm.port }) })
+      setSshFingerprint(result); setSshForm((current) => ({ ...current, hostKeySha256: result.sha256 }))
+      setNotice(`检测到 ${result.algorithm} 主机指纹。请先到云厂商控制台或服务器中核对，确认一致后再保存。`)
+    })
+  }
+
+  async function submitSshWorkspace(event: FormEvent) {
+    event.preventDefault()
+    await perform(async () => {
+      await api<SshWorkspaceStatus>('/api/ssh/workspace', { method: 'PUT', body: JSON.stringify({ host: sshForm.host, port: sshForm.port, username: sshForm.username, remoteRoot: sshForm.remoteRoot, hostKeySha256: sshForm.hostKeySha256, passwordSecret: sshForm.passwordSecret }) })
+      if (sshForm.password.trim()) await api(`/api/secrets/${encodeURIComponent(sshForm.passwordSecret)}`, { method: 'PUT', body: JSON.stringify({ value: sshForm.password }) })
+      setSshForm((current) => ({ ...current, password: '' })); await refresh()
+      setNotice('SSH 远程工作区和密码已保存。请点击“测试 SSH/SFTP 连接”。')
+    })
+  }
+
+  async function testSshWorkspace() {
+    await perform(async () => {
+      const result = await api<{ message: string }>('/api/ssh/workspace/test', { method: 'POST', body: '{}' })
+      await refresh(); setNotice(result.message)
     })
   }
 
@@ -467,6 +501,27 @@ function App() {
         </form>
         <div className="panel list-panel"><h2>已配置模型 <small>{models.length}</small></h2>{models.length === 0 ? <Empty text="尚无模型配置" /> : models.map((model) => <article className="model-card" key={model.id}><div><strong>{model.name}</strong><span>{model.modelName}</span></div><code>{model.baseUrl}</code><p>密钥：{model.apiKeyEnv} · 温度 {model.temperature}</p></article>)}</div>
       </div>
+        <div className="two-column">
+          <form className="panel form" onSubmit={submitSshWorkspace}><div className="section-head"><div><h2>SSH 远程工作区</h2><p className="hint">连接信息保存在本机数据库，密码使用 Windows 安全存储；当前仅开放 SFTP 只读工具。</p></div></div>
+            <Field label="服务器公网 IP 或域名"><input required value={sshForm.host} onChange={(e) => { setSshForm({ ...sshForm, host: e.target.value }); setSshFingerprint(undefined) }} placeholder="例如：203.0.113.10" /></Field>
+            <Field label="SSH 端口"><input required type="number" min="1" max="65535" value={sshForm.port} onChange={(e) => setSshForm({ ...sshForm, port: Number(e.target.value) })} /></Field>
+            <Field label="SSH 用户名"><input required value={sshForm.username} onChange={(e) => setSshForm({ ...sshForm, username: e.target.value })} placeholder="云服务器登录页显示的用户，例如 ubuntu" /></Field>
+            <Field label="远程项目目录"><input required value={sshForm.remoteRoot} onChange={(e) => setSshForm({ ...sshForm, remoteRoot: e.target.value })} placeholder="例如：/srv/my-website（不能填写 /）" /></Field>
+            <Field label="服务器主机指纹"><div className="inline-field"><input required value={sshForm.hostKeySha256} onChange={(e) => setSshForm({ ...sshForm, hostKeySha256: e.target.value })} placeholder="点击右侧检测后，再与云服务器核对" /><button className="ghost" type="button" disabled={busy || !sshForm.host} onClick={() => void inspectSshFingerprint()}>检测指纹</button></div></Field>
+            {sshFingerprint && <p className="edit-hint">协商算法：<code>{sshFingerprint.algorithm}</code><br />检测结果：<code>{sshFingerprint.sha256}</code><br />同一台服务器可能有多种主机密钥，请在服务器列出全部指纹，并核对同一种算法；不要拿 ED25519 指纹与 ECDSA/RSA 指纹比较。<br />{sshFingerprint.warning}</p>}
+            <Field label={sshStatus?.passwordConfigured ? 'SSH 密码（留空则不更换）' : 'SSH 密码'}><input type="password" autoComplete="new-password" value={sshForm.password} onChange={(e) => setSshForm({ ...sshForm, password: e.target.value })} placeholder={sshStatus?.passwordConfigured ? '已安全保存' : '输入测试账户密码'} /></Field>
+            <input type="hidden" value={sshForm.passwordSecret} readOnly />
+            <div className="form-actions"><button className="primary" disabled={busy}>保存连接与密码</button><button className="secondary" type="button" disabled={busy || !sshStatus?.configured || !sshStatus.passwordConfigured} onClick={() => void testSshWorkspace()}>测试 SSH/SFTP 连接</button></div>
+          </form>
+          <div className="panel list-panel"><h2>这些值从哪里找？</h2>
+            <article className="model-card"><div><strong>公网 IP、端口、用户名</strong><span>在云厂商实例的“远程登录/SSH 登录”页面查看。端口通常是 22，Linux 用户常见为 ubuntu、debian 或 root。</span></div></article>
+            <article className="model-card"><div><strong>远程项目目录</strong><span>是网站代码在服务器中的绝对目录，例如 /srv/my-website 或 /var/www/example。它不是域名，也不能直接填 /。</span></div></article>
+            <article className="model-card"><div><strong>主机指纹</strong><span>“检测指纹”只负责读取，仍需与云厂商控制台或服务器管理员提供的 SHA-256 指纹核对，防止连错服务器。</span></div></article>
+            <div className="card-head"><div><strong>当前状态</strong><p>{sshStatus?.configured ? `${sshStatus.username}@${sshStatus.host}:${sshStatus.port}${sshStatus.remoteRoot}` : '尚未配置'}</p></div><span className={`badge badge--${sshStatus?.status === 'READY' ? 'ready' : 'warning'}`}>{sshStatus?.status ?? 'NOT_CONFIGURED'}</span></div>
+            {sshStatus?.lastError && <p className="error-text">{sshStatus.lastError}</p>}
+            <p className="hint">如果你暂时没有服务器资料，需要先打开云服务器控制台确认实例和登录方式；Agent Studio 无法凭空推断这些账户信息。</p>
+          </div>
+        </div>
         <div className="panel secret-panel"><div className="section-head"><div><h2>安全凭据 <small>{secrets.filter((item) => item.configured).length}/{secrets.length}</small></h2><p className="hint">密钥只会提交给本机后端并加密保存，页面和接口永不回显。环境变量的优先级更高。</p></div></div>
           {secrets.length === 0 ? <Empty text="创建模型或填写 MCP 凭据名称后，这里会出现对应项目" /> : <div className="secret-list">{secrets.map((secret) => <article key={secret.name} className="secret-card"><div><strong>{secret.name}</strong><span className={`badge badge--${secret.configured ? 'ready' : 'warning'}`}>{secret.configured ? secret.source === 'ENVIRONMENT' ? '环境变量' : '安全存储' : '未配置'}</span><p>{secret.usedBy.join(' · ')}</p></div><input type="password" autoComplete="new-password" value={secretValues[secret.name] ?? ''} onChange={(e) => setSecretValues((current) => ({ ...current, [secret.name]: e.target.value }))} placeholder={secret.configured ? '输入新值可替换' : '输入密钥'} /><div className="card-actions"><button className="secondary" disabled={busy || !(secretValues[secret.name]?.trim())} onClick={() => void saveSecret(secret.name)}>{secret.configured ? '更新' : '安全保存'}</button>{secret.configured && <button className="danger compact" disabled={busy || secret.source === 'ENVIRONMENT'} title={secret.source === 'ENVIRONMENT' ? '环境变量需在程序外清除' : undefined} onClick={() => void deleteSecret(secret.name)}>删除</button>}</div></article>)}</div>}
         </div>
