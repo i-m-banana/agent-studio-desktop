@@ -1,5 +1,13 @@
 # 验证记录
 
+## 锚点后阶段 2：Coding 受审文本补丁（2026-09-15）
+
+已实现 `WRITE/HIGH` 的 `apply_workspace_text_patch`。读取工具返回完整原始文件的 SHA-256；补丁把该摘要、相对路径和精确 replacements 绑定到既有一次性 ApprovalRequest，继续通过 AgentVersion、ToolRegistry、SafeExecutionGateway、RunStep 与 AuditEvent，没有新增数据库迁移或旁路写接口。
+
+单元测试覆盖摘要输出、工具风险注册、成功原子替换、陈旧摘要、重复匹配和越界拒绝，并确认失败时原文件保持不变。会话集成测试用可控模型发起补丁，真实经过审批请求、批准、执行、文件变更、运行步骤和审计完成事件。全量后端 `mvn test` 为 41 个测试通过、0 失败、0 错误、0 跳过；H2 从空库校验 V1–V10，既有 AgentVersion、审批、RAG、MCP、运行控制和安全凭据测试均通过。
+
+真实模型与浏览器验收已确认批准写入与拒绝跳过：运行 `3cc5b2f0-e54f-424a-804c-6cc801fa112f` 完成 `target-before → target-after`，运行 `10c216d9-3c49-433f-9cf9-f5b3cbdaace9` 完成反向恢复，运行 `814047b0-54f8-43af-ac9d-9b53622079fc` 在审批拒绝后记录 TOOL_EXECUTION_SKIPPED。陈旧摘要由用户确认通过并有自动化证据，但运行库没有可独立识别的对应失败记录。准确结论是受审文本补丁子阶段已验收；统一 diff、预览页、撤销、文件新建/删除、命令、构建测试和 SSH/SFTP 仍未实现。
+
 ## 锚点后阶段 1：Coding 只读工作区（2026-09-14）
 
 已实现三个 `READ/LOW` 工具：`list_workspace_directory`、`search_workspace_files`、`read_workspace_text_file`。它们由 AgentTool 自动注册进入原 ToolRegistry，并继续通过 SafeExecutionGateway；没有新建数据库表或绕过 AgentVersion、RunStep、AuditEvent、审批、RAG、MCP 的既有代码路径。

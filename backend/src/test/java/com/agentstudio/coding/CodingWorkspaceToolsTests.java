@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.util.HexFormat;
 import java.util.List;
 
 import com.agentstudio.tool.ToolRegistry;
@@ -19,18 +21,26 @@ class CodingWorkspaceToolsTests {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
-    void registersAllReadOnlyCodingTools() throws Exception {
+    void registersCodingToolsWithExplicitRiskBoundaries() throws Exception {
         var workspace = workspace();
         var tools = List.of(
                 new ListWorkspaceDirectoryTool(workspace, objectMapper),
                 new SearchWorkspaceFilesTool(workspace, objectMapper),
-                new ReadWorkspaceTextFileTool(workspace, objectMapper));
+                new ReadWorkspaceTextFileTool(workspace, objectMapper),
+                new ApplyWorkspaceTextPatchTool(workspace, objectMapper));
         var registry = new ToolRegistry(tools, objectMapper);
 
         assertThat(registry.descriptors()).extracting(descriptor -> descriptor.name())
                 .containsExactlyInAnyOrder(
-                        "list_workspace_directory", "search_workspace_files", "read_workspace_text_file");
-        assertThat(registry.descriptors()).allSatisfy(descriptor -> {
+                        "list_workspace_directory", "search_workspace_files", "read_workspace_text_file",
+                        "apply_workspace_text_patch");
+        assertThat(registry.descriptors()).filteredOn(descriptor -> descriptor.name().startsWith("apply_")).singleElement()
+                .satisfies(descriptor -> {
+                    assertThat(descriptor.capability()).isEqualTo("WRITE");
+                    assertThat(descriptor.riskLevel()).isEqualTo("HIGH");
+                });
+        assertThat(registry.descriptors()).filteredOn(descriptor -> !descriptor.name().startsWith("apply_"))
+                .allSatisfy(descriptor -> {
             assertThat(descriptor.capability()).isEqualTo("READ");
             assertThat(descriptor.riskLevel()).isEqualTo("LOW");
         });
@@ -96,6 +106,67 @@ class CodingWorkspaceToolsTests {
         assertThat(result.path("startLine").asInt()).isEqualTo(2);
         assertThat(result.path("endLine").asInt()).isEqualTo(3);
         assertThat(result.path("truncated").asBoolean()).isTrue();
+        assertThat(result.path("sha256").asText()).isEqualTo(sha256("一\n二\n三\n四".getBytes(StandardCharsets.UTF_8)));
+        assertThat(result.path("sizeBytes").asLong()).isEqualTo(Files.size(temporaryDirectory.resolve("src/demo.txt")));
+    }
+
+    @Test
+    void appliesExactPatchToExistingFileWithMatchingDigest() throws Exception {
+        Files.createDirectories(temporaryDirectory.resolve("src"));
+        var file = temporaryDirectory.resolve("src/demo.txt");
+        var original = "alpha\nbeta\ngamma\n";
+        Files.writeString(file, original, StandardCharsets.UTF_8);
+        var tool = new ApplyWorkspaceTextPatchTool(workspace(), objectMapper);
+
+        var arguments = objectMapper.createObjectNode()
+                .put("path", "src/demo.txt")
+                .put("expectedSha256", sha256(original.getBytes(StandardCharsets.UTF_8)));
+        arguments.putArray("replacements").addObject().put("oldText", "beta").put("newText", "changed");
+        var result = objectMapper.readTree(tool.execute(arguments));
+
+        assertThat(Files.readString(file)).isEqualTo("alpha\nchanged\ngamma\n");
+        assertThat(result.path("updated").asBoolean()).isTrue();
+        assertThat(result.path("replacementsApplied").asInt()).isEqualTo(1);
+        assertThat(result.path("beforeSha256").asText()).isEqualTo(sha256(original.getBytes(StandardCharsets.UTF_8)));
+        assertThat(result.path("afterSha256").asText())
+                .isEqualTo(sha256("alpha\nchanged\ngamma\n".getBytes(StandardCharsets.UTF_8)));
+    }
+
+    @Test
+    void rejectsStaleAmbiguousAndInvalidPatchesWithoutChangingFile() throws Exception {
+        Files.createDirectories(temporaryDirectory.resolve("src"));
+        var file = temporaryDirectory.resolve("src/demo.txt");
+        var original = "same\nsame\n";
+        Files.writeString(file, original, StandardCharsets.UTF_8);
+        var tool = new ApplyWorkspaceTextPatchTool(workspace(), objectMapper);
+
+        assertThatThrownBy(() -> tool.execute(objectMapper.readTree("""
+                {"path":"src/demo.txt","expectedSha256":"%s","replacements":[{"oldText":"same","newText":"new"}]}
+                """.formatted("0".repeat(64))))).hasMessageContaining("内容已变化");
+        assertThatThrownBy(() -> tool.execute(objectMapper.readTree("""
+                {"path":"src/demo.txt","expectedSha256":"%s","replacements":[{"oldText":"same","newText":"new"}]}
+                """.formatted(sha256(original.getBytes(StandardCharsets.UTF_8)))))).hasMessageContaining("出现多次");
+        Files.writeString(file, "aaa", StandardCharsets.UTF_8);
+        assertThatThrownBy(() -> tool.execute(objectMapper.readTree("""
+                {"path":"src/demo.txt","expectedSha256":"%s","replacements":[{"oldText":"aa","newText":"b"}]}
+                """.formatted(sha256("aaa".getBytes(StandardCharsets.UTF_8)))))).hasMessageContaining("出现多次");
+        Files.writeString(file, original, StandardCharsets.UTF_8);
+        assertThatThrownBy(() -> tool.execute(objectMapper.readTree("""
+                {"path":"../demo.txt","expectedSha256":"%s","replacements":[{"oldText":"same","newText":"new"}]}
+                """.formatted(sha256(original.getBytes(StandardCharsets.UTF_8)))))).hasMessageContaining("不能越出");
+        Files.writeString(temporaryDirectory.resolve(".env"), "TOKEN=fake", StandardCharsets.UTF_8);
+        assertThatThrownBy(() -> tool.execute(objectMapper.readTree("""
+                {"path":".env","expectedSha256":"%s","replacements":[{"oldText":"fake","newText":"changed"}]}
+                """.formatted(sha256("TOKEN=fake".getBytes(StandardCharsets.UTF_8)))))).hasMessageContaining("受保护");
+        var binary = new byte[] { 1, 0, 2 };
+        Files.write(temporaryDirectory.resolve("binary.dat"), binary);
+        assertThatThrownBy(() -> tool.execute(objectMapper.readTree("""
+                {"path":"binary.dat","expectedSha256":"%s","replacements":[{"oldText":"x","newText":"y"}]}
+                """.formatted(sha256(binary))))).hasMessageContaining("二进制");
+        assertThatThrownBy(() -> tool.execute(objectMapper.readTree("""
+                {"path":"missing.txt","expectedSha256":"%s","replacements":[{"oldText":"x","newText":"y"}]}
+                """.formatted(sha256("x".getBytes(StandardCharsets.UTF_8)))))).hasMessageContaining("路径不存在");
+        assertThat(Files.readString(file)).isEqualTo(original);
     }
 
     @Test
@@ -149,5 +220,9 @@ class CodingWorkspaceToolsTests {
 
     private CodingWorkspace workspace() {
         return new CodingWorkspace(temporaryDirectory.toString());
+    }
+
+    private String sha256(byte[] bytes) throws Exception {
+        return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
     }
 }

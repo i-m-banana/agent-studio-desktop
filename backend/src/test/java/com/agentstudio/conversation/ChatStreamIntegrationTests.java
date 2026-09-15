@@ -365,4 +365,78 @@ class ChatStreamIntegrationTests {
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("APPROVAL_DECIDED")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("TOOL_EXECUTION_SKIPPED")));
     }
+
+    @Test
+    void approvedCodingPatchExecutesThroughGatewayAndPersistsAuditEvidence() throws Exception {
+        var suffix = UUID.randomUUID().toString();
+        var relativePath = "src/Patch-" + suffix + ".txt";
+        var file = java.nio.file.Path.of("target/test-coding-workspace").resolve(relativePath);
+        java.nio.file.Files.createDirectories(file.getParent());
+        var original = "before\nunchanged\n";
+        java.nio.file.Files.writeString(file, original, java.nio.charset.StandardCharsets.UTF_8);
+        var expectedSha256 = sha256(original.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        var callId = "coding-patch-" + suffix;
+        var arguments = """
+                {"path":"%s","expectedSha256":"%s","replacements":[{"oldText":"before","newText":"after"}]}
+                """.formatted(relativePath, expectedSha256).strip();
+
+        when(knowledgeRetriever.retrieve(any(), any())).thenReturn(List.of());
+        when(modelGateway.complete(any(), any(), any()))
+                .thenReturn(new ModelTurn("", List.of(new ModelToolCall(
+                        callId, "apply_workspace_text_patch", arguments))))
+                .thenReturn(new ModelTurn("patch applied", List.of()));
+        var model = modelProfiles.create(new ModelProfileRequest(
+                "coding-patch-model-" + suffix, "OPENAI_COMPATIBLE", "https://example.com/v1",
+                "test-model", "TEST_MODEL_KEY", new BigDecimal("0.2")));
+        var agent = agents.create(new AgentDefinitionRequest(
+                "coding-patch-agent-" + suffix, "test", model.id(), null,
+                "读取摘要后，仅经审批应用精确文本补丁。", List.of("apply_workspace_text_patch")));
+        var version = agents.publish(agent.id());
+
+        var result = mockMvc.perform(post("/api/chat/stream")
+                        .contentType(MediaType.APPLICATION_JSON).accept(MediaType.TEXT_EVENT_STREAM)
+                        .content("{\"agentVersionId\":\"%s\",\"message\":\"修改测试文件\"}".formatted(version.id())))
+                .andExpect(request().asyncStarted()).andReturn();
+
+        String approvalId = null;
+        for (int attempt = 0; attempt < 100 && approvalId == null; attempt++) {
+            var ids = jdbc.query("SELECT id FROM approval_request WHERE tool_call_id=:callId",
+                    java.util.Map.of("callId", callId), (rs, row) -> rs.getString("id"));
+            if (!ids.isEmpty()) approvalId = ids.getFirst();
+            else Thread.sleep(20);
+        }
+        assertThat(approvalId).isNotNull();
+        mockMvc.perform(post("/api/approvals/{id}/approve", approvalId)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"test approval\"}"))
+                .andExpect(status().isOk());
+
+        var response = mockMvc.perform(asyncDispatch(result))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("event:approval_required")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("APPROVED")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("apply_workspace_text_patch")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("patch applied")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("event:done")))
+                .andReturn().getResponse().getContentAsString();
+        assertThat(java.nio.file.Files.readString(file)).isEqualTo("after\nunchanged\n");
+        var runMatcher = java.util.regex.Pattern.compile("\\\"runId\\\":\\\"([^\\\"]+)\\\"").matcher(response);
+        assertThat(runMatcher.find()).isTrue();
+        var runId = runMatcher.group(1);
+        mockMvc.perform(get("/api/runs/{id}", runId))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("TOOL_RESULT")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("afterSha256")));
+        mockMvc.perform(get("/api/audit-events").param("runId", runId))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("APPROVAL_REQUIRED")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("APPROVAL_DECIDED")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("TOOL_EXECUTION_COMPLETED")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(
+                        org.hamcrest.Matchers.containsString(relativePath))));
+    }
+
+    private String sha256(byte[] bytes) throws Exception {
+        return java.util.HexFormat.of().formatHex(
+                java.security.MessageDigest.getInstance("SHA-256").digest(bytes));
+    }
 }
