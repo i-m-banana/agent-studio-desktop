@@ -36,6 +36,8 @@ agent-studio:
   data-dir: ${AGENT_STUDIO_DATA_DIR:../data}
   coding:
     workspace-root: ${AGENT_STUDIO_CODING_WORKSPACE:../coding-workspace}
+    maven-command: ${AGENT_STUDIO_MAVEN_COMMAND:}
+    npm-command: ${AGENT_STUDIO_NPM_COMMAND:}
   chat:
     timeout: 120s
   vector:

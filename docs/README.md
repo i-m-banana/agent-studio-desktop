@@ -16,8 +16,10 @@
 - `decisions/0014-secure-credentials-and-version-lifecycle.md`：Windows DPAPI 凭据、环境覆盖优先级，以及 Agent 历史版本归档和受限删除；
 - `decisions/0015-read-only-coding-workspace.md`：单根授权代码工作区、三类只读工具、路径与输出边界；
 - `decisions/0016-approved-coding-text-patch.md`：摘要绑定、精确匹配、HIGH 审批与原子替换的 Coding 文本补丁；
+- `decisions/0017-approved-workspace-verification.md`：固定 Maven/npm 任务、HIGH 审批、受限环境与进程收口；
 - `CODING_WORKSPACE_ACCEPTANCE.md`：Coding 第一阶段的正向、负向、审计与无副作用人工验收清单；
 - `CODING_PATCH_ACCEPTANCE.md`：Coding 受审补丁的批准、拒绝、陈旧摘要与审计人工验收清单；
+- `CODING_VERIFICATION_ACCEPTANCE.md`：Coding 白名单构建/测试的批准、拒绝、退出码与路径边界人工验收清单；
 - `RELEASE_CHECKLIST.md`：从 `1.0.0-rc1` 升为正式版前的自动检查、人工验收和备份要求；
 - `MATURITY_BASELINE_1.0.0-rc1.md`：后续开发不得破坏的基线不变量、证据和正式代码锚点条件；
 - `RELEASE_NOTES_1.0.0.md`：首个单机正式版的验收结论、能力边界和锚点规则；

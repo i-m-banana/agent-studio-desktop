@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Set;
 
 import com.agentstudio.tool.ToolRegistry;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -23,23 +24,34 @@ class CodingWorkspaceToolsTests {
     @Test
     void registersCodingToolsWithExplicitRiskBoundaries() throws Exception {
         var workspace = workspace();
+        var commands = new WorkspaceVerificationCommands("mvn", "npm");
         var tools = List.of(
                 new ListWorkspaceDirectoryTool(workspace, objectMapper),
                 new SearchWorkspaceFilesTool(workspace, objectMapper),
                 new ReadWorkspaceTextFileTool(workspace, objectMapper),
-                new ApplyWorkspaceTextPatchTool(workspace, objectMapper));
+                new ApplyWorkspaceTextPatchTool(workspace, objectMapper),
+                new RunWorkspaceVerificationTool(workspace, objectMapper, commands));
         var registry = new ToolRegistry(tools, objectMapper);
 
         assertThat(registry.descriptors()).extracting(descriptor -> descriptor.name())
                 .containsExactlyInAnyOrder(
                         "list_workspace_directory", "search_workspace_files", "read_workspace_text_file",
-                        "apply_workspace_text_patch");
-        assertThat(registry.descriptors()).filteredOn(descriptor -> descriptor.name().startsWith("apply_")).singleElement()
-                .satisfies(descriptor -> {
-                    assertThat(descriptor.capability()).isEqualTo("WRITE");
+                        "apply_workspace_text_patch", "run_workspace_verification");
+        assertThat(registry.descriptors()).filteredOn(descriptor -> Set.of(
+                        "apply_workspace_text_patch", "run_workspace_verification").contains(descriptor.name()))
+                .allSatisfy(descriptor -> {
                     assertThat(descriptor.riskLevel()).isEqualTo("HIGH");
                 });
-        assertThat(registry.descriptors()).filteredOn(descriptor -> !descriptor.name().startsWith("apply_"))
+        assertThat(registry.descriptors()).filteredOn(descriptor -> descriptor.name().equals("apply_workspace_text_patch"))
+                .singleElement()
+                .satisfies(descriptor -> {
+                    assertThat(descriptor.capability()).isEqualTo("WRITE");
+                });
+        assertThat(registry.descriptors()).filteredOn(descriptor -> descriptor.name().equals("run_workspace_verification"))
+                .singleElement().satisfies(descriptor -> assertThat(descriptor.capability()).isEqualTo("EXECUTE"));
+        assertThat(registry.descriptors()).filteredOn(descriptor -> Set.of(
+                        "list_workspace_directory", "search_workspace_files", "read_workspace_text_file")
+                        .contains(descriptor.name()))
                 .allSatisfy(descriptor -> {
             assertThat(descriptor.capability()).isEqualTo("READ");
             assertThat(descriptor.riskLevel()).isEqualTo("LOW");
@@ -170,6 +182,87 @@ class CodingWorkspaceToolsTests {
     }
 
     @Test
+    void runsOnlyFixedVerificationTaskAndReturnsBoundedResult() throws Exception {
+        Files.createDirectories(temporaryDirectory.resolve("project"));
+        Files.writeString(temporaryDirectory.resolve("project/package.json"), "{}", StandardCharsets.UTF_8);
+        var commandDirectory = Files.createTempDirectory("agent-studio-verification-command-");
+        var command = createTestCommand(commandDirectory, "success", "verification-ok", 0, false);
+        try {
+            var commands = new WorkspaceVerificationCommands(command.toString(), command.toString());
+            var tool = new RunWorkspaceVerificationTool(workspace(), objectMapper, commands);
+
+            var result = objectMapper.readTree(tool.execute(objectMapper.readTree(
+                    "{\"path\":\"project\",\"task\":\"NPM_BUILD\"}")));
+
+            assertThat(result.path("successful").asBoolean()).isTrue();
+            assertThat(result.path("exitCode").asInt()).isZero();
+            assertThat(result.path("output").asText()).contains("verification-ok");
+            assertThat(result.path("outputTruncated").asBoolean()).isFalse();
+        } finally {
+            Files.deleteIfExists(command);
+            Files.deleteIfExists(commandDirectory);
+        }
+    }
+
+    @Test
+    void rejectsMissingMarkerUnsupportedTaskAndWorkspaceLauncher() throws Exception {
+        Files.createDirectories(temporaryDirectory.resolve("project"));
+        var launcher = createTestCommand(temporaryDirectory, "launcher", "ok", 0, false);
+        var commands = new WorkspaceVerificationCommands(launcher.toString(), launcher.toString());
+        var tool = new RunWorkspaceVerificationTool(workspace(), objectMapper, commands);
+
+        assertThatThrownBy(() -> tool.execute(objectMapper.readTree(
+                "{\"path\":\"project\",\"task\":\"NPM_BUILD\"}"))).hasMessageContaining("package.json");
+        Files.writeString(temporaryDirectory.resolve("project/package.json"), "{}", StandardCharsets.UTF_8);
+        assertThatThrownBy(() -> tool.execute(objectMapper.readTree(
+                "{\"path\":\"project\",\"task\":\"SHELL\"}"))).hasMessageContaining("只允许");
+        assertThatThrownBy(() -> tool.execute(objectMapper.readTree(
+                "{\"path\":\"project\",\"task\":\"NPM_BUILD\"}"))).hasMessageContaining("代码工作区内");
+    }
+
+    @Test
+    void terminatesVerificationThatExceedsItsBudget() throws Exception {
+        Files.createDirectories(temporaryDirectory.resolve("project"));
+        Files.writeString(temporaryDirectory.resolve("project/package.json"), "{}", StandardCharsets.UTF_8);
+        var commandDirectory = Files.createTempDirectory("agent-studio-verification-timeout-");
+        var command = createTestCommand(commandDirectory, "slow", "starting", 0, true);
+        try {
+            var commands = new WorkspaceVerificationCommands(command.toString(), command.toString());
+            var tool = new RunWorkspaceVerificationTool(
+                    workspace(), objectMapper, commands, java.time.Duration.ofMillis(150));
+
+            assertThatThrownBy(() -> tool.execute(objectMapper.readTree(
+                    "{\"path\":\"project\",\"task\":\"NPM_TEST\"}"))).hasMessageContaining("已终止进程树");
+        } finally {
+            Files.deleteIfExists(command);
+            Files.deleteIfExists(commandDirectory);
+        }
+    }
+
+    @Test
+    void reportsNonZeroExitAndBoundsLargeProcessOutput() throws Exception {
+        Files.createDirectories(temporaryDirectory.resolve("project"));
+        Files.writeString(temporaryDirectory.resolve("project/package.json"), "{}", StandardCharsets.UTF_8);
+        var commandDirectory = Files.createTempDirectory("agent-studio-verification-output-");
+        var command = createNoisyTestCommand(commandDirectory);
+        try {
+            var commands = new WorkspaceVerificationCommands(command.toString(), command.toString());
+            var tool = new RunWorkspaceVerificationTool(workspace(), objectMapper, commands);
+
+            var result = objectMapper.readTree(tool.execute(objectMapper.readTree(
+                    "{\"path\":\"project\",\"task\":\"NPM_TEST\"}")));
+
+            assertThat(result.path("successful").asBoolean()).isFalse();
+            assertThat(result.path("exitCode").asInt()).isEqualTo(7);
+            assertThat(result.path("outputTruncated").asBoolean()).isTrue();
+            assertThat(result.path("output").asText()).contains("输出已截断").hasSizeLessThan(16_100);
+        } finally {
+            Files.deleteIfExists(command);
+            Files.deleteIfExists(commandDirectory);
+        }
+    }
+
+    @Test
     void rejectsTraversalAbsoluteProtectedAndBinaryPaths() throws Exception {
         Files.writeString(temporaryDirectory.resolve(".env"), "SECRET=value", StandardCharsets.UTF_8);
         Files.write(temporaryDirectory.resolve("binary.dat"), new byte[] { 1, 0, 2 });
@@ -224,5 +317,35 @@ class CodingWorkspaceToolsTests {
 
     private String sha256(byte[] bytes) throws Exception {
         return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
+    }
+
+    private Path createTestCommand(Path directory, String name, String output, int exitCode, boolean slow)
+            throws Exception {
+        var windows = System.getProperty("os.name", "").toLowerCase(java.util.Locale.ROOT).contains("windows");
+        var command = directory.resolve(name + (windows ? ".cmd" : ".sh"));
+        if (windows) {
+            Files.writeString(command, "@echo off\r\necho " + output + "\r\n"
+                    + (slow ? "ping -n 10 127.0.0.1 >nul\r\n" : "")
+                    + "exit /b " + exitCode + "\r\n", StandardCharsets.UTF_8);
+        } else {
+            Files.writeString(command, "#!/bin/sh\necho " + output + "\n"
+                    + (slow ? "sleep 10\n" : "") + "exit " + exitCode + "\n", StandardCharsets.UTF_8);
+            command.toFile().setExecutable(true);
+        }
+        return command;
+    }
+
+    private Path createNoisyTestCommand(Path directory) throws Exception {
+        var windows = System.getProperty("os.name", "").toLowerCase(java.util.Locale.ROOT).contains("windows");
+        var command = directory.resolve("noisy" + (windows ? ".cmd" : ".sh"));
+        if (windows) {
+            Files.writeString(command, "@echo off\r\nfor /L %%i in (1,1,3000) do echo output-line-%%i\r\nexit /b 7\r\n",
+                    StandardCharsets.UTF_8);
+        } else {
+            Files.writeString(command, "#!/bin/sh\ni=1\nwhile [ $i -le 3000 ]; do echo output-line-$i; i=$((i+1)); done\nexit 7\n",
+                    StandardCharsets.UTF_8);
+            command.toFile().setExecutable(true);
+        }
+        return command;
     }
 }

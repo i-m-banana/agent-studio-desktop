@@ -1,5 +1,13 @@
 # 验证记录
 
+## 锚点后阶段 3：Coding 白名单本地验证（2026-09-15）
+
+已实现 `EXECUTE/HIGH` 的 `run_workspace_verification`，只接受工作区相对目录以及 `MAVEN_TEST`、`NPM_TEST`、`NPM_BUILD` 固定任务。程序路径解析、项目标记、受限环境、75 秒进程预算、子进程树终止、约 16000 字符输出和非零退出码结果均在工具内部收口；调用继续通过 AgentVersion、ToolRegistry、SafeExecutionGateway、ApprovalRequest、RunStep 与 AuditEvent。
+
+专项测试在 Windows 实际启动固定测试脚本，覆盖成功结果、非零退出、大输出首尾截断、超时终止、标记缺失、非法任务和工作区启动程序拒绝。会话集成测试确认该工具必须进入 HIGH 审批，拒绝后只形成 TOOL_EXECUTION_SKIPPED，不启动验证进程。最终全量后端 `mvn test` 为 46 个测试通过、0 失败、0 错误、0 跳过；H2 从空库校验 V1–V10，既有 RAG、MCP、审批、运行控制与 Coding 回归均通过。
+
+真实 Maven/npm 与浏览器审批链已经通过。运行 `c86216ab-02fe-40b7-90af-0f19b3b665eb` 在 `backend` 执行 `MAVEN_TEST`，批准后 22085 ms、退出码 0；运行 `94773e95-f1fd-4490-87e0-ea247ea2a8e1` 在 `web` 执行 `NPM_BUILD`，批准后 4054 ms、退出码 0；运行 `f87a5e91-04d2-467d-adc0-5c92cd706378` 被拒绝后仅记录 TOOL_EXECUTION_SKIPPED。固定入口仍会执行项目自带代码，当前没有 OS 级文件系统或网络沙箱，仅适用于信任的本地仓库；不能宣称支持任意 Shell 或安全执行不可信代码。
+
 ## 锚点后阶段 2：Coding 受审文本补丁（2026-09-15）
 
 已实现 `WRITE/HIGH` 的 `apply_workspace_text_patch`。读取工具返回完整原始文件的 SHA-256；补丁把该摘要、相对路径和精确 replacements 绑定到既有一次性 ApprovalRequest，继续通过 AgentVersion、ToolRegistry、SafeExecutionGateway、RunStep 与 AuditEvent，没有新增数据库迁移或旁路写接口。

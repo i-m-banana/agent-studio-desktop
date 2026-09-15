@@ -435,6 +435,56 @@ class ChatStreamIntegrationTests {
                         org.hamcrest.Matchers.containsString(relativePath))));
     }
 
+    @Test
+    void workspaceVerificationRequiresApprovalAndRejectionPreventsProcessStart() throws Exception {
+        when(knowledgeRetriever.retrieve(any(), any())).thenReturn(List.of());
+        var suffix = UUID.randomUUID().toString();
+        var callId = "verification-rejection-" + suffix;
+        when(modelGateway.complete(any(), any(), any()))
+                .thenReturn(new ModelTurn("", List.of(new ModelToolCall(callId,
+                        "run_workspace_verification", "{\"path\":\".\",\"task\":\"NPM_BUILD\"}"))))
+                .thenReturn(new ModelTurn("verification rejected", List.of()));
+        var model = modelProfiles.create(new ModelProfileRequest(
+                "verification-model-" + suffix, "OPENAI_COMPATIBLE", "https://example.com/v1",
+                "test-model", "TEST_MODEL_KEY", new BigDecimal("0.2")));
+        var agent = agents.create(new AgentDefinitionRequest(
+                "verification-agent-" + suffix, "test", model.id(), null,
+                "运行验证前请求审批。", List.of("run_workspace_verification")));
+        var version = agents.publish(agent.id());
+
+        var result = mockMvc.perform(post("/api/chat/stream")
+                        .contentType(MediaType.APPLICATION_JSON).accept(MediaType.TEXT_EVENT_STREAM)
+                        .content("{\"agentVersionId\":\"%s\",\"message\":\"运行构建\"}".formatted(version.id())))
+                .andExpect(request().asyncStarted()).andReturn();
+
+        String approvalId = null;
+        for (int attempt = 0; attempt < 100 && approvalId == null; attempt++) {
+            var ids = jdbc.query("SELECT id FROM approval_request WHERE tool_call_id=:callId",
+                    java.util.Map.of("callId", callId), (rs, row) -> rs.getString("id"));
+            if (!ids.isEmpty()) approvalId = ids.getFirst();
+            else Thread.sleep(20);
+        }
+        assertThat(approvalId).isNotNull();
+        mockMvc.perform(post("/api/approvals/{id}/reject", approvalId)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"test rejection\"}"))
+                .andExpect(status().isOk());
+
+        var response = mockMvc.perform(asyncDispatch(result))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("run_workspace_verification")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("REJECTED")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("verification rejected")))
+                .andReturn().getResponse().getContentAsString();
+        var runMatcher = java.util.regex.Pattern.compile("\\\"runId\\\":\\\"([^\\\"]+)\\\"").matcher(response);
+        assertThat(runMatcher.find()).isTrue();
+        mockMvc.perform(get("/api/audit-events").param("runId", runMatcher.group(1)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("APPROVAL_REQUIRED")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("TOOL_EXECUTION_SKIPPED")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(
+                        org.hamcrest.Matchers.containsString("NPM_BUILD"))));
+    }
+
     private String sha256(byte[] bytes) throws Exception {
         return java.util.HexFormat.of().formatHex(
                 java.security.MessageDigest.getInstance("SHA-256").digest(bytes));
