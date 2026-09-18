@@ -16,4 +16,4 @@ Agent 先用远程读取工具取得文件内容与完整 SHA-256，再提出 `S
 
 真实运行证据：`c02f0f09-ad25-4a29-9717-5933f1830927` 完成正向修改，`1349ba57-8f72-467d-a8c4-51f223387094` 完成恢复，`3381d12b-4465-4350-b3dd-03750fb909de` 形成审批拒绝与 TOOL_EXECUTION_SKIPPED，`e139b076-8946-4322-bb97-ea9a18799eae` 两次拒绝陈旧摘要并保留人工新内容。修复前 `33853a3f-46cd-4100-a048-769bd3327fb7` 的真实失败记录保留为兼容问题证据。
 
-本阶段没有新建、删除、任意上传、统一 diff、跨文件事务、远程 Shell、Git、构建测试、日志命令、Docker/Nginx 或部署。人工清单见 `docs/SSH_SFTP_PATCH_ACCEPTANCE.md`。
+本阶段本身没有新建、删除、任意上传、统一 diff、跨文件事务、远程 Shell、Git、构建测试、日志命令、Docker/Nginx 或部署。后续独立阶段已经增加仅自动化通过的固定受控 SSH Exec，但不改变本阶段的补丁边界。人工清单见 `docs/SSH_SFTP_PATCH_ACCEPTANCE.md`。

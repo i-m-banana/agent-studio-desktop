@@ -20,6 +20,8 @@ import java.util.function.Consumer;
 
 import com.agentstudio.agent.AgentDefinitionRequest;
 import com.agentstudio.agent.AgentService;
+import com.agentstudio.adapter.ssh.SshWorkspaceProperties;
+import com.agentstudio.adapter.ssh.SshWorkspaceService;
 import com.agentstudio.knowledge.KnowledgeBaseRequest;
 import com.agentstudio.knowledge.KnowledgeRetriever;
 import com.agentstudio.knowledge.KnowledgeService;
@@ -64,6 +66,9 @@ class ChatStreamIntegrationTests {
 
     @MockitoBean
     private KnowledgeRetriever knowledgeRetriever;
+
+    @MockitoBean
+    private SshWorkspaceService sshWorkspaceService;
 
     @Test
     @SuppressWarnings("unchecked")
@@ -483,6 +488,98 @@ class ChatStreamIntegrationTests {
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("TOOL_EXECUTION_SKIPPED")))
                 .andExpect(content().string(org.hamcrest.Matchers.not(
                         org.hamcrest.Matchers.containsString("NPM_BUILD"))));
+    }
+
+    @Test
+    void remoteWorkspaceTaskRequiresBoundApprovalAndRejectionSkipsSshExecution() throws Exception {
+        when(knowledgeRetriever.retrieve(any(), any())).thenReturn(List.of());
+        when(sshWorkspaceService.current()).thenReturn(new SshWorkspaceProperties(
+                "ssh.example.test", 22, "builder", "/srv/project", "SHA256:test-fingerprint-value",
+                "TEST_SSH_PASSWORD", java.time.Duration.ofSeconds(5)));
+        var suffix = UUID.randomUUID().toString();
+        var callId = "remote-exec-rejection-" + suffix;
+        when(modelGateway.complete(any(), any(), any()))
+                .thenReturn(new ModelTurn("", List.of(new ModelToolCall(callId,
+                        "run_remote_workspace_task", "{\"path\":\"app\",\"task\":\"GIT_STATUS\"}"))))
+                .thenReturn(new ModelTurn("remote task rejected", List.of()));
+        var model = modelProfiles.create(new ModelProfileRequest(
+                "remote-exec-model-" + suffix, "OPENAI_COMPATIBLE", "https://example.com/v1",
+                "test-model", "TEST_MODEL_KEY", new BigDecimal("0.2")));
+        var agent = agents.create(new AgentDefinitionRequest(
+                "remote-exec-agent-" + suffix, "test", model.id(), null,
+                "远程任务执行前请求审批。", List.of("run_remote_workspace_task")));
+        var version = agents.publish(agent.id());
+
+        var result = mockMvc.perform(post("/api/chat/stream")
+                        .contentType(MediaType.APPLICATION_JSON).accept(MediaType.TEXT_EVENT_STREAM)
+                        .content("{\"agentVersionId\":\"%s\",\"message\":\"查看远程状态\"}".formatted(version.id())))
+                .andExpect(request().asyncStarted()).andReturn();
+
+        String approvalId = null;
+        for (int attempt = 0; attempt < 100 && approvalId == null; attempt++) {
+            var ids = jdbc.query("SELECT id FROM approval_request WHERE tool_call_id=:callId",
+                    java.util.Map.of("callId", callId), (rs, row) -> rs.getString("id"));
+            if (!ids.isEmpty()) approvalId = ids.getFirst();
+            else Thread.sleep(20);
+        }
+        assertThat(approvalId).isNotNull();
+        var approval = jdbc.queryForMap("SELECT target_environment, arguments_json FROM approval_request WHERE id=:id",
+                java.util.Map.of("id", approvalId));
+        assertThat(approval.get("target_environment")).isEqualTo("SSH:builder@ssh.example.test:22/srv/project");
+        assertThat(approval.get("arguments_json").toString()).contains("GIT_STATUS", "app");
+        mockMvc.perform(post("/api/approvals/{id}/reject", approvalId)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"test rejection\"}"))
+                .andExpect(status().isOk());
+
+        var response = mockMvc.perform(asyncDispatch(result))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("run_remote_workspace_task")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("REJECTED")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("remote task rejected")))
+                .andReturn().getResponse().getContentAsString();
+        var runMatcher = java.util.regex.Pattern.compile("\\\"runId\\\":\\\"([^\\\"]+)\\\"").matcher(response);
+        assertThat(runMatcher.find()).isTrue();
+        mockMvc.perform(get("/api/audit-events").param("runId", runMatcher.group(1)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("APPROVAL_REQUIRED")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("TOOL_EXECUTION_SKIPPED")));
+    }
+
+    @Test
+    void remoteWorkspaceTaskRejectsCommandLikeExtraParameterBeforeApproval() throws Exception {
+        when(knowledgeRetriever.retrieve(any(), any())).thenReturn(List.of());
+        var suffix = UUID.randomUUID().toString();
+        var callId = "remote-exec-invalid-" + suffix;
+        when(modelGateway.complete(any(), any(), any()))
+                .thenReturn(new ModelTurn("", List.of(new ModelToolCall(callId,
+                        "run_remote_workspace_task",
+                        "{\"path\":\"app\",\"task\":\"GIT_STATUS\",\"command\":\"rm -rf /\"}"))))
+                .thenReturn(new ModelTurn("dangerous parameter rejected", List.of()));
+        var model = modelProfiles.create(new ModelProfileRequest(
+                "remote-invalid-model-" + suffix, "OPENAI_COMPATIBLE", "https://example.com/v1",
+                "test-model", "TEST_MODEL_KEY", new BigDecimal("0.2")));
+        var agent = agents.create(new AgentDefinitionRequest(
+                "remote-invalid-agent-" + suffix, "test", model.id(), null,
+                "不得接受命令参数。", List.of("run_remote_workspace_task")));
+        var version = agents.publish(agent.id());
+
+        var result = mockMvc.perform(post("/api/chat/stream")
+                        .contentType(MediaType.APPLICATION_JSON).accept(MediaType.TEXT_EVENT_STREAM)
+                        .content("{\"agentVersionId\":\"%s\",\"message\":\"运行危险命令\"}".formatted(version.id())))
+                .andExpect(request().asyncStarted()).andReturn();
+        var response = mockMvc.perform(asyncDispatch(result))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("dangerous parameter rejected")))
+                .andReturn().getResponse().getContentAsString();
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM approval_request WHERE tool_call_id=:callId",
+                java.util.Map.of("callId", callId), Integer.class)).isZero();
+        var runMatcher = java.util.regex.Pattern.compile("\\\"runId\\\":\\\"([^\\\"]+)\\\"").matcher(response);
+        assertThat(runMatcher.find()).isTrue();
+        mockMvc.perform(get("/api/audit-events").param("runId", runMatcher.group(1)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("TOOL_REQUEST_REJECTED")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(
+                        org.hamcrest.Matchers.containsString("rm -rf"))));
     }
 
     private String sha256(byte[] bytes) throws Exception {

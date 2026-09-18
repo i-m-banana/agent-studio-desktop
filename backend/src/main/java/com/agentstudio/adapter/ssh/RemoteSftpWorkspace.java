@@ -16,6 +16,7 @@ import java.util.function.Supplier;
 
 import org.apache.sshd.sftp.client.SftpClient;
 import org.apache.sshd.sftp.client.extensions.openssh.OpenSSHPosixRenameExtension;
+import org.apache.sshd.sftp.client.SftpClientFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -40,6 +41,16 @@ class RemoteSftpWorkspace {
         var properties = configurations.get(); properties.validate();
         var policy = new RemotePathPolicy(properties.remoteRoot());
         return sessions.execute(properties, sftp -> operation.apply(new Access(sftp, policy)));
+    }
+
+    <T> T executeWithSession(SessionOperation<T> operation) throws Exception {
+        var properties = configurations.get(); properties.validate();
+        var policy = new RemotePathPolicy(properties.remoteRoot());
+        return sessions.executeSession(properties, session -> {
+            try (var sftp = SftpClientFactory.instance().createSftpClient(session)) {
+                return operation.apply(session, new Access(sftp, policy), properties);
+            }
+        });
     }
 
     String target() { var properties = configurations.get(); properties.validate(); return properties.target(); }
@@ -150,6 +161,17 @@ class RemoteSftpWorkspace {
         }
 
         int permissions(String file) throws Exception { return safeAttributes(file).getPermissions(); }
+
+        void requireProjectMarker(String directory, String markerName, boolean directoryMarker) throws Exception {
+            var marker = directory + "/" + markerName;
+            try {
+                var attributes = safeAttributes(marker);
+                var valid = directoryMarker ? attributes.isDirectory() : attributes.isRegularFile();
+                if (!valid) throw new IllegalArgumentException("远程目录中缺少安全的 " + markerName);
+            } catch (java.io.IOException exception) {
+                throw new IllegalArgumentException("远程目录中缺少或无法安全访问 " + markerName, exception);
+            }
+        }
         int sftpVersion() { return sftp.getVersion(); }
         boolean supportsPosixRename() {
             var extension = sftp.getExtension(OpenSSHPosixRenameExtension.class);
@@ -187,4 +209,10 @@ class RemoteSftpWorkspace {
 
     @FunctionalInterface
     interface Operation<T> { T apply(Access access) throws Exception; }
+
+    @FunctionalInterface
+    interface SessionOperation<T> {
+        T apply(org.apache.sshd.client.session.ClientSession session, Access access,
+                SshWorkspaceProperties properties) throws Exception;
+    }
 }

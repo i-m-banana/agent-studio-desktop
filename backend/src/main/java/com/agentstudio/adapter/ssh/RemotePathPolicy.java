@@ -15,6 +15,11 @@ final class RemotePathPolicy {
         if (!normalized.startsWith("/") || normalized.equals("/") || normalized.contains("\\")) {
             throw new IllegalArgumentException("远程根目录必须是非根目录的绝对 POSIX 路径");
         }
+        for (var part : normalized.substring(1).split("/", -1)) {
+            if (part.isBlank() || part.equals(".") || part.equals("..") || part.indexOf('\0') >= 0) {
+                throw new IllegalArgumentException("远程根目录包含不安全的路径分量");
+            }
+        }
         this.root = normalized;
     }
 

@@ -6,6 +6,7 @@ import com.agentstudio.secret.SecretResolver;
 import org.apache.sshd.client.SshClient;
 import org.apache.sshd.client.auth.password.PasswordIdentityProvider;
 import org.apache.sshd.client.config.hosts.HostConfigEntryResolver;
+import org.apache.sshd.client.session.ClientSession;
 import org.apache.sshd.common.config.keys.KeyUtils;
 import org.apache.sshd.common.digest.BuiltinDigests;
 import org.apache.sshd.common.keyprovider.KeyIdentityProvider;
@@ -20,6 +21,14 @@ public class SftpSessionFactory {
     public SftpSessionFactory(SecretResolver secrets) { this.secrets = secrets; }
 
     public <T> T execute(SshWorkspaceProperties properties, Operation<T> operation) throws Exception {
+        return executeSession(properties, session -> {
+            try (var sftp = SftpClientFactory.instance().createSftpClient(session)) {
+                return operation.apply(sftp);
+            }
+        });
+    }
+
+    public <T> T executeSession(SshWorkspaceProperties properties, SessionOperation<T> operation) throws Exception {
         properties.validate();
         var password = secrets.resolve(properties.passwordSecret())
                 .orElseThrow(() -> new IllegalStateException(
@@ -39,9 +48,7 @@ public class SftpSessionFactory {
                     .verify(properties.connectTimeout()).getSession()) {
                 session.addPasswordIdentity(password);
                 session.auth().verify(properties.connectTimeout());
-                try (var sftp = SftpClientFactory.instance().createSftpClient(session)) {
-                    return operation.apply(sftp);
-                }
+                return operation.apply(session);
             } catch (Exception exception) {
                 var actual = observedFingerprint.get();
                 if (actual != null && !constantTimeEquals(properties.hostKeySha256(), actual)) {
@@ -92,4 +99,7 @@ public class SftpSessionFactory {
 
     @FunctionalInterface
     public interface Operation<T> { T apply(SftpClient client) throws Exception; }
+
+    @FunctionalInterface
+    public interface SessionOperation<T> { T apply(ClientSession session) throws Exception; }
 }

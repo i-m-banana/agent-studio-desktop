@@ -1,5 +1,13 @@
 # 验证记录
 
+## 锚点后阶段 6：受控 SSH Exec（2026-09-16）
+
+新增 `run_remote_workspace_task`，标记为 `SSH/EXECUTE/HIGH`，只接受远程根内相对 `path` 和 `GIT_STATUS`、`GIT_DIFF_SUMMARY`、`MAVEN_TEST`、`NPM_TEST`、`NPM_BUILD` 固定枚举。模型不能提供命令、参数、环境变量或 Shell 文本。每次工具调用在一个短生命周期已认证 SSH 会话中复用 SFTP 与 Exec Channel：先逐级 `lstat` 校验目录、符号链接和项目标记，再执行固定映射；工作目录另受保守字符集约束。
+
+`RemoteSshExecToolTests` 的进程内 Apache MINA SSHD 服务器同时配置 SFTP Subsystem 与 CommandFactory，覆盖同会话复用、五种固定命令映射、工具注册与具体目标、成功、非零退出、stdout/stderr 合并、75 秒内部超时关闭、约 16000 字节首尾截断、越界、符号链接、缺失项目标记和不安全工作目录。会话集成回归验证 AgentVersion 绑定、SafeExecutionGateway 的参数绑定一次性 HIGH 审批、拒绝后不连接服务器，以及 `command` 类额外参数在审批前由 Schema 拒绝并形成安全审计。
+
+本阶段沿用 AgentVersion、ToolRegistry、ApprovalRequest、RunStep 与 AuditEvent，没有新增表、旁路执行接口或 MCP Server。全量后端 `mvn test` 为 63 个测试通过、0 失败、0 错误、0 跳过；H2 仍从空库校验 Flyway V1–V11，既有 RAG、MCP、运行控制、Coding 与 SSH/SFTP 回归未破坏。前端 TypeScript 与 Vite 生产构建通过，29 个模块完成打包。2026-09-17 至 2026-09-18，真实 DeepSeek 模型在真实 Ubuntu/OpenSSH 目标上完成 Git 状态、Git 差异摘要、Maven test、npm test 和 npm build 五种固定任务的正向运行；真实链路还验证退出码 127/1 作为完成结果返回、75 秒超时关闭远程通道，以及错误项目标记安全失败。审批拒绝、危险额外参数、输出截断、越界和符号链接绕过由自动化覆盖，本轮没有在真实服务器重复制造这些副作用。运行 ID 和输出见 `SSH_EXEC_ACCEPTANCE.md`。仍不支持 sudo、PTY、交互式/后台/任意 Shell、Git 修改、自定义参数或环境变量、依赖安装、Docker/Nginx、部署与回滚。
+
 ## 锚点后阶段 5：SSH/SFTP 受审远程文本补丁（2026-09-15）
 
 新增 `apply_remote_workspace_text_patch`，标记为 `SSH/WRITE/HIGH`。它只修改授权远程根内既有 UTF-8 普通文件，要求读取时 SHA-256 一致、每段旧文本唯一匹配；批准后先写同目录独占临时文件、保留原权限、再次核对摘要，再要求 SFTP Server 原子覆盖。服务器不支持原子替换时失败关闭，不退化为直接覆盖。
