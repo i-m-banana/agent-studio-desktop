@@ -29,7 +29,7 @@ public class ReadRemoteTextFileTool implements AgentTool {
         this.workspace = workspace; this.objectMapper = objectMapper;
     }
     @Override public ToolDescriptor descriptor() { return DESCRIPTOR; }
-    @Override public String targetEnvironment() { return "SSH:" + workspace.target(); }
+    @Override public String targetEnvironment() { return "SSH:" + workspace.approvalTarget(); }
     @Override public String execute(JsonNode arguments) throws Exception {
         var requested = arguments.path("path").asText("").trim();
         if (requested.isBlank()) throw new IllegalArgumentException("path 不能为空");

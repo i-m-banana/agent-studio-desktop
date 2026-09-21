@@ -103,7 +103,7 @@ class RemoteSshExecToolTests {
         assertThat(descriptor.capability()).isEqualTo("EXECUTE");
         assertThat(descriptor.riskLevel()).isEqualTo("HIGH");
         assertThat(descriptor.inputSchema().toString()).doesNotContain("command", "arguments", "environment");
-        assertThat(registry.targetEnvironment(descriptor.name())).isEqualTo("SSH:" + properties.target());
+        assertThat(registry.targetEnvironment(descriptor.name())).isEqualTo("SSH:" + properties.approvalTarget());
 
         var result = objectMapper.readTree(tool.execute(objectMapper.readTree(
                 "{\"path\":\"git-project\",\"task\":\"GIT_STATUS\"}")));

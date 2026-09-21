@@ -33,7 +33,7 @@ public class SearchRemoteFilesTool implements AgentTool {
         this.workspace = workspace; this.objectMapper = objectMapper;
     }
     @Override public ToolDescriptor descriptor() { return DESCRIPTOR; }
-    @Override public String targetEnvironment() { return "SSH:" + workspace.target(); }
+    @Override public String targetEnvironment() { return "SSH:" + workspace.approvalTarget(); }
     @Override public String execute(JsonNode arguments) throws Exception {
         var query = arguments.path("query").asText("").trim();
         if (query.isBlank() || query.length() > 100) throw new IllegalArgumentException("query 长度必须在 1 到 100 字符之间");

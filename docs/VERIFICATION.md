@@ -1,5 +1,29 @@
 # 验证记录
 
+## 2026-09-21：部署诊断长审批目标兼容修复
+
+真实模型首次逐项请求五种部署诊断时，五项都在创建 `ApprovalRequest` 阶段失败，数据库报错为 `Data too long for column 'target_environment'`。审计只到 `TOOL_REQUEST_VALIDATED`，没有 `APPROVAL_REQUIRED` 或 `TOOL_EXECUTION_STARTED`，因此本次失败没有连接 SSH、没有运行 Docker/Nginx/HTTP 命令，也没有影响网站。原因是 V5 将审批目标定义为 `VARCHAR(160)`，而部署诊断会把 SSH 身份、主机指纹、部署根、Compose 项目/文件和健康地址共同绑定到审批快照，合法目标可能超过 160 字符。
+
+Flyway V13 将 `approval_request.target_environment` 前向扩展为 `VARCHAR(4096)`，不修改既有迁移。会话集成回归现在实际写入并核对超过 160 字符的审批目标。后端全量 `mvn test` 为 71 个测试通过、0 失败、0 错误、0 跳过，Flyway 空库 V1–V13 通过；前端 TypeScript/Vite 生产构建通过，29 个模块。
+
+重启后端并完成 V13 真实 MySQL 迁移后，用户逐项请求并批准五项真实生产只读诊断，均完成 `TOOL_REQUEST_VALIDATED → APPROVAL_REQUIRED → APPROVAL_DECIDED → TOOL_EXECUTION_STARTED → TOOL_EXECUTION_COMPLETED` 审计链：`COMPOSE_VALIDATE` 运行 `8c0d0ba0-9427-44c7-8ee8-454406ef5a94`（720 ms），`COMPOSE_STATUS` 运行 `aea5d640-8a0c-4649-b814-5721094d911e`（318 ms），`NGINX_VALIDATE` 运行 `4d486b06-6735-4f85-a5d3-1f2c7035d1e0`（303 ms），`SITE_HEALTH` 运行 `ec8f2e73-3698-4c9c-875a-d7b6908f134b`（HTTP 200，117 ms），`RELEASE_FINGERPRINT` 运行 `2c7f32d1-88a6-4c08-bc7b-39911969cfb2`（214 ms）。五项均 `successful=true`、退出码 0、输出未截断；用户确认结果符合预期。准确口径更新为“远程部署五项只读诊断正向链已人工验收”，仍不能声称已经执行部署、备份或回滚。
+
+## 2026-09-19：独立生产 Profile 与只读部署诊断
+
+Flyway V12 新增单一部署 Profile，保存本地源码根、远程部署/备份根、Compose 文件/项目、Nginx 配置相对路径和固定回环健康地址。SSH 主机、端口、用户、密码凭据和固定 SHA-256 主机指纹继续引用既有 SSH 工作区；普通 `remoteRoot` 没有放宽。工作台“部署”标签现在可保存并只读检查 Profile，显示四个固定服务、五张诊断卡和有界结果。
+
+新增 `inspect_remote_deployment`（`SSH/EXECUTE/HIGH`），Schema 只有五种枚举 task：`COMPOSE_VALIDATE`、`COMPOSE_STATUS`、`NGINX_VALIDATE`、`SITE_HEALTH`、`RELEASE_FINGERPRINT`。工具不接受 path、命令、服务名、URL、参数或环境变量。每次调用在同一 SSH 会话先用 SFTP 逐级拒绝符号链接并检查固定清单，再运行静态映射的 Exec Channel；`.env` 仅对固定路径执行 `lstat`，不读取内容。内部时限 30 秒，输出约 16 KB 首尾保留，stdout/stderr 合并，超时或中断关闭通道；非零退出码作为工具结果返回。
+
+`RemoteDeploymentToolTests` 覆盖工具注册、同会话、五种命令映射、`.env` 不进入命令/输出、成功、非零退出、超时关闭、输出截断、未知任务和危险额外参数拒绝；控制器测试覆盖 V12 Profile 保存/读取和非回环健康地址拒绝。全量后端 `mvn test` 为 71 个测试通过、0 失败、0 错误、0 跳过，Flyway 空库 V1–V12 通过；前端 TypeScript/Vite 生产构建通过，29 个模块。真实生产服务器与真实模型尚未验收，当前不能声称部署、备份或回滚完成。
+
+## 2026-09-18：受控远程工作台与审批目标绑定
+
+新增“远程工作台”一级页面，采用远程文件区、文件/变更/任务/部署/输出标签区和 Agent/审批/步骤区三栏布局。初版人工验收反馈表明，让文件树和文本预览也等待模型会造成明显延迟；因此人工浏览改为专用只读 API，直接复用既有目录/文本工具及其固定指纹、受限根、逐级符号链接和受保护路径校验，不创建 AgentRun、会话或模型调用。该 API 不提供写入、补丁、搜索或命令能力。Agent 自主读取、远程补丁和五种固定 SSH 任务仍继续通过 AgentVersion、ToolRegistry、SafeExecutionGateway、ApprovalRequest、RunStep 与 AuditEvent，没有新增旁路执行接口或任意终端。
+
+工作台使用视口固定高度和三栏内部滚动；右侧操作助手只展示当前 RunStep 和最近六条消息，更早消息收起并保留在运行记录，连续操作不再撑高整页。任务区只允许选择五个固定 task 和相对项目路径；本批次完成时部署区仅为无执行能力的占位说明，后续只读诊断见上一节。
+
+SafeExecutionGateway 现在会在 HIGH 审批通过后、工具启动前重新解析目标。目标与 ApprovalRequest 快照不一致时记录 `TOOL_TARGET_CHANGED/REJECTED` 并阻止执行；SSH 目标快照同时包含主机、端口、用户名、远程根和固定 SHA-256 主机指纹。新增会话集成测试在审批等待期间改变 SSH 配置，确认旧审批不能启动新目标工具。专项浏览控制器与会话测试为 15 个测试通过；该批次全量后端 `mvn test` 为 65 个测试通过，Flyway 从空库验证 V1–V11；前端生产构建通过。2026-09-19 用户确认多项固定任务、无模型文件浏览、父目录导航和操作助手内部滚动符合预期，工作台阶段已人工验收；未提供具体运行 ID，完整证据仍以运行库为准。
+
 ## 锚点后阶段 6：受控 SSH Exec（2026-09-16）
 
 新增 `run_remote_workspace_task`，标记为 `SSH/EXECUTE/HIGH`，只接受远程根内相对 `path` 和 `GIT_STATUS`、`GIT_DIFF_SUMMARY`、`MAVEN_TEST`、`NPM_TEST`、`NPM_BUILD` 固定枚举。模型不能提供命令、参数、环境变量或 Shell 文本。每次工具调用在一个短生命周期已认证 SSH 会话中复用 SFTP 与 Exec Channel：先逐级 `lstat` 校验目录、符号链接和项目标记，再执行固定映射；工作目录另受保守字符集约束。

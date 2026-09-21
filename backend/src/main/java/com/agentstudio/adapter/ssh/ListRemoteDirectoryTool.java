@@ -26,7 +26,7 @@ public class ListRemoteDirectoryTool implements AgentTool {
         this.workspace = workspace; this.objectMapper = objectMapper;
     }
     @Override public ToolDescriptor descriptor() { return DESCRIPTOR; }
-    @Override public String targetEnvironment() { return "SSH:" + workspace.target(); }
+    @Override public String targetEnvironment() { return "SSH:" + workspace.approvalTarget(); }
     @Override public String execute(JsonNode arguments) throws Exception {
         var limit = arguments.has("maxEntries") ? arguments.path("maxEntries").asInt() : 100;
         if (limit < 1 || limit > 200) throw new IllegalArgumentException("maxEntries 必须在 1 到 200 之间");

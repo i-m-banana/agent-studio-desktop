@@ -54,6 +54,9 @@ class RemoteSftpWorkspace {
     }
 
     String target() { var properties = configurations.get(); properties.validate(); return properties.target(); }
+    String approvalTarget() {
+        var properties = configurations.get(); properties.validate(); return properties.approvalTarget();
+    }
 
     final class Access {
         private final SftpClient sftp;

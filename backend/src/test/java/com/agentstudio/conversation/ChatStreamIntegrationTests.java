@@ -493,8 +493,9 @@ class ChatStreamIntegrationTests {
     @Test
     void remoteWorkspaceTaskRequiresBoundApprovalAndRejectionSkipsSshExecution() throws Exception {
         when(knowledgeRetriever.retrieve(any(), any())).thenReturn(List.of());
+        var longRemoteRoot = "/srv/" + "approved-deployment-target/".repeat(8) + "project";
         when(sshWorkspaceService.current()).thenReturn(new SshWorkspaceProperties(
-                "ssh.example.test", 22, "builder", "/srv/project", "SHA256:test-fingerprint-value",
+                "ssh.example.test", 22, "builder", longRemoteRoot, "SHA256:test-fingerprint-value",
                 "TEST_SSH_PASSWORD", java.time.Duration.ofSeconds(5)));
         var suffix = UUID.randomUUID().toString();
         var callId = "remote-exec-rejection-" + suffix;
@@ -525,7 +526,9 @@ class ChatStreamIntegrationTests {
         assertThat(approvalId).isNotNull();
         var approval = jdbc.queryForMap("SELECT target_environment, arguments_json FROM approval_request WHERE id=:id",
                 java.util.Map.of("id", approvalId));
-        assertThat(approval.get("target_environment")).isEqualTo("SSH:builder@ssh.example.test:22/srv/project");
+        assertThat(approval.get("target_environment")).isEqualTo(
+                "SSH:builder@ssh.example.test:22" + longRemoteRoot + "#SHA256:test-fingerprint-value");
+        assertThat(approval.get("target_environment").toString()).hasSizeGreaterThan(160);
         assertThat(approval.get("arguments_json").toString()).contains("GIT_STATUS", "app");
         mockMvc.perform(post("/api/approvals/{id}/reject", approvalId)
                         .contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"test rejection\"}"))
@@ -543,6 +546,61 @@ class ChatStreamIntegrationTests {
                 .andExpect(status().isOk())
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("APPROVAL_REQUIRED")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("TOOL_EXECUTION_SKIPPED")));
+    }
+
+    @Test
+    void approvedRemoteTaskIsRejectedWhenSshTargetChangesBeforeExecution() throws Exception {
+        when(knowledgeRetriever.retrieve(any(), any())).thenReturn(List.of());
+        var approvedTarget = new SshWorkspaceProperties(
+                "ssh.example.test", 22, "builder", "/srv/project", "SHA256:test-fingerprint-value",
+                "TEST_SSH_PASSWORD", java.time.Duration.ofSeconds(5));
+        var changedTarget = new SshWorkspaceProperties(
+                "changed.example.test", 2222, "deployer", "/srv/changed", "SHA256:changed-fingerprint",
+                "TEST_SSH_PASSWORD", java.time.Duration.ofSeconds(5));
+        when(sshWorkspaceService.current()).thenReturn(approvedTarget, changedTarget, changedTarget);
+        var suffix = UUID.randomUUID().toString();
+        var callId = "remote-target-change-" + suffix;
+        when(modelGateway.complete(any(), any(), any()))
+                .thenReturn(new ModelTurn("", List.of(new ModelToolCall(callId,
+                        "run_remote_workspace_task", "{\"path\":\"app\",\"task\":\"GIT_STATUS\"}"))))
+                .thenReturn(new ModelTurn("target change blocked", List.of()));
+        var model = modelProfiles.create(new ModelProfileRequest(
+                "remote-target-model-" + suffix, "OPENAI_COMPATIBLE", "https://example.com/v1",
+                "test-model", "TEST_MODEL_KEY", new BigDecimal("0.2")));
+        var agent = agents.create(new AgentDefinitionRequest(
+                "remote-target-agent-" + suffix, "test", model.id(), null,
+                "远程任务执行前请求审批。", List.of("run_remote_workspace_task")));
+        var version = agents.publish(agent.id());
+
+        var result = mockMvc.perform(post("/api/chat/stream")
+                        .contentType(MediaType.APPLICATION_JSON).accept(MediaType.TEXT_EVENT_STREAM)
+                        .content("{\"agentVersionId\":\"%s\",\"message\":\"查看远程状态\"}".formatted(version.id())))
+                .andExpect(request().asyncStarted()).andReturn();
+
+        String approvalId = null;
+        for (int attempt = 0; attempt < 100 && approvalId == null; attempt++) {
+            var ids = jdbc.query("SELECT id FROM approval_request WHERE tool_call_id=:callId",
+                    java.util.Map.of("callId", callId), (rs, row) -> rs.getString("id"));
+            if (!ids.isEmpty()) approvalId = ids.getFirst();
+            else Thread.sleep(20);
+        }
+        assertThat(approvalId).isNotNull();
+        mockMvc.perform(post("/api/approvals/{id}/approve", approvalId)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"test approval\"}"))
+                .andExpect(status().isOk());
+
+        var response = mockMvc.perform(asyncDispatch(result))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("target change blocked")))
+                .andReturn().getResponse().getContentAsString();
+        var runMatcher = java.util.regex.Pattern.compile("\\\"runId\\\":\\\"([^\\\"]+)\\\"").matcher(response);
+        assertThat(runMatcher.find()).isTrue();
+        mockMvc.perform(get("/api/audit-events").param("runId", runMatcher.group(1)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("TOOL_TARGET_CHANGED")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("REJECTED")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(
+                        org.hamcrest.Matchers.containsString("TOOL_EXECUTION_STARTED"))));
     }
 
     @Test

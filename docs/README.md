@@ -19,6 +19,8 @@
 - `decisions/0017-approved-workspace-verification.md`：固定 Maven/npm 任务、HIGH 审批、受限环境与进程收口；
 - `decisions/0018-read-only-ssh-sftp-workspace.md`：固定主机指纹、单远程根和 SFTP 只读工具；
 - `decisions/0020-controlled-ssh-exec.md`：固定 Git/Maven/npm 远程任务、同会话 SFTP 校验与受审 Exec Channel；
+- `decisions/0021-controlled-remote-workbench.md`：三栏远程工作台、固定任务控制台和批准后目标二次绑定；
+- `decisions/0022-read-only-remote-deployment-diagnostics.md`：独立生产 Profile、固定 Compose/Nginx/健康/指纹诊断与秘密边界；
 - `decisions/0019-approved-remote-text-patch.md`：远程摘要绑定、HIGH 审批、权限保留与原子替换；
 - `CODING_WORKSPACE_ACCEPTANCE.md`：Coding 第一阶段的正向、负向、审计与无副作用人工验收清单；
 - `CODING_PATCH_ACCEPTANCE.md`：Coding 受审补丁的批准、拒绝、陈旧摘要与审计人工验收清单；
@@ -26,6 +28,9 @@
 - `SSH_SFTP_READONLY_ACCEPTANCE.md`：远程目录、搜索、读取、固定指纹与审计验收记录；
 - `SSH_SFTP_PATCH_ACCEPTANCE.md`：远程受审补丁的批准、恢复、拒绝和陈旧摘要验收清单；
 - `SSH_EXEC_ACCEPTANCE.md`：受控 SSH Exec 的固定任务、非零退出、超时、审计与危险参数人工验收清单；
+- `REMOTE_WORKBENCH_ACCEPTANCE.md`：远程文件、固定任务、审批目标变化和三栏界面的人工验收清单；
+- `REMOTE_DEPLOYMENT_DIAGNOSTICS_ACCEPTANCE.md`：固定生产目标与五项只读部署诊断的人工验收清单；
+- `REMOTE_DEPLOYMENT_OPERATIONS_PLAN.md`：基于 `old-things` Docker/Nginx 生产结构制定的诊断、备份、制品、发布、健康检查与回滚分阶段计划；
 - `RELEASE_CHECKLIST.md`：从 `1.0.0-rc1` 升为正式版前的自动检查、人工验收和备份要求；
 - `MATURITY_BASELINE_1.0.0-rc1.md`：后续开发不得破坏的基线不变量、证据和正式代码锚点条件；
 - `RELEASE_NOTES_1.0.0.md`：首个单机正式版的验收结论、能力边界和锚点规则；

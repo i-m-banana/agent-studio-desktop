@@ -78,7 +78,7 @@ class RemoteSftpWorkspaceTests {
             assertThat(item.riskLevel()).isEqualTo("HIGH");
         });
         assertThat(registry.targetEnvironment("read_remote_workspace_text_file"))
-                .startsWith("SSH:tester@127.0.0.1:").endsWith("/workspace");
+                .startsWith("SSH:tester@127.0.0.1:").endsWith("/workspace#" + properties.hostKeySha256());
         var listing = objectMapper.readTree(tools.get(0).execute(objectMapper.readTree("{}")));
         assertThat(listing.path("entries").toString()).contains("src", "README.md").doesNotContain(".env");
         var search = objectMapper.readTree(tools.get(1).execute(objectMapper.readTree("{\"query\":\"app\"}")));

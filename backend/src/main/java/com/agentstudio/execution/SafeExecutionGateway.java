@@ -70,6 +70,13 @@ public class SafeExecutionGateway {
                         outcome.status(), argumentsHash, denied);
                 return new SafeExecutionResult(false, denied, null, approval, outcome);
             }
+            var currentTarget = tools.targetEnvironment(call.name());
+            if (!approval.targetEnvironment().equals(currentTarget)) {
+                var changed = "审批目标与当前执行目标不一致，工具未执行";
+                audit(runId, conversationId, agentVersionId, "TOOL_TARGET_CHANGED", descriptor,
+                        "REJECTED", argumentsHash, changed);
+                throw new IllegalStateException(changed);
+            }
         }
 
         cancellationCheck.run();

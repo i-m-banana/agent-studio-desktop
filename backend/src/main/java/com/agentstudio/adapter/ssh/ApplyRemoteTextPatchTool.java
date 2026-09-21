@@ -42,7 +42,7 @@ public class ApplyRemoteTextPatchTool implements AgentTool {
     }
 
     @Override public ToolDescriptor descriptor() { return DESCRIPTOR; }
-    @Override public String targetEnvironment() { return "SSH:" + workspace.target(); }
+    @Override public String targetEnvironment() { return "SSH:" + workspace.approvalTarget(); }
 
     @Override
     public String execute(JsonNode arguments) throws Exception {

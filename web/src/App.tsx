@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react'
 
 type BackendState = 'checking' | 'online' | 'offline'
-type View = 'models' | 'knowledge' | 'mcp' | 'agents' | 'chat' | 'runs' | 'system'
+type View = 'models' | 'knowledge' | 'mcp' | 'agents' | 'chat' | 'remote' | 'runs' | 'system'
 type ModelProfile = { id: string; name: string; provider: string; baseUrl: string; modelName: string; apiKeyEnv: string; temperature: number }
 type KnowledgeBase = { id: string; name: string; description: string }
 type KnowledgeDocument = { id: string; fileName: string; fileSize: number; status: string; chunkCount: number; errorMessage?: string }
@@ -28,12 +28,14 @@ type ReadinessCheck = { id: string; name: string; status: 'READY' | 'WARNING' | 
 type SystemReadiness = { application: string; version: string; status: 'READY' | 'DEGRADED' | 'NOT_READY'; timestamp: string; checks: ReadinessCheck[] }
 type SecretStatus = { name: string; configured: boolean; source: 'ENVIRONMENT' | 'SECURE_STORE' | 'NONE'; usedBy: string[] }
 type SshWorkspaceStatus = { host: string; port: number; username: string; remoteRoot: string; hostKeySha256: string; passwordSecret: string; configured: boolean; passwordConfigured: boolean; status: string; lastError?: string; lastTestedAt?: string }
+type DeploymentProfile = { localSourceRoot: string; remoteDeployRoot: string; remoteBackupRoot: string; composeFile: string; composeProject: string; nginxConfig: string; healthUrl: string; configured: boolean; status: string; lastError?: string; lastTestedAt?: string }
 type SshFingerprint = { host: string; port: number; algorithm: string; sha256: string; warning: string }
 
 const emptyModel = { name: '', provider: 'OPENAI_COMPATIBLE', baseUrl: 'https://api.openai.com/v1', modelName: '', apiKeyEnv: 'OPENAI_API_KEY', temperature: 0.7 }
 const emptyAgent = { name: '', description: '', modelProfileId: '', knowledgeBaseId: '', systemPrompt: '', toolNames: [] as string[] }
 const emptyMcp = { name: '', transport: 'STREAMABLE_HTTP' as 'STREAMABLE_HTTP' | 'STDIO', endpointUrl: 'http://127.0.0.1:3001/mcp', apiKeyEnv: '', command: 'node', argumentsText: '', workingDirectory: '', environmentText: '' }
 const emptySsh = { host: '', port: 22, username: '', remoteRoot: '', hostKeySha256: '', passwordSecret: 'AGENT_STUDIO_SSH_PASSWORD', password: '' }
+const emptyDeployment = { localSourceRoot: 'D:/idea_work/shiguangxv', remoteDeployRoot: '/root/opt/old-things', remoteBackupRoot: '/root/opt/old-things-backups', composeFile: 'compose.yml', composeProject: 'old-things', nginxConfig: 'nginx.conf', healthUrl: 'http://127.0.0.1/' }
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, { ...init, headers: { 'Content-Type': 'application/json', ...init?.headers } })
@@ -88,6 +90,8 @@ function App() {
   const [sshStatus, setSshStatus] = useState<SshWorkspaceStatus>()
   const [sshForm, setSshForm] = useState(emptySsh)
   const [sshFingerprint, setSshFingerprint] = useState<SshFingerprint>()
+  const [deployment, setDeployment] = useState<DeploymentProfile>()
+  const [deploymentForm, setDeploymentForm] = useState(emptyDeployment)
 
   const versionLabels = useMemo(() => {
     const names = new Map(agents.map((agent) => [agent.id, agent.name]))
@@ -97,10 +101,12 @@ function App() {
 
   async function refresh() {
     try {
-      const [nextModels, nextAgents, nextBases, nextTools, nextRuns, nextMcpServers, nextSsh] = await Promise.all([api<ModelProfile[]>('/api/models'), api<AgentDefinition[]>('/api/agents'), api<KnowledgeBase[]>('/api/knowledge-bases'), api<ToolDefinition[]>('/api/tools'), api<RunSummary[]>('/api/runs?limit=50'), api<McpServer[]>('/api/mcp/servers'), api<SshWorkspaceStatus>('/api/ssh/workspace')])
+      const [nextModels, nextAgents, nextBases, nextTools, nextRuns, nextMcpServers, nextSsh, nextDeployment] = await Promise.all([api<ModelProfile[]>('/api/models'), api<AgentDefinition[]>('/api/agents'), api<KnowledgeBase[]>('/api/knowledge-bases'), api<ToolDefinition[]>('/api/tools'), api<RunSummary[]>('/api/runs?limit=50'), api<McpServer[]>('/api/mcp/servers'), api<SshWorkspaceStatus>('/api/ssh/workspace'), api<DeploymentProfile>('/api/ssh/deployment')])
       const [groups, nextSecrets] = await Promise.all([Promise.all(nextAgents.map((agent) => api<AgentVersion[]>(`/api/agents/${agent.id}/versions?includeArchived=true`))), api<SecretStatus[]>('/api/secrets')])
       setModels(nextModels); setAgents(nextAgents); setVersions(groups.flat()); setSecrets(nextSecrets); setKnowledgeBases(nextBases); setTools(nextTools); setRunHistory(nextRuns); setMcpServers(nextMcpServers); setBackendState('online')
       setSshStatus(nextSsh)
+      setDeployment(nextDeployment)
+      setDeploymentForm((current) => nextDeployment.configured ? { localSourceRoot: nextDeployment.localSourceRoot, remoteDeployRoot: nextDeployment.remoteDeployRoot, remoteBackupRoot: nextDeployment.remoteBackupRoot, composeFile: nextDeployment.composeFile, composeProject: nextDeployment.composeProject, nginxConfig: nextDeployment.nginxConfig, healthUrl: nextDeployment.healthUrl } : current)
       setSshForm((current) => current.host ? current : { host: nextSsh.host ?? '', port: nextSsh.port || 22, username: nextSsh.username ?? '', remoteRoot: nextSsh.remoteRoot ?? '', hostKeySha256: nextSsh.hostKeySha256 ?? '', passwordSecret: nextSsh.passwordSecret || 'AGENT_STUDIO_SSH_PASSWORD', password: '' })
       const assetPairs = await Promise.all(nextMcpServers.map(async (server) => {
         try { return [server.id, { resources: await api<McpResource[]>(`/api/mcp/servers/${server.id}/resources`), prompts: await api<McpPrompt[]>(`/api/mcp/servers/${server.id}/prompts`) }] as const }
@@ -186,6 +192,20 @@ function App() {
     await perform(async () => {
       const result = await api<{ message: string }>('/api/ssh/workspace/test', { method: 'POST', body: '{}' })
       await refresh(); setNotice(result.message)
+    })
+  }
+
+  async function saveDeploymentProfile(value: typeof emptyDeployment) {
+    await perform(async () => {
+      const saved = await api<DeploymentProfile>('/api/ssh/deployment', { method: 'PUT', body: JSON.stringify(value) })
+      setDeployment(saved); setNotice('部署 Profile 已保存。请先执行只读目标检查；这不会启动或重启容器。')
+    })
+  }
+
+  async function testDeploymentProfile() {
+    await perform(async () => {
+      const result = await api<{ message: string }>('/api/ssh/deployment/test', { method: 'POST', body: '{}' })
+      setDeployment(await api<DeploymentProfile>('/api/ssh/deployment')); setNotice(result.message)
     })
   }
 
@@ -410,10 +430,16 @@ function App() {
   async function sendMessage(event: FormEvent) {
     event.preventDefault()
     const input = chatInput.trim()
-    if (!input || !selectedVersion || busy) return
-    setChatInput(''); setMessages((current) => [...current, { role: 'user', content: input }, { role: 'assistant', content: '' }]); setSources([]); setRunSteps([]); setPendingApproval(undefined); setCurrentRunId(undefined); setBusy(true); setNotice('')
+    if (!input) return
+    setChatInput('')
+    await runMessage(input)
+  }
+
+  async function runMessage(input: string) {
+    if (!input.trim() || !selectedVersion || busy) return
+    setMessages((current) => [...current, { role: 'user', content: input.trim() }, { role: 'assistant', content: '' }]); setSources([]); setRunSteps([]); setPendingApproval(undefined); setCurrentRunId(undefined); setBusy(true); setNotice('')
     try {
-      const response = await fetch('/api/chat/stream', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' }, body: JSON.stringify({ agentVersionId: selectedVersion, conversationId, message: input }) })
+      const response = await fetch('/api/chat/stream', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' }, body: JSON.stringify({ agentVersionId: selectedVersion, conversationId, message: input.trim() }) })
       if (!response.ok || !response.body) {
         const body = await response.json().catch(() => ({ message: `HTTP ${response.status}` }))
         throw new Error(body.message ?? '无法建立流式连接')
@@ -483,13 +509,14 @@ function App() {
         <button className={view === 'mcp' ? 'active' : ''} onClick={() => setView('mcp')}><span>03</span>MCP 连接</button>
         <button className={view === 'agents' ? 'active' : ''} onClick={() => setView('agents')}><span>04</span>Agent Builder</button>
         <button className={view === 'chat' ? 'active' : ''} onClick={() => setView('chat')}><span>05</span>对话测试台</button>
-        <button className={view === 'runs' ? 'active' : ''} onClick={() => { setView('runs'); void refresh() }}><span>06</span>运行记录</button>
-        <button className={view === 'system' ? 'active' : ''} onClick={() => { setView('system'); void inspectReadiness() }}><span>07</span>系统诊断</button>
+        <button className={view === 'remote' ? 'active' : ''} onClick={() => setView('remote')}><span>06</span>远程工作台</button>
+        <button className={view === 'runs' ? 'active' : ''} onClick={() => { setView('runs'); void refresh() }}><span>07</span>运行记录</button>
+        <button className={view === 'system' ? 'active' : ''} onClick={() => { setView('system'); void inspectReadiness() }}><span>08</span>系统诊断</button>
       </nav>
       <div className={`connection connection--${backendState}`}><i />{backendState === 'online' ? '后端已连接' : backendState === 'checking' ? '正在连接' : '后端未连接'}</div>
     </aside>
     <main className="workspace">
-      {notice && <div className="notice">{notice}<button onClick={() => setNotice('')}>×</button></div>}
+      {notice && <div className={`notice ${view === 'remote' ? 'notice--remote' : ''}`}>{notice}<button onClick={() => setNotice('')}>×</button></div>}
       {view === 'models' && <section><PageHeader number="01" title="模型与凭据" description="连接参数保存在业务数据库；密钥由当前 Windows 用户的安全存储保护，也可由环境变量覆盖。" /><div className="two-column">
         <form className="panel form" onSubmit={submitModel}><h2>新增模型连接</h2>
           <Field label="显示名称"><input required value={modelForm.name} onChange={(e) => setModelForm({ ...modelForm, name: e.target.value })} placeholder="例如：OpenAI 主模型" /></Field>
@@ -597,11 +624,12 @@ function App() {
           <form className="composer" onSubmit={sendMessage}><textarea rows={3} value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder="输入测试问题……" onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); e.currentTarget.form?.requestSubmit() } }} /><div className="composer-actions"><button className="primary" disabled={busy || !selectedVersion || !chatInput.trim()}>{busy ? '生成中' : '发送'}</button>{busy && currentRunId && <button className="danger" type="button" disabled={cancelBusy} onClick={() => void cancelCurrentRun()}>{cancelBusy ? '停止中' : '停止运行'}</button>}</div></form>
         </div>
       </section>}
-      {view === 'runs' && <section><PageHeader number="06" title="运行记录" description="查看每次 AgentRun 的最终状态、耗时、错误和完整步骤。" />
+      {view === 'remote' && <RemoteWorkbench sshStatus={sshStatus} deployment={deployment} deploymentForm={deploymentForm} onDeploymentFormChange={setDeploymentForm} onSaveDeployment={saveDeploymentProfile} onTestDeployment={testDeploymentProfile} versionLabels={versionLabels} selectedVersion={selectedVersion} onSelectVersion={switchVersion} messages={messages} steps={runSteps} pendingApproval={pendingApproval} approvalSecondsLeft={approvalSecondsLeft} approvalBusy={approvalBusy} busy={busy} currentRunId={currentRunId} cancelBusy={cancelBusy} onDecideApproval={decideApproval} onCancel={cancelCurrentRun} onRunMessage={runMessage} />}
+      {view === 'runs' && <section><PageHeader number="07" title="运行记录" description="查看每次 AgentRun 的最终状态、耗时、错误和完整步骤。" />
         <div className="two-column run-history-layout"><div className="panel list-panel"><div className="section-head"><h2>最近运行 <small>{runHistory.length}</small></h2><button className="ghost" onClick={() => void refresh()}>刷新</button></div>{runHistory.length === 0 ? <Empty text="尚无运行记录" /> : runHistory.map((run) => <button className={`run-card ${selectedRun?.id === run.id ? 'active' : ''}`} key={run.id} onClick={() => void openRun(run.id)}><div><strong>{run.id.slice(0, 8)}</strong><span className={`badge badge--${run.status.toLowerCase()}`}>{run.status}</span></div><p>{new Date(run.startedAt).toLocaleString()} · {run.stepCount} 步</p>{run.errorMessage && <small>{run.errorMessage}</small>}</button>)}</div>
           <div className="panel run-detail">{!selectedRun ? <Empty text="选择一条运行查看完整步骤" /> : <><div className="card-head"><div><strong>运行 {selectedRun.id.slice(0, 8)}</strong><p>会话 {selectedRun.conversationId.slice(0, 8)}</p></div><span className={`badge badge--${selectedRun.status.toLowerCase()}`}>{selectedRun.status}</span></div><dl><div><dt>AgentVersion</dt><dd>{selectedRun.agentVersionId}</dd></div><div><dt>开始</dt><dd>{new Date(selectedRun.startedAt).toLocaleString()}</dd></div>{selectedRun.completedAt && <div><dt>结束</dt><dd>{new Date(selectedRun.completedAt).toLocaleString()}</dd></div>}</dl>{selectedRun.errorMessage && <p className="run-error">{selectedRun.errorMessage}</p>}<aside className="run-steps"><strong>完整步骤</strong>{selectedRun.steps.map((step) => <details key={step.id}><summary>#{step.stepNumber} {step.stepType}{step.toolName ? ` · ${step.toolName}` : ''}<span className={`step-status step-status--${step.status.toLowerCase()}`}>{step.status}</span></summary>{step.inputJson && <pre>输入：{step.inputJson}</pre>}{step.outputText && <pre>输出：{step.outputText}</pre>}{step.durationMs != null && <small>{step.durationMs} ms</small>}</details>)}</aside><aside className="audit-events"><strong>安全审计</strong>{selectedAuditEvents.length === 0 ? <p>该运行没有工具审计事件</p> : selectedAuditEvents.map((event) => <article key={event.id}><div><b>{event.eventType}</b><span className={`step-status step-status--${event.status.toLowerCase()}`}>{event.status}</span></div><small>{new Date(event.createdAt).toLocaleTimeString()} · {event.toolName} · {event.capability}/{event.riskLevel}</small>{event.argumentsSha256 && <code>参数摘要 {event.argumentsSha256.slice(0, 16)}…</code>}{event.details && <p>{event.details}</p>}</article>)}</aside></>}</div></div>
       </section>}
-      {view === 'system' && <section><PageHeader number="07" title="系统诊断" description="正式使用前逐项确认数据库、向量模型、密钥、数据目录和 MCP 是否真正可用。" />
+      {view === 'system' && <section><PageHeader number="08" title="系统诊断" description="正式使用前逐项确认数据库、向量模型、密钥、数据目录和 MCP 是否真正可用。" />
         <div className="panel readiness-panel">
           <div className="section-head"><div><h2>版本 {readiness?.version ?? '读取中'}</h2>{readiness && <p className="hint">上次检查 {new Date(readiness.timestamp).toLocaleString()}</p>}</div><div className="readiness-summary"><span className={`badge badge--${(readiness?.status ?? 'checking').toLowerCase()}`}>{readiness?.status ?? 'CHECKING'}</span><button className="secondary" disabled={readinessBusy} onClick={() => void inspectReadiness()}>{readinessBusy ? '检查中…' : '重新检查'}</button></div></div>
           {!readiness ? <Empty text="正在检查本机运行环境" /> : <div className="readiness-list">{readiness.checks.map((check) => <article key={check.id} className={`readiness-card readiness-card--${check.status.toLowerCase()}`}><div><strong>{check.name}</strong><span className={`badge badge--${check.status.toLowerCase()}`}>{check.status}</span></div><p>{check.detail}</p>{check.action && <small>建议：{check.action}</small>}</article>)}</div>}
@@ -609,6 +637,223 @@ function App() {
       </section>}
     </main>
   </div>
+}
+
+type RemoteWorkbenchProps = {
+  sshStatus?: SshWorkspaceStatus
+  deployment?: DeploymentProfile
+  deploymentForm: typeof emptyDeployment
+  onDeploymentFormChange: (value: typeof emptyDeployment) => void
+  onSaveDeployment: (value: typeof emptyDeployment) => Promise<void>
+  onTestDeployment: () => Promise<void>
+  versionLabels: (AgentVersion & { label: string })[]
+  selectedVersion: string
+  onSelectVersion: (id: string) => void
+  messages: ChatMessage[]
+  steps: RunStep[]
+  pendingApproval?: ApprovalRequest
+  approvalSecondsLeft: number
+  approvalBusy: boolean
+  busy: boolean
+  currentRunId?: string
+  cancelBusy: boolean
+  onDecideApproval: (approved: boolean) => Promise<void>
+  onCancel: () => Promise<void>
+  onRunMessage: (message: string) => Promise<void>
+}
+
+type WorkbenchTab = 'overview' | 'files' | 'changes' | 'tasks' | 'deployment' | 'output'
+type RemoteEntry = { name: string; path: string; type: string; sizeBytes?: number }
+type DirectoryResult = { target: string; path: string; entries: RemoteEntry[]; truncated: boolean }
+type FileResult = { path: string; sha256: string; sizeBytes: number; startLine: number; endLine: number; totalLines: number; content: string; truncated: boolean }
+type TaskResult = { task: string; target: string; path?: string; deploymentRoot?: string; composeProject?: string; successful: boolean; exitCode: number; durationMs: number; output: string; outputTruncated: boolean }
+
+const remoteTasks = [
+  { id: 'GIT_STATUS', title: 'Git 状态', detail: '查看分支和工作区状态', tone: 'READ' },
+  { id: 'GIT_DIFF_SUMMARY', title: '变更摘要', detail: '查看文件级增删统计', tone: 'READ' },
+  { id: 'MAVEN_TEST', title: 'Maven 测试', detail: '运行固定 mvn test', tone: 'TEST' },
+  { id: 'NPM_TEST', title: 'npm 测试', detail: '运行 package.json 的 test script', tone: 'TEST' },
+  { id: 'NPM_BUILD', title: 'npm 构建', detail: '运行 package.json 的 build script', tone: 'BUILD' },
+] as const
+
+const deploymentTasks = [
+  { id: 'COMPOSE_VALIDATE', title: 'Compose 校验', detail: '只做固定 Compose 配置语法检查' },
+  { id: 'COMPOSE_STATUS', title: '服务状态', detail: '读取 nginx、app、mysql、phpmyadmin 状态' },
+  { id: 'NGINX_VALIDATE', title: 'Nginx 校验', detail: '在固定 nginx 容器内执行 nginx -t' },
+  { id: 'SITE_HEALTH', title: '站点健康', detail: '访问服务器回环地址上的固定健康路径' },
+  { id: 'RELEASE_FINGERPRINT', title: '发布指纹', detail: '读取固定制品的摘要、大小和修改时间' },
+] as const
+
+function RemoteWorkbench(props: RemoteWorkbenchProps) {
+  const [tab, setTab] = useState<WorkbenchTab>('overview')
+  const [directoryPath, setDirectoryPath] = useState('.')
+  const [filePath, setFilePath] = useState('')
+  const [taskPath, setTaskPath] = useState('.')
+  const [assistantInput, setAssistantInput] = useState('')
+  const [directoryBusy, setDirectoryBusy] = useState(false)
+  const [fileBusy, setFileBusy] = useState(false)
+  const [browserError, setBrowserError] = useState('')
+  const remoteVersions = props.versionLabels.filter((version) => version.toolNames.some((name) => name.includes('remote_workspace') || name === 'inspect_remote_deployment'))
+  const parsedTask = useMemo(() => latestToolJson<TaskResult>(props.steps, 'run_remote_workspace_task'), [props.steps])
+  const deploymentResult = useMemo(() => latestToolJson<TaskResult>(props.steps, 'inspect_remote_deployment'), [props.steps])
+  const [directory, setDirectory] = useState<DirectoryResult>()
+  const [file, setFile] = useState<FileResult>()
+  const [task, setTask] = useState<TaskResult>()
+  const selectedReady = remoteVersions.some((version) => version.id === props.selectedVersion)
+  const browserReady = props.sshStatus?.status === 'READY' && props.sshStatus.passwordConfigured
+  const browserTarget = `${props.sshStatus?.username ?? ''}@${props.sshStatus?.host ?? ''}:${props.sshStatus?.port ?? ''}${props.sshStatus?.remoteRoot ?? ''}#${props.sshStatus?.hostKeySha256 ?? ''}`
+  const visibleMessages = props.messages.slice(-6)
+  const hiddenMessageCount = Math.max(0, props.messages.length - visibleMessages.length)
+
+  useEffect(() => { if (parsedTask) setTask(parsedTask) }, [parsedTask])
+  useEffect(() => {
+    setDirectory(undefined); setFile(undefined); setDirectoryPath('.'); setFilePath('')
+    if (!browserReady) return
+    setDirectoryBusy(true); setBrowserError('')
+    api<DirectoryResult>('/api/ssh/workspace/browser/directory?path=.&maxEntries=100')
+      .then((result) => { setDirectory(result); setDirectoryPath(result.path || '.') })
+      .catch((error) => setBrowserError(error instanceof Error ? error.message : '读取远程目录失败'))
+      .finally(() => setDirectoryBusy(false))
+  }, [browserReady, browserTarget])
+
+  function requireRelativePath(value: string, label: string) {
+    const normalized = value.trim().replace(/\\/g, '/')
+    if (!normalized) throw new Error(`${label}不能为空`)
+    if (normalized.startsWith('/') || /^[A-Za-z]:/.test(normalized) || normalized.split('/').includes('..')) {
+      throw new Error(`${label}必须是授权根内的安全相对路径`)
+    }
+    return normalized
+  }
+
+  async function requestDirectory(path = directoryPath) {
+    try {
+      const safePath = requireRelativePath(path, '目录')
+      setDirectoryPath(safePath); setDirectoryBusy(true); setBrowserError('')
+      const result = await api<DirectoryResult>(`/api/ssh/workspace/browser/directory?path=${encodeURIComponent(safePath)}&maxEntries=100`)
+      setDirectory(result); setDirectoryPath(result.path || '.')
+    } catch (error) { setBrowserError(error instanceof Error ? error.message : '目录无效') }
+    finally { setDirectoryBusy(false) }
+  }
+
+  function parentDirectory() {
+    const current = (directory?.path || directoryPath || '.').replace(/\\/g, '/').replace(/^\.\//, '').replace(/\/+$/, '')
+    if (!current || current === '.') return '.'
+    const segments = current.split('/').filter(Boolean)
+    segments.pop()
+    return segments.length ? segments.join('/') : '.'
+  }
+
+  async function requestFile(path = filePath) {
+    try {
+      const safePath = requireRelativePath(path, '文件')
+      setFilePath(safePath); setTab('files'); setFileBusy(true); setBrowserError('')
+      const result = await api<FileResult>(`/api/ssh/workspace/browser/file?path=${encodeURIComponent(safePath)}&startLine=1&maxLines=200`)
+      setFile(result)
+    } catch (error) { setBrowserError(error instanceof Error ? error.message : '文件无效') }
+    finally { setFileBusy(false) }
+  }
+
+  async function requestTask(taskId: string) {
+    try {
+      const safePath = requireRelativePath(taskPath, '项目目录')
+      setTab('output')
+      await props.onRunMessage(`请只使用 run_remote_workspace_task 工具，在相对项目目录 ${JSON.stringify(safePath)} 运行固定任务 ${taskId}。不得提供命令、参数、环境变量或 Shell 文本。`)
+    } catch (error) { window.alert(error instanceof Error ? error.message : '项目目录无效') }
+  }
+
+  async function requestDeploymentTask(taskId: string) {
+    setTab('deployment')
+    await props.onRunMessage(`请只使用 inspect_remote_deployment 工具运行固定只读部署诊断 ${taskId}。不得提供路径、命令、服务名、URL、参数、环境变量或 Shell 文本。`)
+  }
+
+  async function submitDeployment(event: FormEvent) {
+    event.preventDefault(); await props.onSaveDeployment(props.deploymentForm)
+  }
+
+  async function submitAssistant(event: FormEvent) {
+    event.preventDefault()
+    const value = assistantInput.trim()
+    if (!value) return
+    setAssistantInput('')
+    await props.onRunMessage(value)
+  }
+
+  return <section className="remote-workbench-section">
+    <header className="remote-workbench-header">
+      <div><p className="eyebrow">CONTROLLED REMOTE WORKSPACE</p><h2>远程工作台</h2><p>熟悉的 SSH 编码与运维体验，执行权限仍由固定工具、一次性审批和审计边界控制。</p></div>
+      <div className="remote-target-summary"><span className={`connection-dot connection-dot--${props.sshStatus?.status === 'READY' ? 'ready' : 'warning'}`} /><div><strong>{props.sshStatus?.configured ? `${props.sshStatus.username}@${props.sshStatus.host}:${props.sshStatus.port}` : 'SSH 尚未配置'}</strong><small>{props.sshStatus?.remoteRoot || '请先在模型配置页设置远程根目录'}</small></div></div>
+    </header>
+    <div className="remote-toolbar">
+      <label>执行 Agent<select value={props.selectedVersion} onChange={(event) => props.onSelectVersion(event.target.value)}><option value="">选择包含远程工具的已发布版本</option>{remoteVersions.map((version) => <option key={version.id} value={version.id}>{version.label}</option>)}</select></label>
+      <span className={`badge badge--${props.sshStatus?.status === 'READY' ? 'ready' : 'warning'}`}>{props.sshStatus?.status ?? 'NOT_CONFIGURED'}</span>
+      <span className="remote-policy">SSH · 固定指纹 · 受限根目录 · HIGH 审批</span>
+    </div>
+    <div className="remote-workbench">
+      <aside className="remote-explorer">
+        <div className="remote-pane-title"><div><span>EXPLORER</span><strong>远程文件</strong></div><button disabled={!browserReady || directoryBusy} onClick={() => void requestDirectory()}>{directoryBusy ? '…' : '↻'}</button></div>
+        <div className="remote-path-input"><button className="remote-parent-button" disabled={!browserReady || directoryBusy || (directory?.path || directoryPath) === '.'} onClick={() => void requestDirectory(parentDirectory())} title="返回父目录">↑ 上级</button><input value={directoryPath} onChange={(event) => setDirectoryPath(event.target.value)} aria-label="远程相对目录" /><button disabled={!browserReady || directoryBusy} onClick={() => void requestDirectory()}>打开</button></div>
+        <div className="remote-tree">
+          {browserError && <p className="error-text">{browserError}</p>}
+          {!directory ? <p>{directoryBusy ? '正在通过受限 SFTP 读取目录…' : browserReady ? '点击刷新读取授权根目录。' : '先完成 SSH/SFTP 连接测试。这里不会显示 `.env`、密钥和受保护路径。'}</p> : <><small>{directory.path || '.'}{directory.truncated ? ' · 已截断' : ''}</small>{directory.entries.map((entry) => <button key={entry.path} disabled={directoryBusy || fileBusy} onClick={() => { if (entry.type === 'DIRECTORY') void requestDirectory(entry.path); else { setFilePath(entry.path); void requestFile(entry.path) } }}><i>{entry.type === 'DIRECTORY' ? '▸' : entry.type === 'FILE' ? '·' : '×'}</i><span>{entry.name}</span>{entry.type === 'FILE' && <em>{formatCompactBytes(entry.sizeBytes ?? 0)}</em>}</button>)}</>}
+        </div>
+        <div className="remote-protection"><strong>受保护边界</strong><p>禁止越界、符号链接、隐藏凭据与任意 Shell。</p></div>
+      </aside>
+
+      <main className="remote-center">
+        <div className="remote-tabs">{([['overview', '概览'], ['files', '文件'], ['changes', '变更'], ['tasks', '任务'], ['deployment', '部署'], ['output', '输出']] as [WorkbenchTab, string][]).map(([id, label]) => <button className={tab === id ? 'active' : ''} key={id} onClick={() => setTab(id)}>{label}</button>)}</div>
+        <div className="remote-tab-content">
+          {tab === 'overview' && <div className="remote-overview"><div className="remote-hero-card"><span>REMOTE ROOT</span><strong>{props.sshStatus?.remoteRoot || '尚未配置'}</strong><p>用户浏览目录和只读文本直接使用受限 SFTP；Agent 的写入与执行仍必须经过固定工具、一次性审批和审计。</p></div><div className="remote-metrics"><article><b>0</b><span>浏览所需模型调用</span></article><article><b>1×</b><span>写入/执行审批</span></article><article><b>16K</b><span>最大任务输出</span></article></div><div className="remote-flow"><strong>安全边界</strong><p>人工只读浏览 → 固定指纹 + RemotePathPolicy；Agent 写入/执行 → ToolRegistry + SafeExecutionGateway + ApprovalRequest + AuditEvent</p></div></div>}
+          {tab === 'files' && <div className="remote-file-view"><div className="remote-file-toolbar"><input value={filePath} onChange={(event) => setFilePath(event.target.value)} placeholder="输入授权根内的相对文件路径" /><button className="secondary" disabled={!browserReady || fileBusy || !filePath.trim()} onClick={() => void requestFile()}>{fileBusy ? '读取中…' : '只读打开'}</button></div>{browserError && <p className="error-text">{browserError}</p>}{!file ? <Empty text="从左侧文件树选择文本文件，或输入相对路径" /> : <><div className="remote-file-meta"><strong>{file.path}</strong><span>{file.startLine}–{file.endLine} / {file.totalLines} 行 · {formatCompactBytes(file.sizeBytes)}{file.truncated ? ' · 已截断' : ''}</span><code>SHA-256 {file.sha256}</code></div><pre className="remote-code">{file.content}</pre></>}</div>}
+          {tab === 'changes' && <div className="remote-placeholder"><span>DIFF / ARTIFACT</span><h3>受审变更区</h3><p>远程补丁仍由 Agent 生成精确替换，并在审批卡中绑定目标、参数和文件摘要。下一批会在此提供并排 Diff 与恢复建议。</p><button className="secondary" onClick={() => setTab('output')}>查看当前运行步骤</button></div>}
+          {tab === 'tasks' && <div className="remote-tasks"><div className="remote-task-path"><label>相对项目目录<input value={taskPath} onChange={(event) => setTaskPath(event.target.value)} /></label><small>任务命令由平台固定映射，输入框只接受授权根内的相对目录。</small></div><div className="remote-task-grid">{remoteTasks.map((item) => <article key={item.id}><div><span>{item.tone}</span><b>{item.title}</b></div><p>{item.detail}</p><code>fixed:{item.id}</code><button className="primary" disabled={!selectedReady || props.busy} onClick={() => void requestTask(item.id)}>请求执行</button></article>)}</div></div>}
+          {tab === 'deployment' && <div className="remote-deployment">
+            <div className="remote-deployment-head"><div><span>READ-ONLY DEPLOYMENT DIAGNOSTICS</span><h3>固定生产目标</h3><p>复用当前 SSH 凭据和固定主机指纹；这里只读检查，不执行启动、重启、构建、发布或回滚。</p></div><span className={`badge badge--${props.deployment?.status === 'READY' ? 'ready' : 'warning'}`}>{props.deployment?.status ?? 'NOT_CONFIGURED'}</span></div>
+            <form className="remote-deployment-form" onSubmit={submitDeployment}>
+              <label>本地源码根<input required value={props.deploymentForm.localSourceRoot} onChange={(e) => props.onDeploymentFormChange({ ...props.deploymentForm, localSourceRoot: e.target.value })} /></label>
+              <label>远程部署根<input required value={props.deploymentForm.remoteDeployRoot} onChange={(e) => props.onDeploymentFormChange({ ...props.deploymentForm, remoteDeployRoot: e.target.value })} /></label>
+              <label>远程备份根<input required value={props.deploymentForm.remoteBackupRoot} onChange={(e) => props.onDeploymentFormChange({ ...props.deploymentForm, remoteBackupRoot: e.target.value })} /></label>
+              <label>Compose 文件<input required value={props.deploymentForm.composeFile} onChange={(e) => props.onDeploymentFormChange({ ...props.deploymentForm, composeFile: e.target.value })} /></label>
+              <label>Compose 项目<input required value={props.deploymentForm.composeProject} onChange={(e) => props.onDeploymentFormChange({ ...props.deploymentForm, composeProject: e.target.value })} /></label>
+              <label>Nginx 配置<input required value={props.deploymentForm.nginxConfig} onChange={(e) => props.onDeploymentFormChange({ ...props.deploymentForm, nginxConfig: e.target.value })} /></label>
+              <label>固定健康地址<input required value={props.deploymentForm.healthUrl} onChange={(e) => props.onDeploymentFormChange({ ...props.deploymentForm, healthUrl: e.target.value })} /></label>
+              <div><button className="secondary" disabled={props.busy}>保存 Profile</button><button className="ghost" type="button" disabled={props.busy || !props.deployment?.configured || !props.sshStatus?.passwordConfigured} onClick={() => void props.onTestDeployment()}>只读检查目标</button></div>
+            </form>
+            {props.deployment?.lastError && <p className="error-text">{props.deployment.lastError}</p>}
+            <div className="remote-service-ghosts">{['nginx', 'app', 'mysql', 'phpmyadmin'].map((name) => <i key={name}>{name}<small>{props.deployment?.status === 'READY' ? '固定服务' : '等待目标检查'}</small></i>)}</div>
+            <div className="remote-deployment-tasks">{deploymentTasks.map((item) => <article key={item.id}><div><b>{item.title}</b><code>{item.id}</code></div><p>{item.detail}</p><button className="primary" disabled={!selectedReady || props.busy || props.deployment?.status !== 'READY'} onClick={() => void requestDeploymentTask(item.id)}>请求诊断</button></article>)}</div>
+            {deploymentResult && <div className="remote-deployment-result"><div><strong>{deploymentResult.task}</strong><span className={`badge badge--${deploymentResult.successful ? 'completed' : 'failed'}`}>{deploymentResult.successful ? 'SUCCESS' : `EXIT ${deploymentResult.exitCode}`}</span></div><pre>{deploymentResult.output || '(诊断没有输出)'}</pre><footer>{deploymentResult.durationMs} ms · {deploymentResult.target}{deploymentResult.outputTruncated ? ' · 输出已截断' : ''}</footer></div>}
+          </div>}
+          {tab === 'output' && <div className="remote-output"><div className="remote-output-head"><div><span>CONTROLLED TASK OUTPUT</span><strong>{task ? `${task.task} · ${task.path}` : '等待固定任务'}</strong></div>{task && <span className={`badge badge--${task.successful ? 'completed' : 'failed'}`}>{task.successful ? 'SUCCESS' : `EXIT ${task.exitCode}`}</span>}</div>{task ? <><pre>{task.output || '(任务没有输出)'}</pre><footer>{task.durationMs} ms · {task.target}{task.outputTruncated ? ' · 输出已截断' : ''}</footer></> : <Empty text="从“任务”标签请求 Git、Maven 或 npm 固定任务" />}</div>}
+        </div>
+      </main>
+
+      <aside className="remote-agent-pane">
+        <div className="remote-pane-title"><div><span>AGENT</span><strong>操作助手</strong></div><i className={props.busy ? 'busy' : ''} /></div>
+        <div className="remote-agent-feed">
+          {props.pendingApproval && <aside className="approval-card remote-approval" role="alert"><div className="approval-heading"><strong>等待一次性审批</strong><b>{props.approvalSecondsLeft > 0 ? `${props.approvalSecondsLeft} 秒` : '已过期'}</b></div><p>工具：<code>{props.pendingApproval.toolName}</code></p><p>目标：{props.pendingApproval.targetEnvironment}</p><pre>{props.pendingApproval.argumentsJson}</pre><small>参数摘要 {props.pendingApproval.argumentsSha256.slice(0, 16)}…</small><div><button className="danger" disabled={props.approvalBusy || props.approvalSecondsLeft <= 0} onClick={() => void props.onDecideApproval(false)}>拒绝</button><button className="primary" disabled={props.approvalBusy || props.approvalSecondsLeft <= 0} onClick={() => void props.onDecideApproval(true)}>批准一次</button></div></aside>}
+          {props.steps.length > 0 && <aside className="run-steps remote-steps"><strong>当前运行步骤</strong>{props.steps.map((step) => <details key={step.id} open={step.stepType === 'TOOL_RESULT' || step.stepType.startsWith('APPROVAL')}><summary>#{step.stepNumber} {step.stepType}<span className={`step-status step-status--${step.status.toLowerCase()}`}>{step.status}</span></summary>{step.toolName && <code>{step.toolName}</code>}{step.outputText && <pre>{step.outputText}</pre>}</details>)}</aside>}
+          {props.messages.length === 0 && props.steps.length === 0 ? <Empty text={selectedReady ? '选择左侧文件或中间固定任务开始' : '浏览无需 Agent；执行任务前请选择 Agent 版本'} /> : <>{hiddenMessageCount > 0 && <p className="remote-history-note">已收起更早的 {hiddenMessageCount} 条会话消息，完整记录仍保留在运行记录中。</p>}{visibleMessages.map((message, index) => <article className={`remote-message remote-message--${message.role}`} key={`${hiddenMessageCount}-${index}`}><span>{message.role === 'user' ? 'YOU' : 'AGENT'}</span><p>{message.content || <i className="typing">正在处理</i>}</p></article>)}</>}
+        </div>
+        <form className="remote-agent-composer" onSubmit={submitAssistant}><textarea rows={3} value={assistantInput} onChange={(event) => setAssistantInput(event.target.value)} placeholder="让 Agent 检查文件、解释结果或提出受控操作……" /><div><button className="primary" disabled={!selectedReady || props.busy || !assistantInput.trim()}>{props.busy ? '运行中' : '发送'}</button>{props.busy && props.currentRunId && <button className="danger" type="button" disabled={props.cancelBusy} onClick={() => void props.onCancel()}>{props.cancelBusy ? '停止中' : '停止'}</button>}</div></form>
+      </aside>
+    </div>
+    <footer className="remote-statusbar"><span><i className={props.sshStatus?.status === 'READY' ? 'ready' : ''} />{props.sshStatus?.status ?? 'NOT_CONFIGURED'}</span><span>{props.sshStatus?.host ? `${props.sshStatus.username}@${props.sshStatus.host}:${props.sshStatus.port}` : '无 SSH 目标'}</span><span>{props.busy ? 'AgentRun 运行中' : '就绪'}</span><span>任意 Shell：禁用</span></footer>
+  </section>
+}
+
+function latestToolJson<T>(steps: RunStep[], toolName: string): T | undefined {
+  for (let index = steps.length - 1; index >= 0; index--) {
+    const step = steps[index]
+    if (step.toolName !== toolName || !step.outputText) continue
+    try { return JSON.parse(step.outputText) as T } catch { return undefined }
+  }
+  return undefined
+}
+
+function formatCompactBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(bytes < 10 * 1024 ? 1 : 0)} KB`
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`
 }
 
 function PageHeader({ number, title, description }: { number: string; title: string; description: string }) { return <header className="page-header"><span>{number}</span><div><h2>{title}</h2><p>{description}</p></div></header> }

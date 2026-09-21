@@ -43,5 +43,7 @@ public record SshWorkspaceProperties(
 
     public String target() { return username + "@" + host + ":" + port + remoteRoot; }
 
+    public String approvalTarget() { return target() + "#" + hostKeySha256; }
+
     private static String trim(String value) { return value == null ? "" : value.trim(); }
 }
