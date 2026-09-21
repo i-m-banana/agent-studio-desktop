@@ -1,5 +1,17 @@
 # 验证记录
 
+## 2026-09-21：只新增的远程发布前备份
+
+新增 `prepare_remote_deployment_backup`（`SSH/WRITE/HIGH`），输入 Schema 是不接受任何字段的空对象。服务器生成 UTC 时间戳加随机后缀的 backupId，并在固定 backupRoot 下独占创建新目录；没有覆盖、删除、清理、恢复或模型自定义路径/名称/命令/参数/环境变量分支。工具复用部署 Profile、固定 SSH 身份/指纹和 SafeExecutionGateway 批准后目标复核。
+
+固定流程在同一 SSH 会话完成 MySQL `--single-transaction` 逻辑导出、uploads 压缩、app.jar/Dockerfile/Compose/Nginx 配置复制、`.env` 0600 安全复制、镜像清单和四个固定服务状态记录。`.env` 和数据库凭据不返回；九个负载文件生成 SHA256SUMS，manifest 另有摘要。数据库及 uploads 必须非空，成功回执的 backupId、备份路径、文件数、大小和 manifest SHA-256 还会在客户端严格校验。失败目录保留 `FAILED` 标记，不自动删除现场。
+
+进程内 Apache MINA SSHD 专项测试覆盖 `SSH/WRITE/HIGH` 注册、空参数 Schema、同会话校验、固定创建命令、无删除命令、成功 manifest 元数据、非零退出、超时关闭和危险参数拒绝。后端全量 `mvn test` 为 75 个测试通过、0 失败、0 错误、0 跳过；前端 Vitest 4 项通过，TypeScript/Vite 生产构建通过，282 个模块。
+
+第一次真实备份运行 `925e6062-e1a4-432f-8c29-fc456967952b` 成功创建 `20260921T142020Z-207e3ede`：数据库 28,056 字节，uploads 压缩包 353,700,874 字节，退出码 0且输出未截断。用户在服务器只读核对目录 700、`.env` 600、SHA256SUMS 九项及 manifest 摘要全部 OK，数据库/uploads 非空、gzip 有效且没有 `FAILED` 标记。随后固定命令增加成功返回前的 `sha256sum -c` 自校验。
+
+第二次真实备份运行 `c19eb39f-a2b9-406c-94d4-2d10e9d194d9` 成功创建不同的 `20260921T143308Z-5b8b3432`，数据库 28,056 字节、uploads 353,700,874 字节、九个固定负载，manifest SHA-256 为 `1564e27eacbeb98a6dc393ee68def5fbfd87993939e7d3808dc7ffdd4197b4c9`。运行经过空参数校验、HIGH 一次性批准、SafeExecutionGateway 和完整 AuditEvent 链，工具内部摘要自校验通过后才返回成功。创建型备份正向人工验收完成；不能据此声称恢复能力已经验证。
+
 ## 2026-09-21：LLM 消息安全 Markdown 渲染
 
 “对话测试台”和“远程工作台 → 操作助手”的 Agent 消息改用 `react-markdown + remark-gfm` 渲染标题、段落、列表、强调、引用、行内代码、代码块、链接和表格；流式生成中的未闭合 Markdown 可继续按普通文本显示。用户消息、ApprovalRequest 参数、RunStep 工具输入/输出及原始日志不进入 Markdown 渲染器。

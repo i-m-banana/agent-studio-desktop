@@ -668,6 +668,7 @@ type RemoteEntry = { name: string; path: string; type: string; sizeBytes?: numbe
 type DirectoryResult = { target: string; path: string; entries: RemoteEntry[]; truncated: boolean }
 type FileResult = { path: string; sha256: string; sizeBytes: number; startLine: number; endLine: number; totalLines: number; content: string; truncated: boolean }
 type TaskResult = { task: string; target: string; path?: string; deploymentRoot?: string; composeProject?: string; successful: boolean; exitCode: number; durationMs: number; output: string; outputTruncated: boolean }
+type BackupResult = { target: string; deploymentRoot: string; backupRoot: string; backupId?: string; backupPath?: string; successful: boolean; exitCode: number; durationMs: number; databaseBytes: number; uploadsBytes: number; fileCount: number; manifestSha256?: string; output: string; outputTruncated: boolean }
 
 const remoteTasks = [
   { id: 'GIT_STATUS', title: 'Git 状态', detail: '查看分支和工作区状态', tone: 'READ' },
@@ -694,9 +695,10 @@ function RemoteWorkbench(props: RemoteWorkbenchProps) {
   const [directoryBusy, setDirectoryBusy] = useState(false)
   const [fileBusy, setFileBusy] = useState(false)
   const [browserError, setBrowserError] = useState('')
-  const remoteVersions = props.versionLabels.filter((version) => version.toolNames.some((name) => name.includes('remote_workspace') || name === 'inspect_remote_deployment'))
+  const remoteVersions = props.versionLabels.filter((version) => version.toolNames.some((name) => name.includes('remote_workspace') || name === 'inspect_remote_deployment' || name === 'prepare_remote_deployment_backup'))
   const parsedTask = useMemo(() => latestToolJson<TaskResult>(props.steps, 'run_remote_workspace_task'), [props.steps])
   const deploymentResult = useMemo(() => latestToolJson<TaskResult>(props.steps, 'inspect_remote_deployment'), [props.steps])
+  const backupResult = useMemo(() => latestToolJson<BackupResult>(props.steps, 'prepare_remote_deployment_backup'), [props.steps])
   const [directory, setDirectory] = useState<DirectoryResult>()
   const [file, setFile] = useState<FileResult>()
   const [task, setTask] = useState<TaskResult>()
@@ -767,6 +769,11 @@ function RemoteWorkbench(props: RemoteWorkbenchProps) {
     await props.onRunMessage(`请只使用 inspect_remote_deployment 工具运行固定只读部署诊断 ${taskId}。不得提供路径、命令、服务名、URL、参数、环境变量或 Shell 文本。`)
   }
 
+  async function requestDeploymentBackup() {
+    setTab('deployment')
+    await props.onRunMessage('请只使用 prepare_remote_deployment_backup 工具创建一次固定发布前备份。不得提供路径、名称、命令、参数、环境变量、覆盖、删除或恢复选项。')
+  }
+
   async function submitDeployment(event: FormEvent) {
     event.preventDefault(); await props.onSaveDeployment(props.deploymentForm)
   }
@@ -823,6 +830,8 @@ function RemoteWorkbench(props: RemoteWorkbenchProps) {
             <div className="remote-service-ghosts">{['nginx', 'app', 'mysql', 'phpmyadmin'].map((name) => <i key={name}>{name}<small>{props.deployment?.status === 'READY' ? '固定服务' : '等待目标检查'}</small></i>)}</div>
             <div className="remote-deployment-tasks">{deploymentTasks.map((item) => <article key={item.id}><div><b>{item.title}</b><code>{item.id}</code></div><p>{item.detail}</p><button className="primary" disabled={!selectedReady || props.busy || props.deployment?.status !== 'READY'} onClick={() => void requestDeploymentTask(item.id)}>请求诊断</button></article>)}</div>
             {deploymentResult && <div className="remote-deployment-result"><div><strong>{deploymentResult.task}</strong><span className={`badge badge--${deploymentResult.successful ? 'completed' : 'failed'}`}>{deploymentResult.successful ? 'SUCCESS' : `EXIT ${deploymentResult.exitCode}`}</span></div><pre>{deploymentResult.output || '(诊断没有输出)'}</pre><footer>{deploymentResult.durationMs} ms · {deploymentResult.target}{deploymentResult.outputTruncated ? ' · 输出已截断' : ''}</footer></div>}
+            <div className="remote-backup-card"><div><span>CREATE-ONLY / HIGH</span><h4>发布前固定备份</h4><p>新建不可覆盖的时间戳目录，固定备份数据库、uploads、部署文件、受保护 .env、镜像与服务清单；不会删除旧备份，也不会恢复数据库。</p></div><button className="danger" disabled={!selectedReady || props.busy || props.deployment?.status !== 'READY'} onClick={() => void requestDeploymentBackup()}>请求创建备份</button></div>
+            {backupResult && <div className="remote-backup-result"><div><strong>{backupResult.backupId || 'BACKUP FAILED'}</strong><span className={`badge badge--${backupResult.successful ? 'completed' : 'failed'}`}>{backupResult.successful ? 'VERIFIED' : `EXIT ${backupResult.exitCode}`}</span></div>{backupResult.successful ? <dl><div><dt>备份路径</dt><dd>{backupResult.backupPath}</dd></div><div><dt>数据库</dt><dd>{formatCompactBytes(backupResult.databaseBytes)}</dd></div><div><dt>Uploads</dt><dd>{formatCompactBytes(backupResult.uploadsBytes)}</dd></div><div><dt>Manifest</dt><dd>{backupResult.manifestSha256}</dd></div></dl> : <pre>{backupResult.output || '备份未完成'}</pre>}<footer>{backupResult.durationMs} ms · 固定文件 {backupResult.fileCount || 0} 项 · 仅创建、不覆盖</footer></div>}
           </div>}
           {tab === 'output' && <div className="remote-output"><div className="remote-output-head"><div><span>CONTROLLED TASK OUTPUT</span><strong>{task ? `${task.task} · ${task.path}` : '等待固定任务'}</strong></div>{task && <span className={`badge badge--${task.successful ? 'completed' : 'failed'}`}>{task.successful ? 'SUCCESS' : `EXIT ${task.exitCode}`}</span>}</div>{task ? <><pre>{task.output || '(任务没有输出)'}</pre><footer>{task.durationMs} ms · {task.target}{task.outputTruncated ? ' · 输出已截断' : ''}</footer></> : <Empty text="从“任务”标签请求 Git、Maven 或 npm 固定任务" />}</div>}
         </div>

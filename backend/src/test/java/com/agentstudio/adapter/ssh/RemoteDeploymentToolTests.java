@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.agentstudio.secret.SecretResolver;
 import com.agentstudio.tool.ToolRegistry;
@@ -45,6 +46,7 @@ class RemoteDeploymentToolTests {
     private final List<String> receivedCommands = new ArrayList<>();
     private final AtomicInteger sessionsCreated = new AtomicInteger();
     private final AtomicBoolean hangingDestroyed = new AtomicBoolean();
+    private final AtomicReference<Integer> backupExitCode = new AtomicReference<>(0);
     private SshServer server;
     private SshWorkspaceProperties ssh;
     private RemoteDeploymentProfile profile;
@@ -70,6 +72,17 @@ class RemoteDeploymentToolTests {
         server.setSubsystemFactories(List.of(new SftpSubsystemFactory.Builder().build()));
         server.setCommandFactory((channel, command) -> {
             synchronized (receivedCommands) { receivedCommands.add(command); }
+            if (command.contains("mysqldump")) {
+                var backupId = "20260921T120000Z-deadbeef";
+                var backupOutput = "BACKUP_ID=" + backupId + "\n"
+                        + "BACKUP_PATH=/srv/backups/" + backupId + "\n"
+                        + "MANIFEST_SHA256=" + "a".repeat(64) + "\n"
+                        + "DATABASE_BYTES=2048\nUPLOADS_BYTES=4096\nFILE_COUNT=9\n";
+                var exit = backupExitCode.get();
+                return new FixtureCommand(exit != null && exit == 0 ? backupOutput : "",
+                        exit != null && exit != 0 ? "backup failed\n" : "", exit,
+                        exit == null ? hangingDestroyed : null);
+            }
             if (command.contains("config --quiet")) return new FixtureCommand(null, null, null, hangingDestroyed);
             if (command.contains("nginx -t")) return new FixtureCommand("", "invalid nginx\n", 1, null);
             if (command.contains("sha256sum")) return new FixtureCommand("x".repeat(20_000), "", 0, null);
@@ -154,6 +167,61 @@ class RemoteDeploymentToolTests {
         assertThat(receivedCommands).isEmpty();
     }
 
+    @Test
+    void createsOnlyFixedHighRiskBackupAndReturnsVerifiedManifestMetadata() throws Exception {
+        var tool = backupTool(Duration.ofSeconds(5));
+        var descriptor = new ToolRegistry(List.of(tool), objectMapper)
+                .descriptor("prepare_remote_deployment_backup");
+        assertThat(descriptor.source()).isEqualTo("SSH");
+        assertThat(descriptor.capability()).isEqualTo("WRITE");
+        assertThat(descriptor.riskLevel()).isEqualTo("HIGH");
+        assertThat(descriptor.inputSchema().toString()).doesNotContain("path", "command", "name", "environment");
+
+        var result = objectMapper.readTree(tool.execute(objectMapper.readTree("{}")));
+        assertThat(result.path("successful").asBoolean()).isTrue();
+        assertThat(result.path("backupId").asText()).isEqualTo("20260921T120000Z-deadbeef");
+        assertThat(result.path("backupPath").asText()).isEqualTo("/srv/backups/20260921T120000Z-deadbeef");
+        assertThat(result.path("databaseBytes").asLong()).isEqualTo(2048);
+        assertThat(result.path("uploadsBytes").asLong()).isEqualTo(4096);
+        assertThat(result.path("fileCount").asInt()).isEqualTo(9);
+        assertThat(result.path("manifestSha256").asText()).hasSize(64);
+        assertThat(result.path("output").asText()).doesNotContain("never-return-this", "MYSQL_ROOT_PASSWORD");
+        assertThat(sessionsCreated).hasValue(1);
+    }
+
+    @Test
+    void backupCommandIsCreateOnlyAndKeepsSecretsInsideFixedContainerCommand() {
+        var command = new RemoteDeploymentBackupCommands().command(profile);
+        assertThat(command).contains("mkdir -- \"$backup_dir\"", "mysqldump --single-transaction",
+                "tar -czf", "install -m 600 -- .env", "sha256sum -c SHA256SUMS > /dev/null",
+                "sha256sum -c manifest.sha256 > /dev/null", "FAILED");
+        assertThat(command).contains("-p\"$MYSQL_ROOT_PASSWORD\"");
+        assertThat(command).doesNotContain("never-return-this", " rm ", "rm -", "docker compose down",
+                "volume rm", "system prune", "cat .env");
+    }
+
+    @Test
+    void backupReturnsNonZeroAsAuditableResultAndClosesTimeout() throws Exception {
+        backupExitCode.set(7);
+        var failed = objectMapper.readTree(backupTool(Duration.ofSeconds(5)).execute(objectMapper.readTree("{}")));
+        assertThat(failed.path("successful").asBoolean()).isFalse();
+        assertThat(failed.path("exitCode").asInt()).isEqualTo(7);
+        assertThat(failed.path("output").asText()).contains("backup failed");
+
+        backupExitCode.set(null);
+        assertThatThrownBy(() -> backupTool(Duration.ofMillis(150)).execute(objectMapper.readTree("{}")))
+                .hasMessageContaining("已关闭远程命令通道");
+        assertThat(hangingDestroyed).isTrue();
+    }
+
+    @Test
+    void backupRejectsEveryModelControlledParameterBeforeExec() {
+        var tool = backupTool(Duration.ofSeconds(5));
+        assertThatThrownBy(() -> tool.execute(objectMapper.readTree("{\"path\":\"/tmp\"}")))
+                .hasMessageContaining("不接受路径");
+        assertThat(receivedCommands).isEmpty();
+    }
+
     private InspectRemoteDeploymentTool tool(Duration timeout) {
         var secrets = mock(SecretResolver.class);
         when(secrets.resolve("TEST_SSH_PASSWORD")).thenReturn(Optional.of("password"));
@@ -165,6 +233,19 @@ class RemoteDeploymentToolTests {
         when(profiles.approvalTarget()).thenReturn(ssh.approvalTarget() + "|DEPLOY:/srv/old-things");
         return new InspectRemoteDeploymentTool(workspace, profiles, objectMapper,
                 new RemoteDeploymentCommands(), timeout);
+    }
+
+    private PrepareRemoteDeploymentBackupTool backupTool(Duration timeout) {
+        var secrets = mock(SecretResolver.class);
+        when(secrets.resolve("TEST_SSH_PASSWORD")).thenReturn(Optional.of("password"));
+        var sshService = mock(SshWorkspaceService.class); when(sshService.current()).thenReturn(ssh);
+        var workspace = new RemoteDeploymentWorkspace(new SftpSessionFactory(secrets), sshService);
+        var profiles = mock(RemoteDeploymentService.class);
+        when(profiles.current()).thenReturn(profile);
+        when(profiles.target(profile)).thenReturn("tester@127.0.0.1:" + server.getPort() + "/srv/old-things");
+        when(profiles.approvalTarget()).thenReturn(ssh.approvalTarget() + "|DEPLOY:/srv/old-things");
+        return new PrepareRemoteDeploymentBackupTool(workspace, profiles, objectMapper,
+                new RemoteDeploymentBackupCommands(), timeout);
     }
 
     private static final class FixtureCommand implements Command {
