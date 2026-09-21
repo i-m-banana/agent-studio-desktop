@@ -669,6 +669,7 @@ type DirectoryResult = { target: string; path: string; entries: RemoteEntry[]; t
 type FileResult = { path: string; sha256: string; sizeBytes: number; startLine: number; endLine: number; totalLines: number; content: string; truncated: boolean }
 type TaskResult = { task: string; target: string; path?: string; deploymentRoot?: string; composeProject?: string; successful: boolean; exitCode: number; durationMs: number; output: string; outputTruncated: boolean }
 type BackupResult = { target: string; deploymentRoot: string; backupRoot: string; backupId?: string; backupPath?: string; successful: boolean; exitCode: number; durationMs: number; databaseBytes: number; uploadsBytes: number; fileCount: number; manifestSha256?: string; output: string; outputTruncated: boolean }
+type RestoreDrillResult = { target: string; backupRoot: string; backupId?: string; backupPath?: string; drillId?: string; drillPath?: string; successful: boolean; exitCode: number; durationMs: number; databaseBytes: number; restoredUploadsBytes: number; restoredFileCount: number; manifestSha256?: string; drillSha256?: string; productionModified: boolean; databaseImported: boolean; output: string; outputTruncated: boolean }
 
 const remoteTasks = [
   { id: 'GIT_STATUS', title: 'Git 状态', detail: '查看分支和工作区状态', tone: 'READ' },
@@ -695,14 +696,16 @@ function RemoteWorkbench(props: RemoteWorkbenchProps) {
   const [directoryBusy, setDirectoryBusy] = useState(false)
   const [fileBusy, setFileBusy] = useState(false)
   const [browserError, setBrowserError] = useState('')
-  const remoteVersions = props.versionLabels.filter((version) => version.toolNames.some((name) => name.includes('remote_workspace') || name === 'inspect_remote_deployment' || name === 'prepare_remote_deployment_backup'))
+  const remoteVersions = props.versionLabels.filter((version) => version.toolNames.some((name) => name.includes('remote_workspace') || name === 'inspect_remote_deployment' || name === 'prepare_remote_deployment_backup' || name === 'verify_remote_deployment_backup_restore'))
   const parsedTask = useMemo(() => latestToolJson<TaskResult>(props.steps, 'run_remote_workspace_task'), [props.steps])
   const deploymentResult = useMemo(() => latestToolJson<TaskResult>(props.steps, 'inspect_remote_deployment'), [props.steps])
   const backupResult = useMemo(() => latestToolJson<BackupResult>(props.steps, 'prepare_remote_deployment_backup'), [props.steps])
+  const restoreDrillResult = useMemo(() => latestToolJson<RestoreDrillResult>(props.steps, 'verify_remote_deployment_backup_restore'), [props.steps])
   const [directory, setDirectory] = useState<DirectoryResult>()
   const [file, setFile] = useState<FileResult>()
   const [task, setTask] = useState<TaskResult>()
   const selectedReady = remoteVersions.some((version) => version.id === props.selectedVersion)
+  const restoreDrillReady = remoteVersions.find((version) => version.id === props.selectedVersion)?.toolNames.includes('verify_remote_deployment_backup_restore') ?? false
   const browserReady = props.sshStatus?.status === 'READY' && props.sshStatus.passwordConfigured
   const browserTarget = `${props.sshStatus?.username ?? ''}@${props.sshStatus?.host ?? ''}:${props.sshStatus?.port ?? ''}${props.sshStatus?.remoteRoot ?? ''}#${props.sshStatus?.hostKeySha256 ?? ''}`
   const visibleMessages = props.messages.slice(-6)
@@ -774,6 +777,11 @@ function RemoteWorkbench(props: RemoteWorkbenchProps) {
     await props.onRunMessage('请只使用 prepare_remote_deployment_backup 工具创建一次固定发布前备份。不得提供路径、名称、命令、参数、环境变量、覆盖、删除或恢复选项。')
   }
 
+  async function requestRestoreDrill() {
+    setTab('deployment')
+    await props.onRunMessage('请只使用 verify_remote_deployment_backup_restore 工具，对固定备份根内最新的合格备份执行一次隔离恢复材料演练。不得提供备份 ID、路径、命令、参数、环境变量、生产恢复、覆盖或删除选项。')
+  }
+
   async function submitDeployment(event: FormEvent) {
     event.preventDefault(); await props.onSaveDeployment(props.deploymentForm)
   }
@@ -832,6 +840,9 @@ function RemoteWorkbench(props: RemoteWorkbenchProps) {
             {deploymentResult && <div className="remote-deployment-result"><div><strong>{deploymentResult.task}</strong><span className={`badge badge--${deploymentResult.successful ? 'completed' : 'failed'}`}>{deploymentResult.successful ? 'SUCCESS' : `EXIT ${deploymentResult.exitCode}`}</span></div><pre>{deploymentResult.output || '(诊断没有输出)'}</pre><footer>{deploymentResult.durationMs} ms · {deploymentResult.target}{deploymentResult.outputTruncated ? ' · 输出已截断' : ''}</footer></div>}
             <div className="remote-backup-card"><div><span>CREATE-ONLY / HIGH</span><h4>发布前固定备份</h4><p>新建不可覆盖的时间戳目录，固定备份数据库、uploads、部署文件、受保护 .env、镜像与服务清单；不会删除旧备份，也不会恢复数据库。</p></div><button className="danger" disabled={!selectedReady || props.busy || props.deployment?.status !== 'READY'} onClick={() => void requestDeploymentBackup()}>请求创建备份</button></div>
             {backupResult && <div className="remote-backup-result"><div><strong>{backupResult.backupId || 'BACKUP FAILED'}</strong><span className={`badge badge--${backupResult.successful ? 'completed' : 'failed'}`}>{backupResult.successful ? 'VERIFIED' : `EXIT ${backupResult.exitCode}`}</span></div>{backupResult.successful ? <dl><div><dt>备份路径</dt><dd>{backupResult.backupPath}</dd></div><div><dt>数据库</dt><dd>{formatCompactBytes(backupResult.databaseBytes)}</dd></div><div><dt>Uploads</dt><dd>{formatCompactBytes(backupResult.uploadsBytes)}</dd></div><div><dt>Manifest</dt><dd>{backupResult.manifestSha256}</dd></div></dl> : <pre>{backupResult.output || '备份未完成'}</pre>}<footer>{backupResult.durationMs} ms · 固定文件 {backupResult.fileCount || 0} 项 · 仅创建、不覆盖</footer></div>}
+            <div className="remote-backup-card remote-restore-card"><div><span>ISOLATED RESTORE DRILL / HIGH</span><h4>备份恢复材料演练</h4><p>自动选择最新合格备份，在 restore-drills 下新建隔离目录，重新校验并展开数据库、uploads 与部署文件；不会导入数据库、替换生产文件、启动容器或删除备份。</p></div><button className="danger" disabled={!restoreDrillReady || props.busy || props.deployment?.status !== 'READY'} onClick={() => void requestRestoreDrill()}>请求恢复演练</button></div>
+            {!restoreDrillReady && selectedReady && <p className="remote-tool-hint">当前 Agent 版本尚未包含恢复演练工具，请在 Agent Builder 发布包含该工具的新版本后再执行。</p>}
+            {restoreDrillResult && <div className="remote-backup-result remote-restore-result"><div><strong>{restoreDrillResult.drillId || 'RESTORE DRILL FAILED'}</strong><span className={`badge badge--${restoreDrillResult.successful ? 'completed' : 'failed'}`}>{restoreDrillResult.successful ? 'MATERIALIZED' : `EXIT ${restoreDrillResult.exitCode}`}</span></div>{restoreDrillResult.successful ? <dl><div><dt>来源备份</dt><dd>{restoreDrillResult.backupId}</dd></div><div><dt>隔离目录</dt><dd>{restoreDrillResult.drillPath}</dd></div><div><dt>数据库文件</dt><dd>{formatCompactBytes(restoreDrillResult.databaseBytes)}（未导入）</dd></div><div><dt>展开 Uploads</dt><dd>{formatCompactBytes(restoreDrillResult.restoredUploadsBytes)}</dd></div><div><dt>演练摘要</dt><dd>{restoreDrillResult.drillSha256}</dd></div></dl> : <pre>{restoreDrillResult.output || '恢复演练未完成'}</pre>}<footer>{restoreDrillResult.durationMs} ms · 文件 {restoreDrillResult.restoredFileCount || 0} 项 · 生产目录未修改 · 数据库未导入</footer></div>}
           </div>}
           {tab === 'output' && <div className="remote-output"><div className="remote-output-head"><div><span>CONTROLLED TASK OUTPUT</span><strong>{task ? `${task.task} · ${task.path}` : '等待固定任务'}</strong></div>{task && <span className={`badge badge--${task.successful ? 'completed' : 'failed'}`}>{task.successful ? 'SUCCESS' : `EXIT ${task.exitCode}`}</span>}</div>{task ? <><pre>{task.output || '(任务没有输出)'}</pre><footer>{task.durationMs} ms · {task.target}{task.outputTruncated ? ' · 输出已截断' : ''}</footer></> : <Empty text="从“任务”标签请求 Git、Maven 或 npm 固定任务" />}</div>}
         </div>

@@ -340,7 +340,13 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .remote-backup-card h4 { margin: 5px 0; color: #e0cfaa; }
 .remote-backup-card p { max-width: 720px; margin: 0; color: #9b927c; font-size: 10px; line-height: 1.6; }
 .remote-backup-card .danger { flex: 0 0 auto; margin: 0; }
+.remote-restore-card { margin-top: 0; border-color: #365b63; background: rgba(24, 64, 70, .22); }
+.remote-restore-card span { color: #72b8c2; }
+.remote-restore-card h4 { color: #bad9dc; }
+.remote-restore-card p { color: #829da0; }
+.remote-tool-hint { margin: -10px 0 0; color: #b49758; font-size: 9px; }
 .remote-backup-result { margin-top: 12px; border: 1px solid #355344; border-radius: 10px; overflow: hidden; background: #091510; }
+.remote-restore-result { margin-top: -6px; border-color: #31535a; }
 .remote-backup-result > div:first-child { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 11px 13px; border-bottom: 1px solid #294035; }
 .remote-backup-result dl { margin: 0; padding: 4px 13px; }
 .remote-backup-result dl > div { display: grid; grid-template-columns: 90px minmax(0, 1fr); gap: 12px; padding: 8px 0; border-bottom: 1px solid #20352a; }

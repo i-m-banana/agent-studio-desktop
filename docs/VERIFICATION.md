@@ -1,5 +1,13 @@
 # 验证记录
 
+## 2026-09-21：隔离远程备份恢复材料演练
+
+新增 `verify_remote_deployment_backup_restore`，固定为 `SSH/WRITE/HIGH` 且 Schema 是无字段对象。工具只选择固定备份根中最新的合格备份，在 `restore-drills` 下创建独占随机目录；先检查目录/文件非符号链接、无 `FAILED`、两份 SHA-256 清单和 gzip，再复制数据库与固定部署文件、以 0600 复制 `.env`、隔离展开 uploads 并拒绝展开后的符号链接。命令不包含 Docker、Compose、MySQL 导入、生产目录写入、删除或清理。
+
+进程内 Apache MINA SSHD 专项由 9 项扩充到 13 项，覆盖工具注册、空参数 Schema、固定最新备份选择、隔离路径、成功元数据、生产零修改声明、非零退出、超时通道关闭和危险参数拒绝，13 项全部通过。后端全量 79 项通过，0 失败、0 错误、0 跳过；前端 Vitest 4 项通过，TypeScript/Vite 生产构建通过，282 个模块。
+
+真实恢复演练运行 `0ff426e4-2fd1-429a-b860-6b0ae62e501c` 通过空参数校验、HIGH 一次性审批和完整审计链，选择最新备份 `20260921T143308Z-5b8b3432`，创建隔离目录 `restore-20260921T145940Z-c5bb4e7f`；材料化数据库 28,056 字节、uploads 377,940,481 字节、105 个文件，生产目录未修改且数据库未导入。随后真实 `COMPOSE_VALIDATE` 与 `COMPOSE_STATUS` 均成功，四个服务 running；第一次健康请求 `5aa32a9e-3b71-496f-9238-803f37f9c408` 只有 MODEL_CALL、没有工具步骤，已排除为模型无证据描述。重新运行 `149b12cc-fe0e-4cb6-a150-ab6a77582c45` 后形成完整 `SITE_HEALTH` 工具/审批/审计链并返回 `HTTP 200`。因此隔离材料化演练正向人工验收通过，但数据库导入和生产恢复仍未验证。
+
 ## 2026-09-21：只新增的远程发布前备份
 
 新增 `prepare_remote_deployment_backup`（`SSH/WRITE/HIGH`），输入 Schema 是不接受任何字段的空对象。服务器生成 UTC 时间戳加随机后缀的 backupId，并在固定 backupRoot 下独占创建新目录；没有覆盖、删除、清理、恢复或模型自定义路径/名称/命令/参数/环境变量分支。工具复用部署 Profile、固定 SSH 身份/指纹和 SafeExecutionGateway 批准后目标复核。

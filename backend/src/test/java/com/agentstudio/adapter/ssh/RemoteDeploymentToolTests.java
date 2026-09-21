@@ -47,6 +47,7 @@ class RemoteDeploymentToolTests {
     private final AtomicInteger sessionsCreated = new AtomicInteger();
     private final AtomicBoolean hangingDestroyed = new AtomicBoolean();
     private final AtomicReference<Integer> backupExitCode = new AtomicReference<>(0);
+    private final AtomicReference<Integer> restoreDrillExitCode = new AtomicReference<>(0);
     private SshServer server;
     private SshWorkspaceProperties ssh;
     private RemoteDeploymentProfile profile;
@@ -81,6 +82,21 @@ class RemoteDeploymentToolTests {
                 var exit = backupExitCode.get();
                 return new FixtureCommand(exit != null && exit == 0 ? backupOutput : "",
                         exit != null && exit != 0 ? "backup failed\n" : "", exit,
+                        exit == null ? hangingDestroyed : null);
+            }
+            if (command.contains("RESTORED_UPLOADS_BYTES")) {
+                var backupId = "20260921T120000Z-deadbeef";
+                var drillId = "restore-20260921T130000Z-cafebabe";
+                var drillOutput = "BACKUP_ID=" + backupId + "\n"
+                        + "BACKUP_PATH=/srv/backups/" + backupId + "\n"
+                        + "DRILL_ID=" + drillId + "\n"
+                        + "DRILL_PATH=/srv/backups/restore-drills/" + drillId + "\n"
+                        + "MANIFEST_SHA256=" + "a".repeat(64) + "\n"
+                        + "DRILL_SHA256=" + "b".repeat(64) + "\n"
+                        + "DATABASE_BYTES=2048\nRESTORED_UPLOADS_BYTES=8192\nRESTORED_FILE_COUNT=12\n";
+                var exit = restoreDrillExitCode.get();
+                return new FixtureCommand(exit != null && exit == 0 ? drillOutput : "",
+                        exit != null && exit != 0 ? "restore drill failed\n" : "", exit,
                         exit == null ? hangingDestroyed : null);
             }
             if (command.contains("config --quiet")) return new FixtureCommand(null, null, null, hangingDestroyed);
@@ -222,6 +238,69 @@ class RemoteDeploymentToolTests {
         assertThat(receivedCommands).isEmpty();
     }
 
+    @Test
+    void restoresOnlyLatestBackupIntoFixedIsolatedDrillDirectory() throws Exception {
+        var tool = restoreDrillTool(Duration.ofSeconds(5));
+        var descriptor = new ToolRegistry(List.of(tool), objectMapper)
+                .descriptor("verify_remote_deployment_backup_restore");
+        assertThat(descriptor.source()).isEqualTo("SSH");
+        assertThat(descriptor.capability()).isEqualTo("WRITE");
+        assertThat(descriptor.riskLevel()).isEqualTo("HIGH");
+        assertThat(descriptor.inputSchema().toString())
+                .doesNotContain("backupId", "path", "command", "environment", "database");
+
+        var result = objectMapper.readTree(tool.execute(objectMapper.readTree("{}")));
+        assertThat(result.path("successful").asBoolean()).isTrue();
+        assertThat(result.path("backupId").asText()).isEqualTo("20260921T120000Z-deadbeef");
+        assertThat(result.path("drillId").asText()).isEqualTo("restore-20260921T130000Z-cafebabe");
+        assertThat(result.path("drillPath").asText())
+                .isEqualTo("/srv/backups/restore-drills/restore-20260921T130000Z-cafebabe");
+        assertThat(result.path("databaseBytes").asLong()).isEqualTo(2048);
+        assertThat(result.path("restoredUploadsBytes").asLong()).isEqualTo(8192);
+        assertThat(result.path("restoredFileCount").asLong()).isEqualTo(12);
+        assertThat(result.path("productionModified").asBoolean()).isFalse();
+        assertThat(result.path("databaseImported").asBoolean()).isFalse();
+        assertThat(sessionsCreated).hasValue(1);
+    }
+
+    @Test
+    void restoreDrillCommandVerifiesThenMaterializesWithoutProductionOperations() {
+        var command = new RemoteDeploymentRestoreDrillCommands().command(profile);
+        assertThat(command).contains("sha256sum -c SHA256SUMS > /dev/null",
+                "sha256sum -c manifest.sha256 > /dev/null", "gzip -t uploads.tar.gz",
+                "restore-drills", "--keep-old-files", "cmp -- database.sql",
+                "productionModified=false", "test ! -L", "backupFormat=1",
+                "deploymentRoot=$expected_deploy_root", "composeProject=$expected_compose_project",
+                "files=database.sql,uploads.tar.gz,app.jar,Dockerfile,compose.yml,nginx.conf,.env,images.json,services.json",
+                "df -PB1", "required_bytes", "268435456");
+        assertThat(command).doesNotContain("docker ", "mysql ", "mysqldump", " rm ", "rm -",
+                "compose down", "volume rm", "system prune", "mv --", "/srv/old-things/");
+    }
+
+    @Test
+    void restoreDrillReturnsNonZeroAndClosesTimedOutChannel() throws Exception {
+        restoreDrillExitCode.set(8);
+        var failed = objectMapper.readTree(restoreDrillTool(Duration.ofSeconds(5))
+                .execute(objectMapper.readTree("{}")));
+        assertThat(failed.path("successful").asBoolean()).isFalse();
+        assertThat(failed.path("exitCode").asInt()).isEqualTo(8);
+        assertThat(failed.path("output").asText()).contains("restore drill failed");
+
+        restoreDrillExitCode.set(null);
+        assertThatThrownBy(() -> restoreDrillTool(Duration.ofMillis(150)).execute(objectMapper.readTree("{}")))
+                .hasMessageContaining("已关闭远程命令通道");
+        assertThat(hangingDestroyed).isTrue();
+    }
+
+    @Test
+    void restoreDrillRejectsEveryModelControlledParameterBeforeExec() {
+        var tool = restoreDrillTool(Duration.ofSeconds(5));
+        assertThatThrownBy(() -> tool.execute(objectMapper.readTree(
+                "{\"backupId\":\"20260921T120000Z-deadbeef\",\"restoreProduction\":true}")))
+                .hasMessageContaining("不接受备份 ID");
+        assertThat(receivedCommands).isEmpty();
+    }
+
     private InspectRemoteDeploymentTool tool(Duration timeout) {
         var secrets = mock(SecretResolver.class);
         when(secrets.resolve("TEST_SSH_PASSWORD")).thenReturn(Optional.of("password"));
@@ -246,6 +325,19 @@ class RemoteDeploymentToolTests {
         when(profiles.approvalTarget()).thenReturn(ssh.approvalTarget() + "|DEPLOY:/srv/old-things");
         return new PrepareRemoteDeploymentBackupTool(workspace, profiles, objectMapper,
                 new RemoteDeploymentBackupCommands(), timeout);
+    }
+
+    private VerifyRemoteDeploymentBackupRestoreTool restoreDrillTool(Duration timeout) {
+        var secrets = mock(SecretResolver.class);
+        when(secrets.resolve("TEST_SSH_PASSWORD")).thenReturn(Optional.of("password"));
+        var sshService = mock(SshWorkspaceService.class); when(sshService.current()).thenReturn(ssh);
+        var workspace = new RemoteDeploymentWorkspace(new SftpSessionFactory(secrets), sshService);
+        var profiles = mock(RemoteDeploymentService.class);
+        when(profiles.current()).thenReturn(profile);
+        when(profiles.target(profile)).thenReturn("tester@127.0.0.1:" + server.getPort() + "/srv/old-things");
+        when(profiles.approvalTarget()).thenReturn(ssh.approvalTarget() + "|DEPLOY:/srv/old-things");
+        return new VerifyRemoteDeploymentBackupRestoreTool(workspace, profiles, objectMapper,
+                new RemoteDeploymentRestoreDrillCommands(), timeout);
     }
 
     private static final class FixtureCommand implements Command {

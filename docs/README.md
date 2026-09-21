@@ -22,6 +22,7 @@
 - `decisions/0021-controlled-remote-workbench.md`：三栏远程工作台、固定任务控制台和批准后目标二次绑定；
 - `decisions/0022-read-only-remote-deployment-diagnostics.md`：独立生产 Profile、固定 Compose/Nginx/健康/指纹诊断与秘密边界；
 - `decisions/0023-create-only-remote-deployment-backup.md`：无模型参数、只新增目录、固定负载、manifest 与失败现场保留的远程备份；
+- `decisions/0024-isolated-remote-backup-restore-drill.md`：固定最新备份、隔离材料化、生产零修改与数据库不导入的恢复演练；
 - `decisions/0019-approved-remote-text-patch.md`：远程摘要绑定、HIGH 审批、权限保留与原子替换；
 - `CODING_WORKSPACE_ACCEPTANCE.md`：Coding 第一阶段的正向、负向、审计与无副作用人工验收清单；
 - `CODING_PATCH_ACCEPTANCE.md`：Coding 受审补丁的批准、拒绝、陈旧摘要与审计人工验收清单；
@@ -32,6 +33,7 @@
 - `REMOTE_WORKBENCH_ACCEPTANCE.md`：远程文件、固定任务、审批目标变化和三栏界面的人工验收清单；
 - `REMOTE_DEPLOYMENT_DIAGNOSTICS_ACCEPTANCE.md`：固定生产目标与五项只读部署诊断的人工验收清单；
 - `REMOTE_DEPLOYMENT_BACKUP_ACCEPTANCE.md`：固定创建型发布前备份的审批、内容、摘要、权限与不覆盖人工验收清单；
+- `REMOTE_DEPLOYMENT_RESTORE_DRILL_ACCEPTANCE.md`：最新合格备份的隔离展开、材料一致性和生产零修改人工验收清单；
 - `REMOTE_DEPLOYMENT_OPERATIONS_PLAN.md`：基于 `old-things` Docker/Nginx 生产结构制定的诊断、备份、制品、发布、健康检查与回滚分阶段计划；
 - `RELEASE_CHECKLIST.md`：从 `1.0.0-rc1` 升为正式版前的自动检查、人工验收和备份要求；
 - `MATURITY_BASELINE_1.0.0-rc1.md`：后续开发不得破坏的基线不变量、证据和正式代码锚点条件；
