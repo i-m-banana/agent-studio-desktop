@@ -1,5 +1,11 @@
 # 验证记录
 
+## 2026-09-21：LLM 消息安全 Markdown 渲染
+
+“对话测试台”和“远程工作台 → 操作助手”的 Agent 消息改用 `react-markdown + remark-gfm` 渲染标题、段落、列表、强调、引用、行内代码、代码块、链接和表格；流式生成中的未闭合 Markdown 可继续按普通文本显示。用户消息、ApprovalRequest 参数、RunStep 工具输入/输出及原始日志不进入 Markdown 渲染器。
+
+渲染器未启用原始 HTML；链接只允许锚点、HTTP、HTTPS 和 mailto，外部链接附带 `noopener/noreferrer` 并在新窗口打开。Markdown 远程图片降级为文字占位，不向模型指定的地址发起请求。代码块与表格限制在消息卡内部横向滚动，保留工作台固定高度和内部滚动边界。Vitest 4 项测试覆盖 GFM 表格/代码、原始 HTML、危险链接、远程图片、外部链接隔离和流式未闭合文本；前端生产构建通过，282 个模块。用户通过真实 `COMPOSE_STATUS` 运行 `9bafe710-5d27-456c-92e5-9bad2066aec7` 确认项目列表、行内代码和表格渲染符合预期，批次 2.5 已人工验收。
+
 ## 2026-09-21：部署诊断长审批目标兼容修复
 
 真实模型首次逐项请求五种部署诊断时，五项都在创建 `ApprovalRequest` 阶段失败，数据库报错为 `Data too long for column 'target_environment'`。审计只到 `TOOL_REQUEST_VALIDATED`，没有 `APPROVAL_REQUIRED` 或 `TOOL_EXECUTION_STARTED`，因此本次失败没有连接 SSH、没有运行 Docker/Nginx/HTTP 命令，也没有影响网站。原因是 V5 将审批目标定义为 `VARCHAR(160)`，而部署诊断会把 SSH 身份、主机指纹、部署根、Compose 项目/文件和健康地址共同绑定到审批快照，合法目标可能超过 160 字符。
