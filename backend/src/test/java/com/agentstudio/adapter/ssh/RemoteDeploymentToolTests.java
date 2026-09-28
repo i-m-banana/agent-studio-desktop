@@ -12,6 +12,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -48,6 +51,7 @@ class RemoteDeploymentToolTests {
     private final AtomicBoolean hangingDestroyed = new AtomicBoolean();
     private final AtomicReference<Integer> backupExitCode = new AtomicReference<>(0);
     private final AtomicReference<Integer> restoreDrillExitCode = new AtomicReference<>(0);
+    private final AtomicReference<String> releaseArtifactSha = new AtomicReference<>();
     private SshServer server;
     private SshWorkspaceProperties ssh;
     private RemoteDeploymentProfile profile;
@@ -99,6 +103,14 @@ class RemoteDeploymentToolTests {
                         exit != null && exit != 0 ? "restore drill failed\n" : "", exit,
                         exit == null ? hangingDestroyed : null);
             }
+            if (command.contains("CANDIDATE_PATH")) {
+                var releaseId = "20260921T150000Z-cafebabe";
+                var candidate = "/srv/old-things-releases/" + releaseId;
+                return new FixtureCommand("RELEASE_ID=" + releaseId + "\nCANDIDATE_PATH=" + candidate
+                        + "\nARTIFACT_SHA256=" + releaseArtifactSha.get()
+                        + "\nARTIFACT_BYTES=8\nMANIFEST_SHA256=" + "b".repeat(64)
+                        + "\nFILE_COUNT=6\n", "", 0, null);
+            }
             if (command.contains("config --quiet")) return new FixtureCommand(null, null, null, hangingDestroyed);
             if (command.contains("nginx -t")) return new FixtureCommand("", "invalid nginx\n", 1, null);
             if (command.contains("sha256sum")) return new FixtureCommand("x".repeat(20_000), "", 0, null);
@@ -112,7 +124,7 @@ class RemoteDeploymentToolTests {
         ssh = new SshWorkspaceProperties("127.0.0.1", server.getPort(), "tester", "/workspace",
                 KeyUtils.getFingerPrint(BuiltinDigests.sha256, hostKey), "TEST_SSH_PASSWORD", Duration.ofSeconds(5));
         profile = new RemoteDeploymentProfile("D:/source", "/srv/old-things", "/srv/backups",
-                "compose.yml", "old-things", "nginx.conf", "http://127.0.0.1/",
+                "docker-compose.yml", "compose.yml", "old-things", "nginx.conf", "http://127.0.0.1/",
                 true, "READY", null, null, java.time.Instant.now());
     }
 
@@ -169,7 +181,7 @@ class RemoteDeploymentToolTests {
         assertThatThrownBy(() -> tool(Duration.ofMillis(150)).execute(
                 objectMapper.readTree("{\"task\":\"COMPOSE_VALIDATE\"}")))
                 .hasMessageContaining("已关闭远程命令通道");
-        assertThat(hangingDestroyed).isTrue();
+        awaitTrue(hangingDestroyed);
     }
 
     @Test
@@ -227,7 +239,7 @@ class RemoteDeploymentToolTests {
         backupExitCode.set(null);
         assertThatThrownBy(() -> backupTool(Duration.ofMillis(150)).execute(objectMapper.readTree("{}")))
                 .hasMessageContaining("已关闭远程命令通道");
-        assertThat(hangingDestroyed).isTrue();
+        awaitTrue(hangingDestroyed);
     }
 
     @Test
@@ -289,7 +301,7 @@ class RemoteDeploymentToolTests {
         restoreDrillExitCode.set(null);
         assertThatThrownBy(() -> restoreDrillTool(Duration.ofMillis(150)).execute(objectMapper.readTree("{}")))
                 .hasMessageContaining("已关闭远程命令通道");
-        assertThat(hangingDestroyed).isTrue();
+        awaitTrue(hangingDestroyed);
     }
 
     @Test
@@ -299,6 +311,57 @@ class RemoteDeploymentToolTests {
                 "{\"backupId\":\"20260921T120000Z-deadbeef\",\"restoreProduction\":true}")))
                 .hasMessageContaining("不接受备份 ID");
         assertThat(receivedCommands).isEmpty();
+    }
+
+    @Test
+    void preparesOneImmutableCandidateWithNoModelParametersOrProductionMutation() throws Exception {
+        var source = root.resolve("local-source"); Files.createDirectories(source.resolve("target"));
+        var artifact = source.resolve("target/app.jar"); Files.writeString(artifact, "artifact");
+        Files.writeString(source.resolve("Dockerfile"), "FROM scratch");
+        Files.writeString(source.resolve("docker-compose.yml"), "services: {}");
+        Files.writeString(source.resolve("nginx.conf"), "server {}");
+        profile = new RemoteDeploymentProfile(source.toString(), "/srv/old-things", "/srv/backups",
+                "docker-compose.yml", "compose.yml", "old-things", "nginx.conf", "http://127.0.0.1/",
+                true, "READY", null, null, Instant.now());
+        releaseArtifactSha.set(RemoteReleaseCandidateStager.sha256(artifact));
+        var builder = mock(LocalReleaseCandidateBuilder.class);
+        when(builder.build(profile)).thenReturn(new LocalReleaseCandidateBuilder.BuildResult(true,
+                "LOCAL_BUILD", 0, 123, "tests and package passed", false, source, artifact));
+        var tool = releaseCandidateTool(builder);
+        var descriptor = new ToolRegistry(List.of(tool), objectMapper).descriptor("prepare_release_candidate");
+        assertThat(descriptor.source()).isEqualTo("SSH");
+        assertThat(descriptor.capability()).isEqualTo("WRITE");
+        assertThat(descriptor.riskLevel()).isEqualTo("HIGH");
+        assertThat(descriptor.inputSchema().toString()).doesNotContain("path", "artifact", "command", "version");
+
+        var result = objectMapper.readTree(tool.execute(objectMapper.readTree("{}")));
+        assertThat(result.path("successful").asBoolean()).isTrue();
+        assertThat(result.path("releaseId").asText()).isEqualTo("20260921T150000Z-cafebabe");
+        assertThat(result.path("candidatePath").asText())
+                .isEqualTo("/srv/old-things-releases/20260921T150000Z-cafebabe");
+        assertThat(result.path("artifactPath").asText()).isEqualTo("target/app.jar");
+        assertThat(result.path("artifactSha256").asText()).isEqualTo(releaseArtifactSha.get());
+        assertThat(result.path("productionModified").asBoolean()).isFalse();
+        assertThat(result.path("imageBuilt").asBoolean()).isFalse();
+        assertThat(Files.readString(root.resolve("srv/old-things-releases/20260921T150000Z-cafebabe/app.jar")))
+                .isEqualTo("artifact");
+        assertThat(Files.exists(root.resolve("srv/old-things-releases/20260921T150000Z-cafebabe/.env"))).isFalse();
+        assertThat(sessionsCreated).hasValue(1);
+        assertThatThrownBy(() -> tool.execute(objectMapper.readTree("{\"artifact\":\"app.jar\"}")))
+                .hasMessageContaining("不接受路径");
+    }
+
+    @Test
+    void failedLocalBuildIsAuditableAndNeverOpensSshSession() throws Exception {
+        var builder = mock(LocalReleaseCandidateBuilder.class);
+        when(builder.build(profile)).thenReturn(new LocalReleaseCandidateBuilder.BuildResult(false,
+                "MAVEN_TEST", 1, 44, "test failed", false, Path.of("D:/source"), Path.of("D:/source/target/app.jar")));
+        var result = objectMapper.readTree(releaseCandidateTool(builder).execute(objectMapper.readTree("{}")));
+        assertThat(result.path("successful").asBoolean()).isFalse();
+        assertThat(result.path("stage").asText()).isEqualTo("MAVEN_TEST");
+        assertThat(result.path("exitCode").asInt()).isEqualTo(1);
+        assertThat(result.path("output").asText()).contains("test failed");
+        assertThat(sessionsCreated).hasValue(0);
     }
 
     private InspectRemoteDeploymentTool tool(Duration timeout) {
@@ -340,6 +403,20 @@ class RemoteDeploymentToolTests {
                 new RemoteDeploymentRestoreDrillCommands(), timeout);
     }
 
+    private PrepareReleaseCandidateTool releaseCandidateTool(LocalReleaseCandidateBuilder builder) {
+        var secrets = mock(SecretResolver.class);
+        when(secrets.resolve("TEST_SSH_PASSWORD")).thenReturn(Optional.of("password"));
+        var sshService = mock(SshWorkspaceService.class); when(sshService.current()).thenReturn(ssh);
+        var workspace = new RemoteDeploymentWorkspace(new SftpSessionFactory(secrets), sshService);
+        var profiles = mock(RemoteDeploymentService.class);
+        when(profiles.current()).thenReturn(profile);
+        when(profiles.target(profile)).thenReturn("tester@127.0.0.1:" + server.getPort() + "/srv/old-things");
+        when(profiles.approvalTarget()).thenReturn(ssh.approvalTarget() + "|DEPLOY:/srv/old-things");
+        var stager = new RemoteReleaseCandidateStager(workspace, new ReleaseCandidateCommands(), Duration.ofSeconds(5));
+        return new PrepareReleaseCandidateTool(profiles, builder, stager, objectMapper,
+                Clock.fixed(Instant.parse("2026-09-21T15:00:00Z"), ZoneOffset.UTC), () -> "cafebabe");
+    }
+
     private static final class FixtureCommand implements Command {
         private final String stdoutText; private final String stderrText; private final Integer exitCode;
         private final AtomicBoolean destroyed; private InputStream input; private OutputStream output;
@@ -360,5 +437,14 @@ class RemoteDeploymentToolTests {
         @Override public void destroy(ChannelSession channel) throws Exception {
             if (destroyed != null) destroyed.set(true); if (input != null) input.close();
         }
+    }
+
+    private static void awaitTrue(AtomicBoolean value) {
+        var deadline = System.nanoTime() + Duration.ofSeconds(2).toNanos();
+        while (!value.get() && System.nanoTime() < deadline) {
+            try { Thread.sleep(10); }
+            catch (InterruptedException exception) { Thread.currentThread().interrupt(); break; }
+        }
+        assertThat(value).isTrue();
     }
 }

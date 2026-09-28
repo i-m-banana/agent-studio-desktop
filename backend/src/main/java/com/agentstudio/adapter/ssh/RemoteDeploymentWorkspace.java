@@ -1,5 +1,9 @@
 package com.agentstudio.adapter.ssh;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
 import org.apache.sshd.sftp.client.SftpClient;
 import org.apache.sshd.sftp.client.SftpClientFactory;
 import org.springframework.stereotype.Component;
@@ -52,6 +56,71 @@ class RemoteDeploymentWorkspace {
 
         String deployRoot() { return profile.remoteDeployRoot(); }
         String resolve(String relative) { return deployPolicy.resolve(relative, false); }
+
+        String releaseRoot() { return profile.remoteDeployRoot().replaceAll("/+$", "") + "-releases"; }
+
+        String createCandidateDirectory(String releaseId) throws Exception {
+            if (!releaseId.matches("[0-9]{8}T[0-9]{6}Z-[0-9a-f]{8}")) {
+                throw new IllegalArgumentException("平台生成的 releaseId 格式无效");
+            }
+            var releaseRoot = releaseRoot();
+            var parent = releaseRoot.substring(0, releaseRoot.lastIndexOf('/'));
+            var parentAttributes = safeAttributes(parent, new RemotePathPolicy(parent));
+            if (!parentAttributes.isDirectory()) throw new IllegalArgumentException("候选版本父目录不是普通目录：" + parent);
+            try {
+                var attributes = sftp.lstat(releaseRoot);
+                if (attributes.isSymbolicLink() || !attributes.isDirectory()) {
+                    throw new IllegalArgumentException("候选版本根不是安全目录：" + releaseRoot);
+                }
+            } catch (IOException missing) {
+                sftp.mkdir(releaseRoot);
+            }
+            var candidate = releaseRoot + "/" + releaseId;
+            sftp.mkdir(candidate);
+            var created = sftp.lstat(candidate);
+            if (created.isSymbolicLink() || !created.isDirectory()) {
+                throw new IllegalStateException("候选版本目录创建后校验失败：" + candidate);
+            }
+            return candidate;
+        }
+
+        void uploadExclusive(String candidatePath, String name, Path source) throws Exception {
+            var log = org.slf4j.LoggerFactory.getLogger(RemoteDeploymentWorkspace.class);
+            var started = System.nanoTime();
+            var size = Files.size(source);
+            log.info("Release candidate upload file={} bytes={} started", name, size);
+            try (var input = Files.newInputStream(source);
+                 var output = sftp.write(candidatePath + "/" + safeCandidateName(name),
+                         SftpClient.OpenMode.Write, SftpClient.OpenMode.Create, SftpClient.OpenMode.Exclusive)) {
+                var buffer = new byte[32768];
+                long transferred = 0;
+                long nextLog = System.nanoTime() + java.time.Duration.ofSeconds(10).toNanos();
+                int count;
+                while ((count = input.read(buffer)) >= 0) {
+                    if (Thread.currentThread().isInterrupted()) throw new java.io.InterruptedIOException("候选上传已中断：" + name);
+                    output.write(buffer, 0, count);
+                    transferred += count;
+                    if (System.nanoTime() >= nextLog) {
+                        log.info("Release candidate upload file={} transferred={} total={}", name, transferred, size);
+                        nextLog = System.nanoTime() + java.time.Duration.ofSeconds(10).toNanos();
+                    }
+                }
+            }
+            log.info("Release candidate upload file={} completed durationMs={}", name,
+                    java.time.Duration.ofNanos(System.nanoTime() - started).toMillis());
+        }
+
+        void uploadExclusive(String candidatePath, String name, byte[] contents) throws Exception {
+            try (var output = sftp.write(candidatePath + "/" + safeCandidateName(name),
+                    SftpClient.OpenMode.Write, SftpClient.OpenMode.Create, SftpClient.OpenMode.Exclusive)) {
+                output.write(contents);
+            }
+        }
+
+        private String safeCandidateName(String name) {
+            if (!name.matches("[A-Za-z0-9._-]+")) throw new IllegalArgumentException("候选文件名不安全：" + name);
+            return name;
+        }
 
         private void requireDirectory(String path, String label) throws Exception {
             try {

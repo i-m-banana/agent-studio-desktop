@@ -69,3 +69,4 @@ agent-studio:
     max-tool-calls-per-round: ${AGENT_MAX_TOOL_CALLS_PER_ROUND:4}
     approval-timeout: ${AGENT_APPROVAL_TIMEOUT:90s}
     total-timeout: ${AGENT_RUN_TIMEOUT:120s}
+    release-candidate-timeout: ${AGENT_RELEASE_CANDIDATE_TIMEOUT:900s}

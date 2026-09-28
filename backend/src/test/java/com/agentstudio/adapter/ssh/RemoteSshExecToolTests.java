@@ -164,7 +164,7 @@ class RemoteSshExecToolTests {
         assertThatThrownBy(() -> tool(Duration.ofMillis(150)).execute(objectMapper.readTree(
                 "{\"path\":\"slow-project\",\"task\":\"NPM_BUILD\"}")))
                 .hasMessageContaining("已关闭远程命令通道");
-        assertThat(hangingCommandDestroyed).isTrue();
+        awaitTrue(hangingCommandDestroyed);
     }
 
     @Test
@@ -247,5 +247,14 @@ class RemoteSshExecToolTests {
             if (destroyed != null) destroyed.set(true);
             if (input != null) input.close();
         }
+    }
+
+    private static void awaitTrue(AtomicBoolean value) {
+        var deadline = System.nanoTime() + Duration.ofSeconds(2).toNanos();
+        while (!value.get() && System.nanoTime() < deadline) {
+            try { Thread.sleep(10); }
+            catch (InterruptedException exception) { Thread.currentThread().interrupt(); break; }
+        }
+        assertThat(value).isTrue();
     }
 }

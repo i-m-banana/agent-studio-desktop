@@ -29,14 +29,14 @@ type ReadinessCheck = { id: string; name: string; status: 'READY' | 'WARNING' | 
 type SystemReadiness = { application: string; version: string; status: 'READY' | 'DEGRADED' | 'NOT_READY'; timestamp: string; checks: ReadinessCheck[] }
 type SecretStatus = { name: string; configured: boolean; source: 'ENVIRONMENT' | 'SECURE_STORE' | 'NONE'; usedBy: string[] }
 type SshWorkspaceStatus = { host: string; port: number; username: string; remoteRoot: string; hostKeySha256: string; passwordSecret: string; configured: boolean; passwordConfigured: boolean; status: string; lastError?: string; lastTestedAt?: string }
-type DeploymentProfile = { localSourceRoot: string; remoteDeployRoot: string; remoteBackupRoot: string; composeFile: string; composeProject: string; nginxConfig: string; healthUrl: string; configured: boolean; status: string; lastError?: string; lastTestedAt?: string }
+type DeploymentProfile = { localSourceRoot: string; remoteDeployRoot: string; remoteBackupRoot: string; localComposeFile: string; composeFile: string; composeProject: string; nginxConfig: string; healthUrl: string; configured: boolean; status: string; lastError?: string; lastTestedAt?: string }
 type SshFingerprint = { host: string; port: number; algorithm: string; sha256: string; warning: string }
 
 const emptyModel = { name: '', provider: 'OPENAI_COMPATIBLE', baseUrl: 'https://api.openai.com/v1', modelName: '', apiKeyEnv: 'OPENAI_API_KEY', temperature: 0.7 }
 const emptyAgent = { name: '', description: '', modelProfileId: '', knowledgeBaseId: '', systemPrompt: '', toolNames: [] as string[] }
 const emptyMcp = { name: '', transport: 'STREAMABLE_HTTP' as 'STREAMABLE_HTTP' | 'STDIO', endpointUrl: 'http://127.0.0.1:3001/mcp', apiKeyEnv: '', command: 'node', argumentsText: '', workingDirectory: '', environmentText: '' }
 const emptySsh = { host: '', port: 22, username: '', remoteRoot: '', hostKeySha256: '', passwordSecret: 'AGENT_STUDIO_SSH_PASSWORD', password: '' }
-const emptyDeployment = { localSourceRoot: 'D:/idea_work/shiguangxv', remoteDeployRoot: '/root/opt/old-things', remoteBackupRoot: '/root/opt/old-things-backups', composeFile: 'compose.yml', composeProject: 'old-things', nginxConfig: 'nginx.conf', healthUrl: 'http://127.0.0.1/' }
+const emptyDeployment = { localSourceRoot: 'D:/idea_work/shiguangxv', remoteDeployRoot: '/root/opt/old-things', remoteBackupRoot: '/root/opt/old-things-backups', localComposeFile: 'docker-compose.yml', composeFile: 'compose.yml', composeProject: 'old-things', nginxConfig: 'nginx.conf', healthUrl: 'http://127.0.0.1/' }
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, { ...init, headers: { 'Content-Type': 'application/json', ...init?.headers } })
@@ -107,7 +107,7 @@ function App() {
       setModels(nextModels); setAgents(nextAgents); setVersions(groups.flat()); setSecrets(nextSecrets); setKnowledgeBases(nextBases); setTools(nextTools); setRunHistory(nextRuns); setMcpServers(nextMcpServers); setBackendState('online')
       setSshStatus(nextSsh)
       setDeployment(nextDeployment)
-      setDeploymentForm((current) => nextDeployment.configured ? { localSourceRoot: nextDeployment.localSourceRoot, remoteDeployRoot: nextDeployment.remoteDeployRoot, remoteBackupRoot: nextDeployment.remoteBackupRoot, composeFile: nextDeployment.composeFile, composeProject: nextDeployment.composeProject, nginxConfig: nextDeployment.nginxConfig, healthUrl: nextDeployment.healthUrl } : current)
+      setDeploymentForm((current) => nextDeployment.configured ? { localSourceRoot: nextDeployment.localSourceRoot, remoteDeployRoot: nextDeployment.remoteDeployRoot, remoteBackupRoot: nextDeployment.remoteBackupRoot, localComposeFile: nextDeployment.localComposeFile, composeFile: nextDeployment.composeFile, composeProject: nextDeployment.composeProject, nginxConfig: nextDeployment.nginxConfig, healthUrl: nextDeployment.healthUrl } : current)
       setSshForm((current) => current.host ? current : { host: nextSsh.host ?? '', port: nextSsh.port || 22, username: nextSsh.username ?? '', remoteRoot: nextSsh.remoteRoot ?? '', hostKeySha256: nextSsh.hostKeySha256 ?? '', passwordSecret: nextSsh.passwordSecret || 'AGENT_STUDIO_SSH_PASSWORD', password: '' })
       const assetPairs = await Promise.all(nextMcpServers.map(async (server) => {
         try { return [server.id, { resources: await api<McpResource[]>(`/api/mcp/servers/${server.id}/resources`), prompts: await api<McpPrompt[]>(`/api/mcp/servers/${server.id}/prompts`) }] as const }
@@ -670,6 +670,7 @@ type FileResult = { path: string; sha256: string; sizeBytes: number; startLine: 
 type TaskResult = { task: string; target: string; path?: string; deploymentRoot?: string; composeProject?: string; successful: boolean; exitCode: number; durationMs: number; output: string; outputTruncated: boolean }
 type BackupResult = { target: string; deploymentRoot: string; backupRoot: string; backupId?: string; backupPath?: string; successful: boolean; exitCode: number; durationMs: number; databaseBytes: number; uploadsBytes: number; fileCount: number; manifestSha256?: string; output: string; outputTruncated: boolean }
 type RestoreDrillResult = { target: string; backupRoot: string; backupId?: string; backupPath?: string; drillId?: string; drillPath?: string; successful: boolean; exitCode: number; durationMs: number; databaseBytes: number; restoredUploadsBytes: number; restoredFileCount: number; manifestSha256?: string; drillSha256?: string; productionModified: boolean; databaseImported: boolean; output: string; outputTruncated: boolean }
+type ReleaseCandidateResult = { releaseId?: string; target: string; localSourceRoot: string; artifactPath: string; remoteReleaseRoot: string; candidatePath?: string; stage: string; successful: boolean; exitCode: number; durationMs: number; artifactBytes: number; artifactSha256?: string; manifestSha256?: string; output: string; outputTruncated: boolean; productionModified: boolean; imageBuilt: boolean }
 
 const remoteTasks = [
   { id: 'GIT_STATUS', title: 'Git 状态', detail: '查看分支和工作区状态', tone: 'READ' },
@@ -696,16 +697,18 @@ function RemoteWorkbench(props: RemoteWorkbenchProps) {
   const [directoryBusy, setDirectoryBusy] = useState(false)
   const [fileBusy, setFileBusy] = useState(false)
   const [browserError, setBrowserError] = useState('')
-  const remoteVersions = props.versionLabels.filter((version) => version.toolNames.some((name) => name.includes('remote_workspace') || name === 'inspect_remote_deployment' || name === 'prepare_remote_deployment_backup' || name === 'verify_remote_deployment_backup_restore'))
+  const remoteVersions = props.versionLabels.filter((version) => version.toolNames.some((name) => name.includes('remote_workspace') || name === 'inspect_remote_deployment' || name === 'prepare_remote_deployment_backup' || name === 'verify_remote_deployment_backup_restore' || name === 'prepare_release_candidate'))
   const parsedTask = useMemo(() => latestToolJson<TaskResult>(props.steps, 'run_remote_workspace_task'), [props.steps])
   const deploymentResult = useMemo(() => latestToolJson<TaskResult>(props.steps, 'inspect_remote_deployment'), [props.steps])
   const backupResult = useMemo(() => latestToolJson<BackupResult>(props.steps, 'prepare_remote_deployment_backup'), [props.steps])
   const restoreDrillResult = useMemo(() => latestToolJson<RestoreDrillResult>(props.steps, 'verify_remote_deployment_backup_restore'), [props.steps])
+  const releaseCandidateResult = useMemo(() => latestToolJson<ReleaseCandidateResult>(props.steps, 'prepare_release_candidate'), [props.steps])
   const [directory, setDirectory] = useState<DirectoryResult>()
   const [file, setFile] = useState<FileResult>()
   const [task, setTask] = useState<TaskResult>()
   const selectedReady = remoteVersions.some((version) => version.id === props.selectedVersion)
   const restoreDrillReady = remoteVersions.find((version) => version.id === props.selectedVersion)?.toolNames.includes('verify_remote_deployment_backup_restore') ?? false
+  const releaseCandidateReady = remoteVersions.find((version) => version.id === props.selectedVersion)?.toolNames.includes('prepare_release_candidate') ?? false
   const browserReady = props.sshStatus?.status === 'READY' && props.sshStatus.passwordConfigured
   const browserTarget = `${props.sshStatus?.username ?? ''}@${props.sshStatus?.host ?? ''}:${props.sshStatus?.port ?? ''}${props.sshStatus?.remoteRoot ?? ''}#${props.sshStatus?.hostKeySha256 ?? ''}`
   const visibleMessages = props.messages.slice(-6)
@@ -782,6 +785,11 @@ function RemoteWorkbench(props: RemoteWorkbenchProps) {
     await props.onRunMessage('请只使用 verify_remote_deployment_backup_restore 工具，对固定备份根内最新的合格备份执行一次隔离恢复材料演练。不得提供备份 ID、路径、命令、参数、环境变量、生产恢复、覆盖或删除选项。')
   }
 
+  async function requestReleaseCandidate() {
+    setTab('deployment')
+    await props.onRunMessage('请只使用 prepare_release_candidate 工具，从固定本地源码执行测试、打包并暂存一个不可变发布候选。不得提供路径、制品、命令、参数、环境变量、版本号、覆盖或部署选项。')
+  }
+
   async function submitDeployment(event: FormEvent) {
     event.preventDefault(); await props.onSaveDeployment(props.deploymentForm)
   }
@@ -828,7 +836,8 @@ function RemoteWorkbench(props: RemoteWorkbenchProps) {
               <label>本地源码根<input required value={props.deploymentForm.localSourceRoot} onChange={(e) => props.onDeploymentFormChange({ ...props.deploymentForm, localSourceRoot: e.target.value })} /></label>
               <label>远程部署根<input required value={props.deploymentForm.remoteDeployRoot} onChange={(e) => props.onDeploymentFormChange({ ...props.deploymentForm, remoteDeployRoot: e.target.value })} /></label>
               <label>远程备份根<input required value={props.deploymentForm.remoteBackupRoot} onChange={(e) => props.onDeploymentFormChange({ ...props.deploymentForm, remoteBackupRoot: e.target.value })} /></label>
-              <label>Compose 文件<input required value={props.deploymentForm.composeFile} onChange={(e) => props.onDeploymentFormChange({ ...props.deploymentForm, composeFile: e.target.value })} /></label>
+              <label>本地 Compose 文件<input required value={props.deploymentForm.localComposeFile} onChange={(e) => props.onDeploymentFormChange({ ...props.deploymentForm, localComposeFile: e.target.value })} /></label>
+              <label>远程 Compose 文件<input required value={props.deploymentForm.composeFile} onChange={(e) => props.onDeploymentFormChange({ ...props.deploymentForm, composeFile: e.target.value })} /></label>
               <label>Compose 项目<input required value={props.deploymentForm.composeProject} onChange={(e) => props.onDeploymentFormChange({ ...props.deploymentForm, composeProject: e.target.value })} /></label>
               <label>Nginx 配置<input required value={props.deploymentForm.nginxConfig} onChange={(e) => props.onDeploymentFormChange({ ...props.deploymentForm, nginxConfig: e.target.value })} /></label>
               <label>固定健康地址<input required value={props.deploymentForm.healthUrl} onChange={(e) => props.onDeploymentFormChange({ ...props.deploymentForm, healthUrl: e.target.value })} /></label>
@@ -843,6 +852,9 @@ function RemoteWorkbench(props: RemoteWorkbenchProps) {
             <div className="remote-backup-card remote-restore-card"><div><span>ISOLATED RESTORE DRILL / HIGH</span><h4>备份恢复材料演练</h4><p>自动选择最新合格备份，在 restore-drills 下新建隔离目录，重新校验并展开数据库、uploads 与部署文件；不会导入数据库、替换生产文件、启动容器或删除备份。</p></div><button className="danger" disabled={!restoreDrillReady || props.busy || props.deployment?.status !== 'READY'} onClick={() => void requestRestoreDrill()}>请求恢复演练</button></div>
             {!restoreDrillReady && selectedReady && <p className="remote-tool-hint">当前 Agent 版本尚未包含恢复演练工具，请在 Agent Builder 发布包含该工具的新版本后再执行。</p>}
             {restoreDrillResult && <div className="remote-backup-result remote-restore-result"><div><strong>{restoreDrillResult.drillId || 'RESTORE DRILL FAILED'}</strong><span className={`badge badge--${restoreDrillResult.successful ? 'completed' : 'failed'}`}>{restoreDrillResult.successful ? 'MATERIALIZED' : `EXIT ${restoreDrillResult.exitCode}`}</span></div>{restoreDrillResult.successful ? <dl><div><dt>来源备份</dt><dd>{restoreDrillResult.backupId}</dd></div><div><dt>隔离目录</dt><dd>{restoreDrillResult.drillPath}</dd></div><div><dt>数据库文件</dt><dd>{formatCompactBytes(restoreDrillResult.databaseBytes)}（未导入）</dd></div><div><dt>展开 Uploads</dt><dd>{formatCompactBytes(restoreDrillResult.restoredUploadsBytes)}</dd></div><div><dt>演练摘要</dt><dd>{restoreDrillResult.drillSha256}</dd></div></dl> : <pre>{restoreDrillResult.output || '恢复演练未完成'}</pre>}<footer>{restoreDrillResult.durationMs} ms · 文件 {restoreDrillResult.restoredFileCount || 0} 项 · 生产目录未修改 · 数据库未导入</footer></div>}
+            <div className="remote-backup-card"><div><span>LOCAL BUILD + IMMUTABLE STAGING / HIGH</span><h4>准备不可变发布候选</h4><p>平台从固定本地源码运行 Maven 测试与打包，只接受 target/app.jar；随后上传固定部署材料到全新的候选目录并核对摘要。不会读取 .env、构建镜像或修改生产目录。</p></div><button className="danger" disabled={!releaseCandidateReady || props.busy || props.deployment?.status !== 'READY'} onClick={() => void requestReleaseCandidate()}>请求准备候选</button></div>
+            {!releaseCandidateReady && selectedReady && <p className="remote-tool-hint">当前 Agent 版本尚未包含“准备不可变发布候选”，请在 Agent Builder 发布包含该工具的新版本后再执行。</p>}
+            {releaseCandidateResult && <div className="remote-backup-result"><div><strong>{releaseCandidateResult.releaseId || releaseCandidateResult.stage}</strong><span className={`badge badge--${releaseCandidateResult.successful ? 'completed' : 'failed'}`}>{releaseCandidateResult.successful ? 'STAGED' : `EXIT ${releaseCandidateResult.exitCode}`}</span></div>{releaseCandidateResult.successful ? <dl><div><dt>固定制品</dt><dd>{releaseCandidateResult.artifactPath} · {formatCompactBytes(releaseCandidateResult.artifactBytes)}</dd></div><div><dt>候选目录</dt><dd>{releaseCandidateResult.candidatePath}</dd></div><div><dt>制品摘要</dt><dd>{releaseCandidateResult.artifactSha256}</dd></div><div><dt>清单摘要</dt><dd>{releaseCandidateResult.manifestSha256}</dd></div></dl> : <pre>{releaseCandidateResult.output || '候选版本未完成'}</pre>}<footer>{releaseCandidateResult.durationMs} ms · 生产目录未修改 · 未构建镜像{releaseCandidateResult.outputTruncated ? ' · 输出已截断' : ''}</footer></div>}
           </div>}
           {tab === 'output' && <div className="remote-output"><div className="remote-output-head"><div><span>CONTROLLED TASK OUTPUT</span><strong>{task ? `${task.task} · ${task.path}` : '等待固定任务'}</strong></div>{task && <span className={`badge badge--${task.successful ? 'completed' : 'failed'}`}>{task.successful ? 'SUCCESS' : `EXIT ${task.exitCode}`}</span>}</div>{task ? <><pre>{task.output || '(任务没有输出)'}</pre><footer>{task.durationMs} ms · {task.target}{task.outputTruncated ? ' · 输出已截断' : ''}</footer></> : <Empty text="从“任务”标签请求 Git、Maven 或 npm 固定任务" />}</div>}
         </div>

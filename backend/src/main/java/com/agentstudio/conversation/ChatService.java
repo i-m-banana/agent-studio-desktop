@@ -40,6 +40,7 @@ public class ChatService {
     private final SafeExecutionGateway executionGateway;
     private final RunControlService controls;
     private final Duration totalTimeout;
+    private final Duration releaseCandidateTimeout;
     private final int maxRounds;
     private final int maxCallsPerRound;
 
@@ -50,7 +51,8 @@ public class ChatService {
                        SafeExecutionGateway executionGateway, RunControlService controls,
                        @Value("${agent-studio.runtime.max-tool-rounds:4}") int maxRounds,
                        @Value("${agent-studio.runtime.max-tool-calls-per-round:4}") int maxCallsPerRound,
-                       @Value("${agent-studio.runtime.total-timeout:120s}") Duration totalTimeout) {
+                       @Value("${agent-studio.runtime.total-timeout:120s}") Duration totalTimeout,
+                       @Value("${agent-studio.runtime.release-candidate-timeout:900s}") Duration releaseCandidateTimeout) {
         this.agents = agents;
         this.conversations = conversations;
         this.modelGateway = modelGateway;
@@ -67,6 +69,10 @@ public class ChatService {
             throw new IllegalArgumentException("运行总超时必须大于 0");
         }
         this.totalTimeout = totalTimeout;
+        if (releaseCandidateTimeout.compareTo(Duration.ofSeconds(650)) < 0) {
+            throw new IllegalArgumentException("候选发布运行总时限至少为 650 秒，以容纳工具和审批预算");
+        }
+        this.releaseCandidateTimeout = releaseCandidateTimeout;
     }
 
     public SseEmitter stream(ChatStreamRequest request) {
@@ -77,9 +83,14 @@ public class ChatService {
         var conversationId = resolveConversation(request.conversationId(), version.id());
         conversations.addMessage(conversationId, "user", request.message().trim());
 
-        var emitter = new SseEmitter(totalTimeout.plusSeconds(10).toMillis());
+        var emitter = new SseEmitter(runTimeout(version.toolNames()).plusSeconds(10).toMillis());
         taskExecutor.execute(() -> executeStream(emitter, conversationId, version));
         return emitter;
+    }
+
+    Duration runTimeout(java.util.List<String> toolNames) {
+        return toolNames.contains("prepare_release_candidate") && releaseCandidateTimeout.compareTo(totalTimeout) > 0
+                ? releaseCandidateTimeout : totalTimeout;
     }
 
     private String resolveConversation(String requestedId, String versionId) {
@@ -98,7 +109,7 @@ public class ChatService {
                                com.agentstudio.agent.AgentVersion version) {
         var answer = new StringBuilder();
         var run = runs.start(conversationId, version.id());
-        controls.register(run.id(), Thread.currentThread(), totalTimeout);
+        controls.register(run.id(), Thread.currentThread(), runTimeout(version.toolNames()));
         try {
             send(emitter, "run", Map.of(
                     "runId", run.id(),

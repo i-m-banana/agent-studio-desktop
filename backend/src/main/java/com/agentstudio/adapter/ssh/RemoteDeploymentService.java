@@ -31,7 +31,7 @@ public class RemoteDeploymentService {
         var now = Instant.now();
         var created = repository.find().map(RemoteDeploymentProfile::updatedAt).orElse(now);
         repository.save(new RemoteDeploymentProfile(profile.localSourceRoot(), profile.remoteDeployRoot(),
-                profile.remoteBackupRoot(), profile.composeFile(), profile.composeProject(), profile.nginxConfig(),
+                profile.remoteBackupRoot(), profile.localComposeFile(), profile.composeFile(), profile.composeProject(), profile.nginxConfig(),
                 profile.healthUrl(), true, "NOT_TESTED", null, null, now), created);
         return status();
     }
@@ -53,6 +53,8 @@ public class RemoteDeploymentService {
     String approvalTarget() {
         var profile = current();
         return ssh.current().approvalTarget() + "|DEPLOY:" + profile.remoteDeployRoot()
+                + "|LOCAL_SOURCE:" + profile.localSourceRoot()
+                + "|LOCAL_COMPOSE:" + profile.localComposeFile()
                 + "|COMPOSE:" + profile.composeProject() + "/" + profile.composeFile()
                 + "|HEALTH:" + profile.healthUrl();
     }
@@ -65,7 +67,7 @@ public class RemoteDeploymentService {
 
     private RemoteDeploymentProfile normalized(RemoteDeploymentRequest request) {
         return new RemoteDeploymentProfile(trim(request.localSourceRoot()), trim(request.remoteDeployRoot()),
-                trim(request.remoteBackupRoot()), trim(request.composeFile()), trim(request.composeProject()),
+                trim(request.remoteBackupRoot()), trim(request.localComposeFile()), trim(request.composeFile()), trim(request.composeProject()),
                 trim(request.nginxConfig()).replace('\\', '/'), trim(request.healthUrl()), true,
                 "NOT_TESTED", null, null, Instant.now());
     }
@@ -92,6 +94,9 @@ public class RemoteDeploymentService {
                 || profile.remoteDeployRoot().startsWith(backupPrefix)
                 || profile.remoteBackupRoot().startsWith(deployPrefix)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "部署根目录和备份根目录必须彼此独立，不能相同或互相嵌套");
+        }
+        if (!profile.localComposeFile().matches("[A-Za-z0-9._-]+")) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "本地 Compose 文件只能是安全文件名");
         }
         if (!profile.composeFile().matches("[A-Za-z0-9._-]+")) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Compose 文件只能是安全文件名");

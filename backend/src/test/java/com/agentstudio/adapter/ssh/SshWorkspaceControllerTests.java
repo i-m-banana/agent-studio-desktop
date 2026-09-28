@@ -78,7 +78,7 @@ class SshWorkspaceControllerTests {
     void savesIndependentDeploymentProfileAndRejectsUnsafeHealthTarget() throws Exception {
         mvc.perform(put("/api/ssh/deployment").contentType(MediaType.APPLICATION_JSON).content("""
                 {"localSourceRoot":"D:/idea_work/site","remoteDeployRoot":"/srv/old-things",
-                 "remoteBackupRoot":"/srv/old-things-backups","composeFile":"compose.yml",
+                 "remoteBackupRoot":"/srv/old-things-backups","localComposeFile":"docker-compose.yml","composeFile":"compose.yml",
                  "composeProject":"old-things","nginxConfig":"nginx.conf",
                  "healthUrl":"http://127.0.0.1/"}
                 """)).andExpect(status().isOk())
@@ -91,7 +91,7 @@ class SshWorkspaceControllerTests {
 
         mvc.perform(put("/api/ssh/deployment").contentType(MediaType.APPLICATION_JSON).content("""
                 {"localSourceRoot":"D:/idea_work/site","remoteDeployRoot":"/srv/old-things",
-                 "remoteBackupRoot":"/srv/old-things-backups","composeFile":"compose.yml",
+                 "remoteBackupRoot":"/srv/old-things-backups","localComposeFile":"docker-compose.yml","composeFile":"compose.yml",
                  "composeProject":"old-things","nginxConfig":"nginx.conf",
                  "healthUrl":"https://attacker.example/"}
                 """)).andExpect(status().isBadRequest())
@@ -99,7 +99,7 @@ class SshWorkspaceControllerTests {
 
         mvc.perform(put("/api/ssh/deployment").contentType(MediaType.APPLICATION_JSON).content("""
                 {"localSourceRoot":"D:/idea_work/site","remoteDeployRoot":"/srv/old-things;down",
-                 "remoteBackupRoot":"/srv/old-things-backups","composeFile":"compose.yml",
+                 "remoteBackupRoot":"/srv/old-things-backups","localComposeFile":"docker-compose.yml","composeFile":"compose.yml",
                  "composeProject":"old-things","nginxConfig":"nginx.conf",
                  "healthUrl":"http://127.0.0.1/"}
                 """)).andExpect(status().isBadRequest())
