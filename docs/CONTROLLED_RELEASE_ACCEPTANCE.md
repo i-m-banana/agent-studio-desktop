@@ -2,6 +2,8 @@
 
 用户完成全链路后反馈“感觉没什么问题”。开发者仅只读核对本机持久化 RunStep 与 AuditEvent，没有另行连接生产执行命令或删除任何产物。时间均为 UTC（北京时间 +8 小时）。本次验证的是应用发布正向链路，不是生产故障演练或数据库灾难恢复。
 
+用户进一步确认：这是首次完成全链路前向执行。版本里程碑提交为 `b0f37b2 feat: complete approved application release and recovery workflow`，分支 `feat/release-candidate-workflow`，本地已提交、未推送；较早开发锚点 `83314bb` 保留。网站源码目录不是 Git 仓库，平台提交不包含其源码；用户已有网站副本备份，网站 HANDOFF/VERIFICATION 已同步事实。manual-acceptance 与个人使用问题记录不纳入提交。后续一键上线是待设计/开发事项，不属于本次已验收能力。
+
 ## 原始记录索引
 
 | 环节 | 运行 ID | 核对结果 |
