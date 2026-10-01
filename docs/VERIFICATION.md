@@ -1,5 +1,147 @@
 # 验证记录
 
+## 2026-10-01：完整应用上线正向人工验收通过
+
+提交前复验：后端 `mvn -o test` 20:00:40完成147项，0失败/错误/跳过；前端19项测试通过，TypeScript/Vite生产构建286模块、4.08秒通过。首次受限执行无法读取用户Maven缓存，获准后使用相同离线命令通过；不是代码测试失败，也未下载新依赖。网站本轮只补交接文档，沿用下节已通过的21项验证。
+
+用户报告全链路完成且无明显问题；只读核对持久化运行、审批和审计，完整身份及运行索引见 [CONTROLLED_RELEASE_ACCEPTANCE.md](CONTROLLED_RELEASE_ACCEPTANCE.md)。发布运行2c8c8581-43b4-4c80-9ee6-6e2065272ec2：HIGH一次批准，SafeExecutionGateway一次开始/完成，DEPLOYED、successful=true、exitCode=0、deployed=true、rolledBack=false、manualInterventionRequired=false，51040ms；实际新镜像67303115…与旧镜像05bd35ca…不同。后置健康5958c8bf-ceef-4b67-a6c6-702871063238返回HTTP200。本次迁移数0，没有生产扩展迁移或真实故障回退演练证据，也没有上线后独立RELEASE_STATUS记录。本次仅补文档，不触发服务器任务，不清理任何备份/候选/镜像。下方“生产待验收/本轮未提交”等是此次用户验收前的历史记录，以本节为最新里程碑。
+
+## 2026-10-01：受审应用上线与失败恢复（生产待验收）
+
+本轮开始时Git节点：feat/release-candidate-workflow，HEAD 83314bb；已有基线/镜像/回执/界面未提交改动保留，manual-acceptance未修改或暂存。本地新增publish_remote_release及RELEASE_STATUS，无新执行旁路；同一固定指纹SSH/SFTP会话独占脚本，八项身份、生产组合摘要、新备份、固定app镜像标签及共享锁，兼容迁移与应用切换/健康/失败恢复串联。前端分开准备与真正上线，自动绑定证据并阻止过期/混用；失败、已恢复、未知状态不伪报上线成功。完整操作单CONTROLLED_RELEASE_USER_GUIDE.md、ADR0031、知识包31已同步。
+
+后端最终 `mvn -o test` 于14:55:12通过147项，0失败/错误/跳过：真实POSIX生成脚本+模拟Docker边界覆盖成功/健康失败恢复/恢复失败/迁移失败/校验篡改/备份过期/旧候选维护入口缺失；MINA进程内固定指纹同会话、脚本独占上传、非零恢复回执、超时未知状态、危险参数、线上身份解析；真实Registry/Gateway/Approval/Audit/SSE覆盖新工具批准仅执行一次、拒绝零执行、危险SQL字段审批前拒绝且无模型改写；普通预算/RAG/MCP等全量回归仍通过。初次回归中旧“所有诊断不得包含.env”断言与组合摘要不符，仅RELEASE_STATUS允许在服务器侧计算五文件的组合摘要，不返回.env内容或单独摘要；其余诊断规则保留。
+
+前端最终19项测试通过，TypeScript/Vite生产构建286模块通过（14:50，4.91秒）。上线成功必须deployed=true、rolledBack=false、manualInterventionRequired=false且successful/exitCode正常；恢复或未知不能标绿。新候选身份和旧生产身份不同，备份30分钟，结构/历史/生产身份5分钟有效；失败后要求新的只读证据。尚未进行真实浏览器布局人工验收，不以构建成功替代UI验收。
+
+网站最终 `mvn -o verify -Pmysql-verification` 于14:54:21通过：常规11项+隔离MySQL10项，0失败/错误/跳过，target/app.jar重新打包。新增无迁移校验、兼容扩展字段/普通索引/新表并保留原业务读写、危险DDL及漂移拒绝；保留原基线维护和页面回归。首次pending迁移被Flyway.validate拒绝，修正为前验仅允许pending并逐一审查，迁移后无忽略规则严格validate，不忽略失败/丢失/未来/校验和差异，不省略迁移；候选JAR新维护入口凭据stdin、DDL锁等待5秒、旧契约保留+Hibernate validate，无HTTP入口。测试容器由Testcontainers回收，缓存保留，不全局prune。
+
+用户上一轮的真实成功基线运行8a868b4f-cbc1-4fec-8609-0376398794a2（baselineRegistered=true、版本1、exitCode0），后置状态170bc568-20d5-4b6e-a956-4e993b2852e5返回["1","BASELINE",1]，健康9c586e58-b010-4d45-a413-9a1c34aa67d1返回HTTP200，说明前六步确已完成；不等于新上线工具经过生产验收。本轮没有连接生产SSH执行命令，没有迁移或切换生产，没有删除任何备份/候选/镜像，没有提交Git。真实上线/故障恢复须另行用户HIGH审批验收。MySQL DDL不自动回滚，硬崩溃/SSH失联不能保证恢复，未知状态必须人工核查。
+
+网站实际打包JAR用JDK21启动DatabaseReleaseMain、固定invalid-sha，返回MIGRATION_NOT_CONFIRMED=IllegalArgumentException及exit1，证明启动类/打包可读取且在stdin/数据库访问前受控拒绝。核实本地无运行中任务及项目launcher后重启本地后端/前端（保留平台数据库）；启动脚本确认本地服务就绪。不通过此动作触发生产上线。
+
+## 2026-10-01：只读结构成功回执被误标失败的界面修复
+
+用户提供原始JSON并核对真实运行 `20801dc9-f221-4d56-a92e-2ae8ee55c488`：DATABASE_SCHEMA、successful=true、exitCode=0、schemaComplete=true、outputTruncated=false、databaseModified=false，结构摘要仍为 `fcf08a91fe023fa236335c7c1eb38030bcee837960a4e9b8b05ec5cf7ef8b949`。回执中的baselineRegistered=false表示只读工具未执行登记，不应作为结构核查失败依据。上一轮FixedToolReply对所有含此字段的回执都要求true，导致中文失败卡与真实结果矛盾。
+
+前端现按任务语义判断：结构核查要求执行成功、完整且未截断；只有真实基线登记回执要求baselineRegistered=true。登记回执识别优先于镜像身份，避免其包含imageId时被误命名为构建镜像。成功结构卡明确说明只读操作没有登记基线。新增两项回归覆盖该真实形状、结构不完整/截断/非零，以及基线false/null不能通过。前端16项测试及生产构建通过；未触发服务器任务、未改变基线登记权限或生产数据库、未清理备份、未修改manual-acceptance、未提交Git。
+
+## 2026-10-01：登记前历史表缺失的真实记录核对
+
+只读读取本机运行和审计：运行 `1d54f8dd-ffef-450a-93f3-7e339db271cb` 于北京时间13:23执行 `DATABASE_BASELINE_STATUS`，目标 `root@117.72.84.129:22/root/opt/old-things`，exitCode=1、successful=false，MySQL ERROR1146：`old_things.flyway_schema_history` 不存在。USER_TOOL_REQUEST、审批批准、TOOL_RESULT及执行完成审计均存在，证明查询真实执行；COMPLETED是执行完成状态，不是业务校验通过。此前登记 `eab500af-e29e-4851-b6fa-bc3b88dedb32` 启动类失败，之后没有成功登记记录，因此当前缺表与尚未登记一致；不是SSH/认证故障，不应手动建空表掩盖状态。
+
+进一步核对镜像运行 `01b94bb1-44a5-4f11-9e4b-61bd2968435b`：IMAGE_READY、successful=true、exitCode=0，输出有RUNTIME_SMOKE和BUILDER_CLEANED=true，镜像ID `sha256:f339842d2ca803e981614bf17b3a5350f405cc3deca7734b46df1861471fd036`，生产未修改、服务未重启。备份 `20260930T143429Z-ffba9e8c` 已超过30分钟，不能用于本次登记，但按用户要求继续保留。新增中文六步验收操作单。此轮仅诊断和文档，无代码变更或新测试运行，无远程执行/删除/登记，未修改manual-acceptance、未提交Git；生产基线尚未验收。
+
+## 2026-09-30：六步发布引导与结果辨识（仅自动化）
+
+部署页改为按候选、镜像、近期备份、只读结构、受审基线、只读验收的六步引导。每步显示用途、成功证据和失败可能留下的影响；高级配置/原始技术结果默认折叠，重复的候选、镜像、备份、基线执行入口从高级区移除。平台固定任务回执在操作助手中以 `successful` 和 `exitCode` 显示中文成功/失败，原始 JSON 可展开；模型文字不被当成工具执行证据。运行历史只读恢复最近 50 条的相关工具结果，刷新后不把已执行步骤误显示为未执行；基线按钮还须核对同一目标、镜像自检、新备份时效、完整结构及六项绑定身份。验收须在基线成功后重新读取版本 1 `BASELINE` 成功记录和站点健康，旧诊断不能冒充验收。
+
+在本机浏览器查看部署页，发现中间栏宽度下两列卡片挤压中文，已改为单列；切换到部署 Agent 后确认近期备份显示过期、基线按钮锁定、六步与高级区分离。未点击任何远程任务。前端 `npm test` 14 项、`npm run build` 285 模块通过；本节尚无生产基线正向验收，不宣称整条链路成功。本轮未触发远程任务、未更改生产数据库或网站。用户明确选择保留所有备份，只清理已确认废弃的临时构建产物；当前仅从历史回执识别到若干构建尝试，未通过受控接口复核远端现状与引用，因此未删除任何远端或本地数据，也未执行 Docker 全局 prune。`manual-acceptance/` 未修改，Git 未提交。
+
+## 2026-09-30：基线登记启动类失败后的镜像权限防线
+
+真实受审登记返回 `PropertiesLauncher ClassNotFoundException`，随后用户执行只读 `DATABASE_BASELINE_STATUS` 返回 `old_things.flyway_schema_history` 不存在（exitCode 1）。因此登记未完成；此前工具的 `databaseHistoryMayHaveChanged=true` 是失败时的保守标记，不可推断已登记。源 JAR 确有启动类，隔离构建脚本 `umask 077` 下复制的上下文 JAR 可能为 root 独读，镜像中的非 root 用户无法读取。平台仅将经摘要校验的构建上下文副本改为 0644，原候选仍受保护；新增 `RUNTIME_SMOKE`，在无网络、只读、非 root、限额容器中启动固定维护入口并用无效摘要确认其在读取凭据/连接数据库前受控拒绝。失败或超时不发 IMAGE_READY 回执，并尝试按所有者标签清理本次容器及构建器；启动日志有文件大小限制。不修改网站 Dockerfile、生产数据库/容器、旧候选或旧镜像。最终后端 `mvn -o -q test` 135项通过、0失败/错误/跳过；前端 `npm run build` 284模块通过。真实服务器重构建/重新备份/登记尚待用户审批，不能写成已验收。
+
+## 2026-09-29：固定任务不再依赖模型决定执行（仅自动化）
+
+原始a612cb2b-0e62-44c3-8cd3-550c5b15a7a8与4dd68bf1-9df1-4d66-a206-4713fc372a29只有MODEL_CALL，分别虚构基线/认证错误，不是服务器执行证据。现有chat/stream增加可选requestedTool（固定七工具、当前版本绑定、有界对象），仍经同一SafeExecutionGateway、Schema、一次性参数/目标审批、RunStep和AuditEvent。固定任务直接输出原始工具回执，不请求模型重写；拒绝/失败不伪造成功。自然语言明确执行请求没有结果时显示EXECUTION_EVIDENCE_CHECK/任务未执行，预算耗尽且全部拒绝也拦截；解释如何使用工具不误拦截。旧三字段API兼容，普通ReAct/RAG/MCP不移除。
+
+最终后端 `mvn -o test` 23:01:10通过132项，0失败/错误/跳过。新增7项集成用真实Registry/Gateway/Approval/Audit/SSE及模拟SSH适配器：批准仅执行一次/不调用模型、原始非零结果、拒绝零执行、危险SQL字段网关拒绝、未绑定400、无证据自由聊天拦截、四轮拒绝后不伪造finalization；另1项解释问题/明确调用判别。前端9项测试及TypeScript/Vite生产构建284模块通过（2.85秒）。最初测试类访问包内方法与未声明checked exception已修正，未放宽生产接口。ADR0030、README、基线人工说明、知识包30同步更新；新触发机制真实服务器待用户审批验收，不执行生产任务，不修改manual-acceptance，不提交Git。
+
+## 2026-09-29：候选镜像慢速下载预算修复（仅自动化）
+
+核对原始运行397ce071-f708-4f3e-8042-8f3e65dd0017：PRECHECK/BOOTSTRAP/资源核查通过，基础镜像16.97MB层260.4秒推进到15.66MB，300秒终止exit124，清理退出0；没有生产切换。固定共享构建预算900秒、命令1100秒、工具1140秒、镜像版本会话与SSE至少1200秒，保留更长配置；其余会话不变。审批目标绑定900秒，三轮共享、不无限重试，原限额/摘要/TLS/输出/清理机制不变。
+
+后端 `mvn -o test` 22:31:39通过124项，0失败/错误/跳过，含真实POSIX生成脚本和模拟Docker下载重试/耗尽/超时/清理、SSH通道超时、900秒命令与审批策略、镜像会话1200秒及更长配置、普通会话预算回归。前端 `npm run build` 284模块通过（3.49秒）。新预算没有真实服务器成功证据；不能把本次自动化标为已人工验收。ADR0026/人工说明/问题复盘/知识包28同步更新；未操作生产、未修改manual-acceptance、未提交Git。
+
+## 2026-09-29：受审数据库版本1基线登记（仅自动化）
+
+只读结构真实正向运行35dff08a-dbf9-4e1e-ac92-a5ebf65a5f90已核对原始RunStep和审计：成功0、668ms、完整未截断，old_things/MySQL8.0.46、8表44列及4组外键，摘要fcf08a91fe023fa236335c7c1eb38030bcee837960a4e9b8b05ec5cf7ef8b949。审批/开始/完成完整，未登记历史；非正向仍主要为自动化证据。
+
+新增adopt_remote_database_baseline（登记受审数据库基线），SSH/WRITE/HIGH210秒，六项身份绑定新候选、镜像、结构和30分钟内备份。SFTP/固定命令复核摘要、备份完整性/时效/目标、镜像ID/标签和实时结构；隔离候选维护入口短READ锁下校验契约，仅Flyway baseline1，不migrate/repair/clean、不改业务行或重启网站。失败登记状态不可假定，增加DATABASE_BASELINE_STATUS只读诊断。凭据为0700目录内0600临时文件，经stdin传入，正常EXIT回收；清理只针对匹配owner标签容器，失败不伪造成功。ADR0029/验收说明记录残留、短写等待与外部DDL风险。
+
+网站最终 `mvn -o verify -Pmysql-verification` 22:09:11通过：默认10+独立MySQL7（原业务4+新增维护3），无失败/错误/跳过，target/app.jar重新打包；含缺少唯一约束即使摘要正确也拒绝登记的补充断言。首次DATE/DATETIME解析及44列计数不匹配已修正，不移除契约校验；READ锁内禁用START TRANSACTION/COMMIT以免隐式解锁。维护PropertiesLauncher用构建JDK验证可启动且无效参数返回受控拒绝；普通shell默认Java8不适配，候选用Java17。没有连接生产。
+
+平台最终 `mvn -o test` 124项通过（22:07:52），0失败/错误/跳过；包括HIGH/参数、同会话、备份摘要/过期、结构漂移、非零未知状态、超时关闭、真实POSIX脚本成功/失败退出码、owner限定容器清理、清理失败不伪装成功及凭据文件清理。POSIX测试Docker和flock均为模拟边界；首次固定Git Bash路径不存在、Git Bash无flock已改为既有解析方式/明确模拟，不更改生产锁。网站MySQL锁/历史测试为真实隔离数据库。SQL副本规范化比较一致。
+
+前端9项测试及生产构建通过（284模块），当前链路身份在运行步骤清空时保留、切目标/版本时清空，避免六项信息被下一个任务冲掉；不开发历史会话或历史候选列表。git diff --check通过；manual-acceptance/未修改。未提交，HEAD保持83314bb。真实基线登记/生产切换/故障回滚仍待独立审批验收。
+
+本地应用已重启，工具目录确认登记受审数据库基线SSH/WRITE/HIGH210秒；健康UP、版本1.0.0。没有触发服务器任务或登记基线。
+
+## 2026-09-29：受审生产数据库结构只读核查（仅自动化通过）
+
+在既有 inspect_remote_deployment 增加 DATABASE_SCHEMA，不新增通用 SQL/执行接口。复用固定 SSH 指纹、同会话 SFTP 路径校验、SSH/EXECUTE/HIGH、一次性参数绑定审批和 RunStep/AuditEvent。固定 mysql 容器以只读事务查询 information_schema，容器凭据不离开容器，不读取业务行/列默认值，不登记基线、不启动新候选、不修改生产。输出完整协议才计算 schemaSha256；非零/截断不发摘要，错误协议失败。单查询/远端/SSH/工具预算分别 15/25(+2 秒 kill)/30/45 秒，结构输出 48000 字节。未截断 UTF-8 缓存跨边界解码修复有专门回归，不缩减索引或审计能力。
+
+最终后端 `mvn -o test` 117 项通过（21:29:01），0 失败/错误/跳过；独立 `mvn -o '-Dtest=RemoteDatabaseSchemaMySqlIT' test` 1 项通过（21:30:07），真实本地 MySQL 8.0 查询验证索引/外键规则、数据变更不影响摘要、DDL 改变摘要、密码/默认值/行值不泄露、未创建历史表且原行保留。测试使用本次 UUID 容器，无生产连接或公开端口，finally 仅回收该容器及匿名卷；缓存镜像保留，不全局 prune。该 IT 必须显式运行，不算在默认 117 项中。
+
+第一次真实 MySQL 测试暴露 INDEX JSON 行宽度误写成 10（实际 9），修正并补回归后通过，未跳过协议或索引校验。首次沙箱 Maven 依赖解析被权限阻止，正常本机缓存环境重跑成功；最终全量离线运行，不改变全局 Maven 配置。
+
+前端 6 项 Vitest 与 TypeScript/Vite 生产构建通过（283 模块），部署页增加中文核查入口及摘要/未完成警示。git diff --check 通过。启动本地应用后健康 UP、版本 1.0.0，未新增数据库迁移。当前分支 feat/release-candidate-workflow，HEAD 保持 83314bb，本轮未提交；manual-acceptance 和网站真实数据未改。
+
+真实生产结构采集尚待用户 HIGH 审批，不能写已人工验收；结构采集也不代表契约兼容。真实输出核对后再实现受审基线登记（重新核查漂移、新备份、候选绑定）、受控 app 切换和失败回滚，完整发版链路尚未完成。验收说明见 DATABASE_SCHEMA_ACCEPTANCE，边界见 ADR 0028。
+
+## 2026-09-28：本地网站版本化数据库迁移基础通过
+
+用户明确授权 D:/idea_work/shiguangxv 本地任意修改并已备份。按该目录 AGENTS/HANDOFF 保持业务和真实数据，加入 Flyway 9.22.3、MySQL 支持及 Hibernate validate，关闭自动 baseline/clean；源码派生 V1 仅供空库，现有生产结构未核实。旧快照与当前实体不一致，不导入旧备份建立假基线。只读核对辅助类及演进/兼容性流程见 ADR 0027 和网站 docs/DATABASE_MIGRATION.md。
+
+网站 `mvn clean verify -Pmysql-verification` 于 23:37:43 通过：默认 10 项（原功能 3 + 迁移边界 7），独立 MySQL 8.0 4 项（原功能 3 + 兼容扩展 1），全部 0 失败/错误/跳过，生产 JAR 打包成功。测试专用 V2 不进入生产包；MySQL/Ryuk 测试容器自动回收，原本地数据库仍健康，镜像缓存保留。本轮未更改 Agent Studio 运行代码，沿用上一阶段后端 110 项及前端 6 项/生产构建证据；不声称本轮重跑了这些测试。
+
+H2 枚举类型差异、旧 Testcontainers 与 Docker 29 不兼容、子类重复测试配置覆盖认证测试值已修复，不以降级或禁测解决。网站没有 Git 仓库，未初始化/提交；生产数据库/服务器未修改，manual-acceptance 未修改。新候选必须重新准备；现有构建成功的旧镜像不包含本地改造。受审生产结构核查/基线登记、app 切换、健康检查及失败回滚仍未完成，不能宣称整条发布链路结束。
+
+## 2026-09-28：候选镜像正向真实验收与发布前置核查
+
+用户提供成功截图后读取原始运行 4fdc8583-f14d-4052-9ee7-65e85b732065：successful=true，IMAGE_READY，exitCode=0，83372 ms，镜像 ID sha256:2849cb4ada5a090933f75cfcabfb2e7bd8738d3f4c4309f1d2bdf019cbe25a7c，输出未截断，第一轮成功，构建器清理回执为 true，生产未修改、服务未重启。原始审计完整包含 APPROVED、TOOL_EXECUTION_STARTED、TOOL_EXECUTION_COMPLETED。此为真实服务器与模型正向人工验收，不替代负向人工演练或生产发布验收。完整根因、修复和未解决风险见 RELEASE_IMAGE_BUILD_POSTMORTEM。
+
+继续开发前只读核查 D:/idea_work/shiguangxv/src/main/resources/application.yml:11，仍有 ddl-auto: update，pom 未发现 Flyway/Liquibase 依赖。计划第 8 节要求数据库回滚前置条件；当前不能承诺仅切回镜像可恢复业务。按用户要求不采用永久禁止结构变化的功能缩减，记录需要网站仓库基线/迁移/兼容性改造授权，未擅自修改网站、数据库或执行生产切换。历史会话需求保持延期，manual-acceptance 未修改。
+
+## 2026-09-28：审计错误摘要超长修复
+
+真实运行 7d1f5f80-f87d-4273-b1d4-f8a1384a462c 已审批，14:52:39Z 写入 TOOL_EXECUTION_STARTED，随后 RunStep 返回 audit_event.details 的 Data too long，而不是原始构建错误。审计中没有完成或失败事件；不能以模型总结认定“构建未执行”或确认镜像/构建器最终状态，已丢失的原始错误不可凭空恢复。
+
+根因是 AuditRepository 对超长错误先 substring(0,1000) 再追加省略号，向 VARCHAR(1000) 传入 1001 字符。修复为最多 999 字符加省略号，避免切断 UTF-16 代理对；不放宽数据库校验、不跳过审计、不改变 Gateway、审批或审计身份。工具失败 RunStep 使用与成功工具相同的有界长记录策略，保留首尾原始错误，审计详情继续作为短摘要而非全文日志。历史会话开发仍延期。
+
+新增 999/1000/1001/16000 长度、中文、emoji 边界，以及实际传给 JDBC 的参数摘要/状态/详情长度回归。后端全量 110 项通过，0 失败、0 错误、0 跳过（23:01:55），git diff --check 通过；本轮前端未修改，沿用上一轮 6 项测试与生产构建证据。真实构建成功仍待独立验收。manual-acceptance 未修改，未通过旁路执行服务器任务。
+
+本地应用已重启，23:03:07 健康 UP、版本 1.0.0；未新增数据库迁移，本次严格适配已有 VARCHAR(1000)。
+
+## 2026-09-28：基础镜像下载 EOF 有界重试与原始记录修复
+
+真实运行 163df3a5-d08b-431f-acda-ca03a13f436e 的工具结果为 successful=false、IMAGE_BUILD、exitCode=1、139988 ms；RunStep 证明三个固定镜像源配置已加载、构建器正常启动。用户截图显示 eclipse-temurin 基础镜像下载 short read（期望 3843 字节，实际 0）及 unexpected EOF，未改生产、未重启服务。该运行的持久化工具 JSON 在 4000 字符处被截断，无法从既有数据库记录恢复末尾或断言具体失败镜像源；不得宣称网络已连通或镜像已通过人工验收。
+
+本次实现下载传输故障最多三轮重试，固定 5 秒退避，共用原 300 秒构建预算、同一独立构建器/标签；超时、编译/权限及非传输错误不重试，重试策略写入审批目标。每轮诊断日志限制 2048 个 shell 文件大小单位（目标 shell 通常为 512 或 1024 字节，即最多约 2 MiB），输出仍使用 16000 字符首尾有界流。未增加不可信源，未放宽 TLS，未修改 Dockerfile、全局 Docker 或生产服务。重试仅改善瞬时故障，持久外部网络故障仍会安全失败。
+
+工具 RunStep 改为保留有界完整结果而非 4000 字符切坏 JSON，超 128000 字符保留首尾并标记省略；新增 V15 将 output_text 扩大为 MEDIUMTEXT，不改已有记录身份或审批。模型上下文仍限 16000 字符。历史会话与候选选择需求已记录到 REMOTE_DEPLOYMENT_OPERATIONS_PLAN，按用户要求在发版链路完成后开发，本次没有实现这些功能。
+
+专项测试 13 项通过，随后新增构建超时不重试回归；最终后端全量 108 项通过，0 失败、0 错误、0 跳过（22:50:51），含 V15 迁移；前端 6 项测试与生产构建（283 模块）通过。第一次全量运行有一项旧命令文本断言仍期待单次固定 timeout，更新为共享 deadline/remaining 断言后全量通过。真实服务器成功构建仍待用户重新审批验收。manual-acceptance 未修改。
+
+本地应用重启完成，22:51:25 MySQL 成功应用 V15；22:51:42 系统健康为 UP、版本 1.0.0。未通过旁路触发服务器构建，下一次构建仍要求用户界面 HIGH 一次性审批。
+
+## 2026-09-28：临时 BuildKit 显式接入批准的镜像源
+
+真实运行 `acfd5a76-c617-4cb8-b844-4536e4456403` 已通过固定材料预检并启动构建器，但 IMAGE_BUILD 解析 `eclipse-temurin:17-jre-alpine` 元数据时直连 registry-1.docker.io 超时，普通退出码 1，耗时 118,637 ms。日志确认本次构建器 removed、清理退出码 0；不代表此前其它尝试都已清理，镜像构建仍未人工验收成功。
+
+用户提供宿主 Docker 三项镜像源配置并批准临时构建器接入：`https://docker.1ms.run/`、`https://docker.1panel.live/`、`https://docker.ketches.cn/`。固定策略生成独占尝试目录内 0600 `buildkitd.toml`，以 SHA-256 校验，再通过 --buildkitd-config 传给本次专用构建器。配置不进入 jar/Dockerfile 两文件构建上下文；不改 Docker 全局配置或候选 Dockerfile、不重启网站、不启用 HTTP/insecure。审批目标、结果、成功回执绑定镜像源列表与配置摘要；模型参数仍只有候选 ID 和清单摘要，拒绝自定义 URL。
+
+后端全量 103 项通过，0 失败、0 错误、0 跳过（22:28:47 完成），包括实际 POSIX 模拟 Docker 流程读取镜像源配置、配置摘要、两文件上下文、危险额外 registryMirrors 拒绝及无全局 Docker 修改命令。前端 Vitest 6 项和生产构建通过（283 模块）。首次专项测试捕获脚本格式化参数顺序错误，修复后全量通过；真实服务器镜像源连通性和成功镜像仍待用户审批重试，不能宣称问题已在生产环境解决。构建器镜像拉取仍由宿主 Docker 配置处理；镜像源均失败时 BuildKit 仍可能回退官方 registry。
+
+## 2026-09-28：镜像失败日志保留与幂等清理修复
+
+真实请求 `4c669f76-f3b8-4e25-b2b4-df0b6658bb80` 因 90 秒审批超时未执行；随后 `66169d98-913d-4717-a8cf-0ef3b9224c48` 于 17:00:33 批准并经 SafeExecutionGateway 开始，17:02:38 失败，约 125 秒。错误只保留“构建失败且清理未确认”，丢弃了远端原始退出码与日志；不能由此认定构建器残留，也无法确认实际是否为 120 秒 bootstrap 超时。该次真实镜像构建未验收通过。
+
+修复远端 EXIT trap 保留原始退出码，输出构建阶段与独立清理退出码；成功清理写 builder.cleaned，后续补偿清理幂等成功。后端保留 stage、原始构建 exitCode/输出/截断标志、builder、attempt 和独立清理错误；超时与取消也保留已有输出，不再让清理错误掩盖构建原因。原有资源、超时、一次性审批和生产不切换边界保持不变，未延长超时、未自动重试远端构建、未清理历史尝试或生产对象。
+
+新增回归覆盖重复清理、bootstrap 退出 124 同时清理退出 18、原始失败输出保留及清理成功后超时诊断。最终后端全量 102 项通过，0 失败、0 错误、0 跳过（17:15:31 完成）；前端 6 项测试和生产构建通过（283 模块）。真实重试待用户审批操作，本次只证明修复自动化通过；manual-acceptance 未修改、未提交。
+
+## 2026-09-28：隔离候选应用镜像构建（自动化）
+
+新增“构建候选应用镜像” `build_release_candidate_image`（SSH/EXECUTE/HIGH），仅接受严格格式的 releaseId、manifestSha256，沿用现有参数绑定一次性审批、固定 SSH 指纹、Profile 与审计链。候选清单升级格式 2，绑定 jar/Dockerfile/Compose/Nginx 全部固定摘要；旧候选保留但拒绝镜像构建。单 SSH 会话逐级 SFTP 安全检查、有界清单读取、Exec 固定摘要复核与仅 jar/Dockerfile 的独占快照。
+
+固定 Docker/Buildx、内存与磁盘预检查、平台构建互斥锁、独立 Docker 配置和本机 socket；专用 docker-container 构建器配置并核对 512 MiB/0.5 CPU 限额，启动 120 秒、实际构建 300 秒、通道 500 秒、工具 540 秒，相关 AgentVersion 继续使用 900 秒外层预算。输出合并并有界首尾保留；验证尾部成功回执的候选、清单、标签与镜像 ID。普通非零退出为结果，摘要失败和超时为工具失败。正常、失败、取消时清理本次专用 builder，不操作生产切换、重启、prune 或历史镜像。网络故障下只能确认尝试清理，不承诺绝无残留。
+
+最终后端全量 `mvn test`：98 项通过，0 失败、0 错误、0 跳过（16:50:38 完成）。包括 MINA 本地 SSH 会话复用、成功/非零/超时/取消清理、16 KB 截断仍保留回执、危险参数、候选清单篡改/旧格式、候选祖先与每项固定文件符号链接拒绝；4 项 POSIX 实际脚本测试用模拟 Docker 边界验证成功/失败/篡改/低磁盘的检查和清理顺序。新增取消测试首次断言仅给 4 秒退出时间，不足以覆盖 MINA 5 秒连接预算，调整为覆盖连接及清理预算的 15 秒后专项及全量通过。
+
+前端 Vitest 6 项通过，TypeScript/Vite 生产构建通过（283 模块）。新增候选身份/摘要输入、自动填入当前成功候选与中文镜像请求/结果卡；未新增执行旁路。已重启本地前后端，系统状态 UP/1.0.0，工具目录确认新工具 SSH/EXECUTE/HIGH、540 秒已注册。真实服务器 Docker 构建与真实模型验收待用户操作，未自动执行真实构建或生产操作。详见 RELEASE_IMAGE_ACCEPTANCE 和 ADR 0026。`manual-acceptance/` 未修改、未提交。
+
 ## 2026-09-28：不可变发布候选正向人工验收
 
 用户确认成功，核对真实运行 `c37e9338-8fd1-4357-9fa5-734961cbde40` 为 COMPLETED。工具请求参数为 `{}`，经过 HIGH 参数绑定一次性批准与 SafeExecutionGateway，审计完整覆盖参数校验、审批、执行开始和执行完成；工具耗时 100,397 ms，退出码 0，阶段 REMOTE_VERIFY。

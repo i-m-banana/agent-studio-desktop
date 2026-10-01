@@ -6,6 +6,7 @@
 
 1. 本地源码根指向可信 Maven 项目，并包含 `pom.xml`、`Dockerfile`、`docker-compose.yml`、`nginx.conf`。
 2. `pom.xml` 固定生成 `target/app.jar`。
+   镜像构建要求新生成的格式 2 清单，它额外绑定 Dockerfile、Compose 和 Nginx 摘要；旧格式 1 的已验收候选保留，但需要重新准备候选后才能进入镜像构建。
 3. SSH Profile、密码凭据、远程根和固定 SHA-256 主机指纹已通过检查。
 4. 部署 Profile 中“本地 Compose 文件”为 `docker-compose.yml`，“远程 Compose 文件”为 `compose.yml`。
 5. 发布一个包含“准备不可变发布候选”工具的新 AgentVersion。

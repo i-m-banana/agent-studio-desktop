@@ -6,6 +6,12 @@
 
 ## 当前已具备
 
+2026-10-01 新增“受审上线并验证恢复（publish_remote_release）”：绑定八项身份，核查近期备份和生产指纹，校验兼容扩展迁移，只重建 app、刷新 Nginx、验证实际镜像/容器/首页/浏览页，成功后同步生产 app.jar/Dockerfile；失败尝试恢复旧应用，不覆盖数据库或 uploads。代码/自动化验收不等于生产已经上线，真实发版待逐次审批。完整中文操作单：[CONTROLLED_RELEASE_USER_GUIDE.md](docs/CONTROLLED_RELEASE_USER_GUIDE.md)。
+
+2026-10-01 完整应用上线正向人工验收通过：新候选镜像已切换，上线回执 DEPLOYED，后置健康 HTTP200；完整运行、审批与审计证据见 [CONTROLLED_RELEASE_ACCEPTANCE.md](docs/CONTROLLED_RELEASE_ACCEPTANCE.md)。本次没有待执行迁移；失败恢复有自动化覆盖，未做真实生产故障注入。上方“待逐次审批”指后续每次发版仍必须审批，不表示本次尚未上线。
+
+实验分支增加“构建候选应用镜像（build_release_candidate_image）”：按候选 ID 与清单摘要构建独立限额镜像，不切换生产；新非 root 启动自检及真实构建已经验收，步骤见 `docs/RELEASE_IMAGE_ACCEPTANCE.md`。候选清单升级为格式 2，旧候选需要重新准备。
+
 - Spring Boot 模块化单体和 React + TypeScript + Vite 本地管理台；
 - MySQL 与 PostgreSQL + pgvector 的 Docker Compose 定义；
 - Flyway 管理的模型、知识库元数据、Agent 版本、会话和消息表；
@@ -21,7 +27,8 @@
 - SSH/SFTP 远程工作区：固定主机指纹、密码安全解析、单远程根的目录浏览/路径搜索/文本读取，以及摘要绑定、HIGH 审批的远程单文件精确补丁均已通过自动化和真实 Ubuntu/OpenSSH 服务器验收；
 - 受控 SSH Exec：只允许在授权远程项目目录运行 Git 状态/差异摘要和固定 Maven/npm 测试构建任务，统一进入 `SSH/EXECUTE/HIGH` 审批；自动化及真实 Ubuntu/OpenSSH 上的五种固定任务正向链均已验收，并验证了非零退出、超时关闭和错误项目标记；
 - 受控远程工作台：人工文件浏览不调用模型，三栏分别内部滚动，固定任务、审批和输出保持在同一操作上下文；真实界面与 SSH 任务已人工确认；
-- 远程部署只读诊断：独立 V12 生产 Profile，只允许 Compose 校验/状态、Nginx 语法、固定站点健康和发布指纹五项 HIGH 任务；V13 扩展审批目标容量，自动化及真实生产五项正向链均已验收；
+- 远程部署只读诊断：独立 V12 生产 Profile，原五项 HIGH 及 DATABASE_SCHEMA（数据库结构核查）正向链已真实验收；新增只读 DATABASE_BASELINE_STATUS 检查历史状态，不读取业务行；
+- 受审数据库基线登记：六项身份绑定新候选/镜像/结构及新鲜备份，短读锁下仅登记Flyway版本1，不迁移或重启网站；仅自动化通过，待真实验收，见 docs/DATABASE_BASELINE_ACCEPTANCE.md；
 - 远程发布前备份：无模型参数的 `SSH/WRITE/HIGH` 工具只创建全新备份目录，固定保存数据库、uploads、部署文件、受保护 `.env`、镜像/服务清单和摘要 manifest；自动化及两次真实生产创建验收通过，恢复能力仍待独立演练；
 - 远程备份隔离恢复演练：无模型参数的 `SSH/WRITE/HIGH` 工具固定选择最新合格备份，只在 `restore-drills` 新目录校验并展开恢复材料；不导入数据库、不修改生产目录或容器，自动化及真实生产材料化、后置服务状态与站点健康验收通过；
 - AgentRun 主动取消、120 秒总时限、遗留运行关闭和运行历史详情；
@@ -36,7 +43,7 @@
 
 ## 当前边界
 
-当前默认通过本机 Ollama 的 `qwen3-embedding:0.6b` 生成 1024 维语义向量，并保留 384 维词法哈希作为可配置回退。工具能力包含已验收的本地 Coding 浏览/补丁/固定验证、SSH/SFTP 远程只读与受审文本补丁、受控 SSH Exec、工作台、生产只读诊断、创建型发布前备份和隔离恢复材料演练；所有工具统一经过 Schema 校验、安全执行网关和 AuditEvent，HIGH 调用还必须经过参数绑定、限时、一次性审批。运行支持主动取消和总超时，重启会关闭遗留状态但不会断点续跑。SSH 仍没有密钥认证、多目标、任意或交互式远程 Shell、自定义命令参数、远程 Git 修改、依赖安装、容器启动/重启/构建、Nginx reload、备份覆盖/删除/清理、生产恢复、数据库导入、发布或回滚；远程补丁也不支持新建/删除、通用 diff 或跨文件事务。MCP OAuth、身份体系、OS 级沙箱和真正的崩溃续跑尚未实现。
+当前默认通过本机 Ollama 的 `qwen3-embedding:0.6b` 生成 1024 维语义向量，并保留 384 维词法哈希作为可配置回退。工具统一经过 Schema、安全执行网关、参数绑定的一次性 HIGH 审批及 AuditEvent。除固定候选构建、基线登记和受审应用发布外，SSH仍不提供任意/交互式Shell、自定义命令参数、远程Git修改、依赖安装或通用Docker操作；不支持密钥认证、多目标、备份覆盖/删除/清理、生产数据库恢复/导入、基础设施变更发布。应用回退不撤销数据库DDL，也不是无停机发布。远程补丁不支持新建/删除或跨文件事务；MCP OAuth、身份体系、OS级沙箱和崩溃续跑尚未实现。重启只关闭平台遗留运行状态，不能证明远程副作用已恢复。
 
 ## 本地启动
 
@@ -124,6 +131,8 @@ docker compose -f docker/compose.yml ps
 数据备份运行 `.\scripts\backup.ps1`。恢复会覆盖当前数据，必须显式传入 backups 下的目录和 `-ConfirmRestore`；完整正式版清单见 [`docs/RELEASE_CHECKLIST.md`](docs/RELEASE_CHECKLIST.md)。
 
 架构和来源边界见 [`docs`](docs/README.md)。
+
+远程工作台固定任务按钮提交显式工具请求，仍经当前AgentVersion、SafeExecutionGateway和一次性审批，不依赖模型决定是否执行或改写回执。没有执行证据时显示“任务未执行”，聊天文字不等于诊断完成；详见ADR0030。自然语言助手/RAG/MCP保持原有能力。
 
 用于手工上传和 RAG/面试复盘的完整项目知识包见 [`examples/project-knowledge-pack`](examples/project-knowledge-pack/00-入库说明与事实口径.md)。建议上传除 11 号盲测题库和 12 号系统提示词外的其余文档。
 

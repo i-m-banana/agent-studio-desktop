@@ -35,8 +35,13 @@ final class BoundedSshOutputStream extends OutputStream {
 
     synchronized String value() {
         if (total <= first.length) return new String(first, 0, firstSize, StandardCharsets.UTF_8);
-        if (!truncated()) return new String(first, 0, firstSize, StandardCharsets.UTF_8)
-                + new String(tail, 0, tailSize, StandardCharsets.UTF_8);
+        if (!truncated()) {
+            // Decode once: a UTF-8 character may straddle the first/tail boundary.
+            var complete = new byte[firstSize + tailSize];
+            System.arraycopy(first, 0, complete, 0, firstSize);
+            System.arraycopy(tail, 0, complete, firstSize, tailSize);
+            return new String(complete, StandardCharsets.UTF_8);
+        }
         var orderedTail = new byte[tailSize];
         for (int index = 0; index < tailSize; index++) {
             orderedTail[index] = tail[(tailCursor + index) % tail.length];

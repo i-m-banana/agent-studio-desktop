@@ -28,6 +28,10 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @Service
 public class ChatService {
+    private static final java.util.Set<String> FIXED_TASK_TOOLS = java.util.Set.of(
+            "inspect_remote_deployment", "run_remote_workspace_task", "prepare_remote_deployment_backup",
+            "verify_remote_deployment_backup_restore", "prepare_release_candidate",
+            "build_release_candidate_image", "adopt_remote_database_baseline", "publish_remote_release");
 
     private final AgentService agents;
     private final ConversationRepository conversations;
@@ -77,6 +81,13 @@ public class ChatService {
 
     public SseEmitter stream(ChatStreamRequest request) {
         var version = agents.getVersion(request.agentVersionId());
+        if (request.requestedTool() != null) {
+            var requested = request.requestedTool();
+            if (!FIXED_TASK_TOOLS.contains(requested.name()) || !version.toolNames().contains(requested.name()))
+                throw new ApiException(HttpStatus.BAD_REQUEST, "固定任务工具未绑定到当前 Agent 版本或不受支持");
+            if (!requested.arguments().isObject() || requested.arguments().toString().length() > 20000)
+                throw new ApiException(HttpStatus.BAD_REQUEST, "固定任务参数必须为有界 JSON 对象");
+        }
         if (version.archived() && (request.conversationId() == null || request.conversationId().isBlank())) {
             throw new ApiException(HttpStatus.CONFLICT, "该 Agent 版本已归档，不能创建新会话");
         }
@@ -84,12 +95,18 @@ public class ChatService {
         conversations.addMessage(conversationId, "user", request.message().trim());
 
         var emitter = new SseEmitter(runTimeout(version.toolNames()).plusSeconds(10).toMillis());
-        taskExecutor.execute(() -> executeStream(emitter, conversationId, version));
+        taskExecutor.execute(() -> executeStream(emitter, conversationId, version, request.requestedTool()));
         return emitter;
     }
 
     Duration runTimeout(java.util.List<String> toolNames) {
-        return toolNames.contains("prepare_release_candidate") && releaseCandidateTimeout.compareTo(totalTimeout) > 0
+        if (toolNames.contains("build_release_candidate_image") || toolNames.contains("publish_remote_release")) {
+            var imageBudget = Duration.ofSeconds(1200);
+            if (releaseCandidateTimeout.compareTo(imageBudget) > 0) imageBudget = releaseCandidateTimeout;
+            return totalTimeout.compareTo(imageBudget) > 0 ? totalTimeout : imageBudget;
+        }
+        return (toolNames.contains("prepare_release_candidate") || toolNames.contains("build_release_candidate_image"))
+                && releaseCandidateTimeout.compareTo(totalTimeout) > 0
                 ? releaseCandidateTimeout : totalTimeout;
     }
 
@@ -106,7 +123,7 @@ public class ChatService {
     }
 
     private void executeStream(SseEmitter emitter, String conversationId,
-                               com.agentstudio.agent.AgentVersion version) {
+                               com.agentstudio.agent.AgentVersion version, ChatStreamRequest.RequestedTool requestedTool) {
         var answer = new StringBuilder();
         var run = runs.start(conversationId, version.id());
         controls.register(run.id(), Thread.currentThread(), runTimeout(version.toolNames()));
@@ -149,7 +166,7 @@ public class ChatService {
                     emitStep(emitter, runs.addStep(run.id(), "MODEL_CALL", "COMPLETED",
                             null, null, null, truncate(answer.toString()), null));
                 } else {
-                    executeReAct(emitter, run.id(), conversationId, version, modelMessages, answer);
+                    executeReAct(emitter, run.id(), conversationId, version, modelMessages, answer, requestedTool);
                 }
             }
             controls.check(run.id());
@@ -190,7 +207,7 @@ public class ChatService {
     private void executeReAct(SseEmitter emitter, String runId, String conversationId,
                               com.agentstudio.agent.AgentVersion version,
                               java.util.List<ModelMessage> sourceMessages,
-                              StringBuilder answer) throws Exception {
+                              StringBuilder answer, ChatStreamRequest.RequestedTool requestedTool) throws Exception {
         var messages = new ArrayList<ReActMessage>();
         sourceMessages.forEach(message -> messages.add(ReActMessage.text(message.role(), message.content())));
         messages.add(ReActMessage.text("system", """
@@ -198,15 +215,28 @@ public class ChatService {
                 你最多拥有 %d 轮工具调用预算；预算耗尽后必须依据已经获得的结果作答。
                 """.formatted(maxRounds).trim()));
         var descriptors = tools.descriptors(version.toolNames());
+        boolean hasExecutionEvidence = false;
+        var explicitToolRequest = requestsToolExecution(sourceMessages.getLast().content(), version.toolNames());
         for (int round = 1; round <= maxRounds; round++) {
             controls.check(runId);
             runs.updateStatus(runId, "THINKING");
-            var turn = modelGateway.complete(version, messages, descriptors);
+            var turn = requestedTool == null ? modelGateway.complete(version, messages, descriptors)
+                    : new com.agentstudio.model.ModelTurn("用户明确选择固定任务", java.util.List.of(
+                            new com.agentstudio.model.ModelToolCall("fixed-" + java.util.UUID.randomUUID(),
+                                    requestedTool.name(), requestedTool.arguments().toString())));
             controls.check(runId);
-            emitStep(emitter, runs.addStep(runId, "MODEL_CALL",
+            emitStep(emitter, runs.addStep(runId, requestedTool == null ? "MODEL_CALL" : "USER_TOOL_REQUEST",
                     turn.toolCalls().isEmpty() ? "COMPLETED" : "TOOL_REQUESTED",
                     null, null, null, truncate(turn.content()), null));
             if (turn.toolCalls().isEmpty()) {
+                if (explicitToolRequest && !hasExecutionEvidence) {
+                    var noExecution = "本次没有工具执行结果，任务未执行；模型文字不能作为诊断或操作完成证据。请使用对应固定任务按钮并完成审批。";
+                    emitStep(emitter, runs.addStep(runId, "EXECUTION_EVIDENCE_CHECK", "NOT_EXECUTED",
+                            null, null, null, noExecution, null));
+                    answer.append(noExecution);
+                    send(emitter, "delta", Map.of("content", noExecution));
+                    return;
+                }
                 if (turn.content() == null || turn.content().isBlank()) {
                     throw new IllegalStateException("模型未返回最终答案");
                 }
@@ -240,26 +270,53 @@ public class ChatService {
                     if (!result.executed()) {
                         messages.add(ReActMessage.observation(call.id(), result.output()));
                         runs.updateStatus(runId, "OBSERVING");
+                        if (requestedTool != null) {
+                            answer.append(result.output());
+                            send(emitter, "delta", Map.of("content", result.output()));
+                            return;
+                        }
                         continue;
                     }
                     var rawOutput = result.output();
-                    var output = truncate(rawOutput);
+                    var output = toolRecord(rawOutput);
                     emitStep(emitter, runs.addStep(runId, "TOOL_RESULT", "COMPLETED", call.id(),
                             call.name(), null, output, result.durationMs()));
                     messages.add(ReActMessage.observation(call.id(), toolContext(rawOutput)));
+                    hasExecutionEvidence = true;
                     runs.updateStatus(runId, "OBSERVING");
+                    if (requestedTool != null) {
+                        var receipt = "固定任务工具已执行；以下为原始工具结果（是否成功以 successful、exitCode 为准），不是模型推测：\n\n```json\n"
+                                + toolRecord(rawOutput) + "\n```";
+                        answer.append(receipt);
+                        send(emitter, "delta", Map.of("content", receipt));
+                        return;
+                    }
                 } catch (Exception exception) {
                     controls.check(runId);
                     var failure = "工具执行失败：" + safeMessage(exception);
                     emitStep(emitter, runs.addStep(runId, "TOOL_RESULT", "FAILED", call.id(),
-                            call.name(), null, truncate(failure), null));
+                            call.name(), null, toolRecord(failure), null));
                     messages.add(ReActMessage.observation(call.id(), failure));
+                    hasExecutionEvidence = true;
                     runs.updateStatus(runId, "OBSERVING");
+                    if (requestedTool != null) {
+                        answer.append(failure);
+                        send(emitter, "delta", Map.of("content", failure));
+                        return;
+                    }
                 }
             }
         }
         controls.check(runId);
         runs.updateStatus(runId, "THINKING");
+        if (explicitToolRequest && !hasExecutionEvidence) {
+            var noExecution = "本次没有工具执行结果，任务未执行；工具调用预算已用完，不能以模型文字代替执行证据。";
+            emitStep(emitter, runs.addStep(runId, "EXECUTION_EVIDENCE_CHECK", "NOT_EXECUTED",
+                    null, null, null, noExecution, null));
+            answer.append(noExecution);
+            send(emitter, "delta", Map.of("content", noExecution));
+            return;
+        }
         messages.add(ReActMessage.text("system", """
                 工具调用预算已经用完。现在不得再调用任何工具；请仅依据前面已经返回的工具结果生成最终答案。
                 若现有证据仍不足，应明确说明不足之处。不要声称执行了尚未执行的操作。
@@ -276,6 +333,12 @@ public class ChatService {
                 null, null, "{\"reason\":\"MAX_TOOL_ROUNDS\"}", truncate(finalTurn.content()), null));
         answer.append(finalTurn.content());
         send(emitter, "delta", Map.of("content", finalTurn.content()));
+    }
+
+    static boolean requestsToolExecution(String message, java.util.List<String> names) {
+        if (message == null || !java.util.regex.Pattern.compile("请(?:只|实际|仅|立即|务必|先|重新|你)?(?:使用|调用|运行|执行)")
+                .matcher(message).find()) return false;
+        return names.stream().anyMatch(message::contains);
     }
 
     private void emitStep(SseEmitter emitter, RunStep step) throws IOException {
@@ -302,6 +365,13 @@ public class ChatService {
     private String truncate(String value) {
         if (value == null) return null;
         return value.length() <= 4000 ? value : value.substring(0, 4000) + "…";
+    }
+
+    // Tool adapters already bound their output. Keep complete JSON and the final diagnostics in audit history.
+    static String toolRecord(String value) {
+        if (value == null || value.length() <= 128000) return value;
+        return value.substring(0, 64000) + "\n[运行记录过长，已省略中间内容；以下为末尾诊断]\n"
+                + value.substring(value.length() - 64000);
     }
 
     private String toolContext(String value) {

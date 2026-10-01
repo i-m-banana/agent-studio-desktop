@@ -1,5 +1,9 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react'
 import { MarkdownMessage } from './MarkdownMessage'
+import { releaseImageRequest } from './releaseImage'
+import { databaseBaselineRequest, mergeBaselineEvidence } from './databaseBaseline'
+import { fixedToolReceipt, fixedToolSucceeded, isBaselineRegistrationReceipt, workflowReadiness } from './releaseWorkflow'
+import { publishReadiness, type ProductionStatus } from './publishRelease'
 
 type BackendState = 'checking' | 'online' | 'offline'
 type View = 'models' | 'knowledge' | 'mcp' | 'agents' | 'chat' | 'remote' | 'runs' | 'system'
@@ -12,7 +16,7 @@ type ToolDefinition = { name: string; displayName: string; description: string; 
 type AgentDefinition = { id: string; name: string; description: string; draftModelProfileId: string; draftKnowledgeBaseId?: string; draftSystemPrompt: string; draftToolNames: string[]; latestVersionNumber: number; status: 'DRAFT' | 'PUBLISHED' }
 type AgentVersion = { id: string; agentDefinitionId: string; versionNumber: number; modelProfileName: string; modelName: string; systemPrompt: string; toolNames: string[]; publishedAt: string; archivedAt?: string; archived: boolean; usageCount: number; deletable: boolean }
 type ChatMessage = { role: 'user' | 'assistant'; content: string }
-type RunStep = { id: string; stepNumber: number; stepType: string; status: string; toolName?: string; inputJson?: string; outputText?: string; durationMs?: number }
+type RunStep = { id: string; stepNumber: number; stepType: string; status: string; toolName?: string; inputJson?: string; outputText?: string; durationMs?: number; observedAt?: number }
 type ApprovalRequest = { id: string; toolName: string; capability: string; riskLevel: string; targetEnvironment: string; argumentsJson: string; argumentsSha256: string; status: string; expiresAt: string }
 type RunSummary = { id: string; conversationId: string; agentVersionId: string; status: string; startedAt: string; completedAt?: string; errorMessage?: string; stepCount: number }
 type AgentRun = Omit<RunSummary, 'stepCount'> & { steps: RunStep[] }
@@ -436,11 +440,11 @@ function App() {
     await runMessage(input)
   }
 
-  async function runMessage(input: string) {
+  async function runMessage(input: string, requestedTool?: { name: string; arguments: Record<string, unknown> }) {
     if (!input.trim() || !selectedVersion || busy) return
     setMessages((current) => [...current, { role: 'user', content: input.trim() }, { role: 'assistant', content: '' }]); setSources([]); setRunSteps([]); setPendingApproval(undefined); setCurrentRunId(undefined); setBusy(true); setNotice('')
     try {
-      const response = await fetch('/api/chat/stream', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' }, body: JSON.stringify({ agentVersionId: selectedVersion, conversationId, message: input.trim() }) })
+      const response = await fetch('/api/chat/stream', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' }, body: JSON.stringify({ agentVersionId: selectedVersion, conversationId, message: input.trim(), requestedTool }) })
       if (!response.ok || !response.body) {
         const body = await response.json().catch(() => ({ message: `HTTP ${response.status}` }))
         throw new Error(body.message ?? '无法建立流式连接')
@@ -449,7 +453,7 @@ function App() {
         if (eventName === 'run') { setConversationId(String(data.conversationId)); setCurrentRunId(String(data.runId)) }
         if (eventName === 'sources') setSources((data.items as RagSource[]) ?? [])
         if (eventName === 'evidence' && data.status === 'INSUFFICIENT') setNotice(String(data.message ?? '知识库证据不足'))
-        if (eventName === 'step') setRunSteps((current) => [...current, data as RunStep])
+        if (eventName === 'step') setRunSteps((current) => [...current, { ...(data as RunStep), observedAt: Date.now() }])
         if (eventName === 'approval_required') setPendingApproval(data as ApprovalRequest)
         if (eventName === 'delta') setMessages((current) => current.map((message, index) => index === current.length - 1 ? { ...message, content: message.content + String(data.content ?? '') } : message))
         if (eventName === 'terminated') {
@@ -625,7 +629,7 @@ function App() {
           <form className="composer" onSubmit={sendMessage}><textarea rows={3} value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder="输入测试问题……" onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); e.currentTarget.form?.requestSubmit() } }} /><div className="composer-actions"><button className="primary" disabled={busy || !selectedVersion || !chatInput.trim()}>{busy ? '生成中' : '发送'}</button>{busy && currentRunId && <button className="danger" type="button" disabled={cancelBusy} onClick={() => void cancelCurrentRun()}>{cancelBusy ? '停止中' : '停止运行'}</button>}</div></form>
         </div>
       </section>}
-      {view === 'remote' && <RemoteWorkbench sshStatus={sshStatus} deployment={deployment} deploymentForm={deploymentForm} onDeploymentFormChange={setDeploymentForm} onSaveDeployment={saveDeploymentProfile} onTestDeployment={testDeploymentProfile} versionLabels={versionLabels} selectedVersion={selectedVersion} onSelectVersion={switchVersion} messages={messages} steps={runSteps} pendingApproval={pendingApproval} approvalSecondsLeft={approvalSecondsLeft} approvalBusy={approvalBusy} busy={busy} currentRunId={currentRunId} cancelBusy={cancelBusy} onDecideApproval={decideApproval} onCancel={cancelCurrentRun} onRunMessage={runMessage} />}
+      {view === 'remote' && <RemoteWorkbench sshStatus={sshStatus} deployment={deployment} deploymentForm={deploymentForm} onDeploymentFormChange={setDeploymentForm} onSaveDeployment={saveDeploymentProfile} onTestDeployment={testDeploymentProfile} versionLabels={versionLabels} selectedVersion={selectedVersion} onSelectVersion={switchVersion} messages={messages} steps={runSteps} runHistory={runHistory} pendingApproval={pendingApproval} approvalSecondsLeft={approvalSecondsLeft} approvalBusy={approvalBusy} busy={busy} currentRunId={currentRunId} cancelBusy={cancelBusy} onDecideApproval={decideApproval} onCancel={cancelCurrentRun} onRunMessage={runMessage} />}
       {view === 'runs' && <section><PageHeader number="07" title="运行记录" description="查看每次 AgentRun 的最终状态、耗时、错误和完整步骤。" />
         <div className="two-column run-history-layout"><div className="panel list-panel"><div className="section-head"><h2>最近运行 <small>{runHistory.length}</small></h2><button className="ghost" onClick={() => void refresh()}>刷新</button></div>{runHistory.length === 0 ? <Empty text="尚无运行记录" /> : runHistory.map((run) => <button className={`run-card ${selectedRun?.id === run.id ? 'active' : ''}`} key={run.id} onClick={() => void openRun(run.id)}><div><strong>{run.id.slice(0, 8)}</strong><span className={`badge badge--${run.status.toLowerCase()}`}>{run.status}</span></div><p>{new Date(run.startedAt).toLocaleString()} · {run.stepCount} 步</p>{run.errorMessage && <small>{run.errorMessage}</small>}</button>)}</div>
           <div className="panel run-detail">{!selectedRun ? <Empty text="选择一条运行查看完整步骤" /> : <><div className="card-head"><div><strong>运行 {selectedRun.id.slice(0, 8)}</strong><p>会话 {selectedRun.conversationId.slice(0, 8)}</p></div><span className={`badge badge--${selectedRun.status.toLowerCase()}`}>{selectedRun.status}</span></div><dl><div><dt>AgentVersion</dt><dd>{selectedRun.agentVersionId}</dd></div><div><dt>开始</dt><dd>{new Date(selectedRun.startedAt).toLocaleString()}</dd></div>{selectedRun.completedAt && <div><dt>结束</dt><dd>{new Date(selectedRun.completedAt).toLocaleString()}</dd></div>}</dl>{selectedRun.errorMessage && <p className="run-error">{selectedRun.errorMessage}</p>}<aside className="run-steps"><strong>完整步骤</strong>{selectedRun.steps.map((step) => <details key={step.id}><summary>#{step.stepNumber} {step.stepType}{step.toolName ? ` · ${step.toolName}` : ''}<span className={`step-status step-status--${step.status.toLowerCase()}`}>{step.status}</span></summary>{step.inputJson && <pre>输入：{step.inputJson}</pre>}{step.outputText && <pre>输出：{step.outputText}</pre>}{step.durationMs != null && <small>{step.durationMs} ms</small>}</details>)}</aside><aside className="audit-events"><strong>安全审计</strong>{selectedAuditEvents.length === 0 ? <p>该运行没有工具审计事件</p> : selectedAuditEvents.map((event) => <article key={event.id}><div><b>{event.eventType}</b><span className={`step-status step-status--${event.status.toLowerCase()}`}>{event.status}</span></div><small>{new Date(event.createdAt).toLocaleTimeString()} · {event.toolName} · {event.capability}/{event.riskLevel}</small>{event.argumentsSha256 && <code>参数摘要 {event.argumentsSha256.slice(0, 16)}…</code>}{event.details && <p>{event.details}</p>}</article>)}</aside></>}</div></div>
@@ -652,6 +656,7 @@ type RemoteWorkbenchProps = {
   onSelectVersion: (id: string) => void
   messages: ChatMessage[]
   steps: RunStep[]
+  runHistory: RunSummary[]
   pendingApproval?: ApprovalRequest
   approvalSecondsLeft: number
   approvalBusy: boolean
@@ -660,17 +665,19 @@ type RemoteWorkbenchProps = {
   cancelBusy: boolean
   onDecideApproval: (approved: boolean) => Promise<void>
   onCancel: () => Promise<void>
-  onRunMessage: (message: string) => Promise<void>
+  onRunMessage: (message: string, requestedTool?: { name: string; arguments: Record<string, unknown> }) => Promise<void>
 }
 
 type WorkbenchTab = 'overview' | 'files' | 'changes' | 'tasks' | 'deployment' | 'output'
 type RemoteEntry = { name: string; path: string; type: string; sizeBytes?: number }
 type DirectoryResult = { target: string; path: string; entries: RemoteEntry[]; truncated: boolean }
 type FileResult = { path: string; sha256: string; sizeBytes: number; startLine: number; endLine: number; totalLines: number; content: string; truncated: boolean }
-type TaskResult = { task: string; target: string; path?: string; deploymentRoot?: string; composeProject?: string; successful: boolean; exitCode: number; durationMs: number; output: string; outputTruncated: boolean }
+type TaskResult = { task: string; target: string; path?: string; deploymentRoot?: string; composeProject?: string; successful: boolean; exitCode: number; durationMs: number; output: string; outputTruncated: boolean; schemaComplete?: boolean; schemaSha256?: string; observedAt?: number }
 type BackupResult = { target: string; deploymentRoot: string; backupRoot: string; backupId?: string; backupPath?: string; successful: boolean; exitCode: number; durationMs: number; databaseBytes: number; uploadsBytes: number; fileCount: number; manifestSha256?: string; output: string; outputTruncated: boolean }
 type RestoreDrillResult = { target: string; backupRoot: string; backupId?: string; backupPath?: string; drillId?: string; drillPath?: string; successful: boolean; exitCode: number; durationMs: number; databaseBytes: number; restoredUploadsBytes: number; restoredFileCount: number; manifestSha256?: string; drillSha256?: string; productionModified: boolean; databaseImported: boolean; output: string; outputTruncated: boolean }
 type ReleaseCandidateResult = { releaseId?: string; target: string; localSourceRoot: string; artifactPath: string; remoteReleaseRoot: string; candidatePath?: string; stage: string; successful: boolean; exitCode: number; durationMs: number; artifactBytes: number; artifactSha256?: string; manifestSha256?: string; output: string; outputTruncated: boolean; productionModified: boolean; imageBuilt: boolean }
+type ReleaseImageResult = { releaseId: string; manifestSha256: string; candidatePath: string; imageTag: string; imageId?: string; buildAttemptPath: string; target: string; stage: string; successful: boolean; exitCode: number; durationMs: number; output: string; outputTruncated: boolean }
+type BaselineResult = { successful: boolean; exitCode: number; baselineRegistered?: boolean; target: string; output?: string; observedAt?: number }
 
 const remoteTasks = [
   { id: 'GIT_STATUS', title: 'Git 状态', detail: '查看分支和工作区状态', tone: 'READ' },
@@ -686,6 +693,9 @@ const deploymentTasks = [
   { id: 'NGINX_VALIDATE', title: 'Nginx 校验', detail: '在固定 nginx 容器内执行 nginx -t' },
   { id: 'SITE_HEALTH', title: '站点健康', detail: '访问服务器回环地址上的固定健康路径' },
   { id: 'RELEASE_FINGERPRINT', title: '发布指纹', detail: '读取固定制品的摘要、大小和修改时间' },
+  { id: 'DATABASE_SCHEMA', title: '数据库结构核查', detail: '只读表、字段、索引与外键；不读业务数据、不登记基线' },
+  { id: 'DATABASE_BASELINE_STATUS', title: '数据库基线状态', detail: '只读版本历史的版本、类型与成功状态；登记异常时先检查，不盲目重试' },
+  { id: 'RELEASE_STATUS', title: '当前线上版本', detail: '读取 app 镜像、容器健康与生产文件指纹；不执行切换' },
 ] as const
 
 function RemoteWorkbench(props: RemoteWorkbenchProps) {
@@ -697,24 +707,94 @@ function RemoteWorkbench(props: RemoteWorkbenchProps) {
   const [directoryBusy, setDirectoryBusy] = useState(false)
   const [fileBusy, setFileBusy] = useState(false)
   const [browserError, setBrowserError] = useState('')
-  const remoteVersions = props.versionLabels.filter((version) => version.toolNames.some((name) => name.includes('remote_workspace') || name === 'inspect_remote_deployment' || name === 'prepare_remote_deployment_backup' || name === 'verify_remote_deployment_backup_restore' || name === 'prepare_release_candidate'))
+  const [imageReleaseId, setImageReleaseId] = useState('')
+  const [imageManifestSha, setImageManifestSha] = useState('')
+  const [baselineInput, setBaselineInput] = useState('{}')
+  const [historySteps, setHistorySteps] = useState<RunStep[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [historyError, setHistoryError] = useState('')
+  const [reviewedPriorFailure, setReviewedPriorFailure] = useState(false)
+  const [workflowNow, setWorkflowNow] = useState(Date.now())
+  const remoteVersions = props.versionLabels.filter((version) => version.toolNames.some((name) => name.includes('remote_workspace') || name === 'inspect_remote_deployment' || name === 'prepare_remote_deployment_backup' || name === 'verify_remote_deployment_backup_restore' || name === 'prepare_release_candidate' || name === 'build_release_candidate_image' || name === 'adopt_remote_database_baseline'))
+  const evidenceSteps = useMemo(() => [...historySteps, ...props.steps], [historySteps, props.steps])
   const parsedTask = useMemo(() => latestToolJson<TaskResult>(props.steps, 'run_remote_workspace_task'), [props.steps])
-  const deploymentResult = useMemo(() => latestToolJson<TaskResult>(props.steps, 'inspect_remote_deployment'), [props.steps])
-  const backupResult = useMemo(() => latestToolJson<BackupResult>(props.steps, 'prepare_remote_deployment_backup'), [props.steps])
-  const restoreDrillResult = useMemo(() => latestToolJson<RestoreDrillResult>(props.steps, 'verify_remote_deployment_backup_restore'), [props.steps])
-  const releaseCandidateResult = useMemo(() => latestToolJson<ReleaseCandidateResult>(props.steps, 'prepare_release_candidate'), [props.steps])
+  const deploymentResult = useMemo(() => latestToolJson<TaskResult>(evidenceSteps, 'inspect_remote_deployment'), [evidenceSteps])
+  const schemaResult = useMemo(() => latestDeploymentTask(evidenceSteps, 'DATABASE_SCHEMA'), [evidenceSteps])
+  const baselineStatusResult = useMemo(() => latestDeploymentTask(evidenceSteps, 'DATABASE_BASELINE_STATUS'), [evidenceSteps])
+  const siteHealthResult = useMemo(() => latestDeploymentTask(evidenceSteps, 'SITE_HEALTH'), [evidenceSteps])
+  const restoreDrillResult = useMemo(() => latestToolJson<RestoreDrillResult>(evidenceSteps, 'verify_remote_deployment_backup_restore'), [evidenceSteps])
+  const backupResult = useMemo(() => latestToolJson<BackupResult>(evidenceSteps, 'prepare_remote_deployment_backup'), [evidenceSteps])
+  const releaseCandidateResult = useMemo(() => latestToolJson<ReleaseCandidateResult>(evidenceSteps, 'prepare_release_candidate'), [evidenceSteps])
+  const releaseImageResult = useMemo(() => latestToolJson<ReleaseImageResult>(evidenceSteps, 'build_release_candidate_image'), [evidenceSteps])
+  const baselineResult = useMemo(() => latestToolJson<BaselineResult>(evidenceSteps, 'adopt_remote_database_baseline'), [evidenceSteps])
+  const productionStatus = useMemo(() => latestDeploymentTask(evidenceSteps, 'RELEASE_STATUS') as (TaskResult & ProductionStatus) | undefined, [evidenceSteps])
+  const publishResult = useMemo(() => latestToolJson<{ task: string; successful: boolean; exitCode: number; target: string; deployed: boolean; rolledBack: boolean; manualInterventionRequired: boolean; currentImageId?: string; observedAt?: number }>(evidenceSteps, 'publish_remote_release'), [evidenceSteps])
+  const [publishAcknowledged, setPublishAcknowledged] = useState(false)
   const [directory, setDirectory] = useState<DirectoryResult>()
   const [file, setFile] = useState<FileResult>()
   const [task, setTask] = useState<TaskResult>()
   const selectedReady = remoteVersions.some((version) => version.id === props.selectedVersion)
   const restoreDrillReady = remoteVersions.find((version) => version.id === props.selectedVersion)?.toolNames.includes('verify_remote_deployment_backup_restore') ?? false
   const releaseCandidateReady = remoteVersions.find((version) => version.id === props.selectedVersion)?.toolNames.includes('prepare_release_candidate') ?? false
+  const releaseImageReady = remoteVersions.find((version) => version.id === props.selectedVersion)?.toolNames.includes('build_release_candidate_image') ?? false
+  const baselineReady = remoteVersions.find((version) => version.id === props.selectedVersion)?.toolNames.includes('adopt_remote_database_baseline') ?? false
+  const publishToolReady = props.versionLabels.find((version) => version.id === props.selectedVersion)?.toolNames.includes('publish_remote_release') ?? false
   const browserReady = props.sshStatus?.status === 'READY' && props.sshStatus.passwordConfigured
   const browserTarget = `${props.sshStatus?.username ?? ''}@${props.sshStatus?.host ?? ''}:${props.sshStatus?.port ?? ''}${props.sshStatus?.remoteRoot ?? ''}#${props.sshStatus?.hostKeySha256 ?? ''}`
   const visibleMessages = props.messages.slice(-6)
   const hiddenMessageCount = Math.max(0, props.messages.length - visibleMessages.length)
+  const expectedTarget = `${props.sshStatus?.username ?? ''}@${props.sshStatus?.host ?? ''}:${props.sshStatus?.port ?? ''}${props.deployment?.remoteDeployRoot ?? ''}`
+  const workflow = workflowReadiness({ candidate: releaseCandidateResult, image: releaseImageResult, backup: backupResult,
+    schema: schemaResult, baseline: baselineResult, status: baselineStatusResult, health: siteHealthResult }, expectedTarget, workflowNow)
+  const baselineEvidence = { releaseId: releaseImageResult?.releaseId, manifestSha256: releaseImageResult?.manifestSha256,
+    imageId: releaseImageResult?.imageId, schemaSha256: schemaResult?.schemaSha256,
+    backupId: backupResult?.backupId, backupManifestSha256: backupResult?.manifestSha256 }
+  const publishState = publishReadiness({ candidate: releaseCandidateResult, image: releaseImageResult, backup: backupResult,
+    schema: schemaResult, status: baselineStatusResult }, productionStatus, expectedTarget, workflowNow,
+    publishResult?.target === expectedTarget ? publishResult.observedAt : 0)
+  let baselineInputMatches = false
+  try {
+    const parsed = JSON.parse(baselineInput) as Record<string, unknown>
+    baselineInputMatches = Object.entries(baselineEvidence).every(([key, value]) => typeof value === 'string' && parsed[key] === value)
+      && Object.keys(parsed).length === 6
+  } catch { /* incomplete evidence remains disabled */ }
+
+  useEffect(() => {
+    if (tab !== 'deployment') return
+    const timer = window.setInterval(() => setWorkflowNow(Date.now()), 30_000)
+    return () => window.clearInterval(timer)
+  }, [tab])
+
+  useEffect(() => {
+    if (tab !== 'deployment') return
+    let cancelled = false
+    setHistoryLoading(true); setHistoryError('')
+    const relevant = new Set(['prepare_release_candidate', 'build_release_candidate_image', 'prepare_remote_deployment_backup',
+      'inspect_remote_deployment', 'adopt_remote_database_baseline', 'verify_remote_deployment_backup_restore', 'publish_remote_release'])
+    Promise.all(props.runHistory.slice(0, 50).map((run) => api<AgentRun>(`/api/runs/${run.id}`).catch(() => undefined)))
+      .then((runs) => {
+        if (!cancelled) setHistorySteps(runs.reverse().flatMap((run) => run?.steps.filter((step) => step.stepType === 'TOOL_RESULT'
+          && step.toolName && relevant.has(step.toolName)).map((step) => ({ ...step, observedAt: Date.parse(run.startedAt) })) ?? []))
+      })
+      .catch(() => { if (!cancelled) setHistoryError('无法读取历史运行；历史步骤暂不计入流程') })
+      .finally(() => { if (!cancelled) setHistoryLoading(false) })
+    return () => { cancelled = true }
+  }, [tab, props.runHistory])
 
   useEffect(() => { if (parsedTask) setTask(parsedTask) }, [parsedTask])
+  useEffect(() => { setBaselineInput('{}') }, [props.selectedVersion, browserTarget, props.deployment?.remoteDeployRoot, props.deployment?.remoteBackupRoot, props.deployment?.composeProject])
+  useEffect(() => {
+    const evidence: Record<string, string> = {}
+    if (releaseImageResult?.successful && releaseImageResult.imageId) Object.assign(evidence, { releaseId: releaseImageResult.releaseId, manifestSha256: releaseImageResult.manifestSha256, imageId: releaseImageResult.imageId })
+    if (schemaResult?.schemaComplete && schemaResult.schemaSha256) evidence.schemaSha256 = schemaResult.schemaSha256
+    if (backupResult?.successful && backupResult.backupId && backupResult.manifestSha256) Object.assign(evidence, { backupId: backupResult.backupId, backupManifestSha256: backupResult.manifestSha256 })
+    if (Object.keys(evidence).length) setBaselineInput(current => mergeBaselineEvidence(current, evidence))
+  }, [releaseImageResult, schemaResult, backupResult])
+  useEffect(() => {
+    if (releaseCandidateResult?.successful && releaseCandidateResult.releaseId && releaseCandidateResult.manifestSha256) {
+      setImageReleaseId(releaseCandidateResult.releaseId); setImageManifestSha(releaseCandidateResult.manifestSha256)
+    }
+  }, [releaseCandidateResult])
   useEffect(() => {
     setDirectory(undefined); setFile(undefined); setDirectoryPath('.'); setFilePath('')
     if (!browserReady) return
@@ -766,28 +846,54 @@ function RemoteWorkbench(props: RemoteWorkbenchProps) {
     try {
       const safePath = requireRelativePath(taskPath, '项目目录')
       setTab('output')
-      await props.onRunMessage(`请只使用 run_remote_workspace_task 工具，在相对项目目录 ${JSON.stringify(safePath)} 运行固定任务 ${taskId}。不得提供命令、参数、环境变量或 Shell 文本。`)
+      await props.onRunMessage(`请只使用 run_remote_workspace_task 工具，在相对项目目录 ${JSON.stringify(safePath)} 运行固定任务 ${taskId}。不得提供命令、参数、环境变量或 Shell 文本。`, { name: 'run_remote_workspace_task', arguments: { task: taskId, path: safePath } })
     } catch (error) { window.alert(error instanceof Error ? error.message : '项目目录无效') }
   }
 
   async function requestDeploymentTask(taskId: string) {
     setTab('deployment')
-    await props.onRunMessage(`请只使用 inspect_remote_deployment 工具运行固定只读部署诊断 ${taskId}。不得提供路径、命令、服务名、URL、参数、环境变量或 Shell 文本。`)
+    await props.onRunMessage(`请只使用 inspect_remote_deployment 工具运行固定只读部署诊断 ${taskId}。不得提供路径、命令、服务名、URL、参数、环境变量或 Shell 文本。`, { name: 'inspect_remote_deployment', arguments: { task: taskId } })
+  }
+
+  async function requestPublish() {
+    if (!publishState.ready || !publishAcknowledged || !publishToolReady) return
+    setPublishAcknowledged(false)
+    await props.onRunMessage(`请只使用 publish_remote_release 工具，按下列八项绑定身份执行一次受审上线、健康验证与失败恢复。不得添加SQL、路径、服务、命令或选项。${JSON.stringify(publishState.args)}`,
+      { name: 'publish_remote_release', arguments: publishState.args })
   }
 
   async function requestDeploymentBackup() {
     setTab('deployment')
-    await props.onRunMessage('请只使用 prepare_remote_deployment_backup 工具创建一次固定发布前备份。不得提供路径、名称、命令、参数、环境变量、覆盖、删除或恢复选项。')
+    await props.onRunMessage('请只使用 prepare_remote_deployment_backup 工具创建一次固定发布前备份。不得提供路径、名称、命令、参数、环境变量、覆盖、删除或恢复选项。', { name: 'prepare_remote_deployment_backup', arguments: {} })
   }
 
   async function requestRestoreDrill() {
     setTab('deployment')
-    await props.onRunMessage('请只使用 verify_remote_deployment_backup_restore 工具，对固定备份根内最新的合格备份执行一次隔离恢复材料演练。不得提供备份 ID、路径、命令、参数、环境变量、生产恢复、覆盖或删除选项。')
+    await props.onRunMessage('请只使用 verify_remote_deployment_backup_restore 工具，对固定备份根内最新的合格备份执行一次隔离恢复材料演练。不得提供备份 ID、路径、命令、参数、环境变量、生产恢复、覆盖或删除选项。', { name: 'verify_remote_deployment_backup_restore', arguments: {} })
   }
 
   async function requestReleaseCandidate() {
     setTab('deployment')
-    await props.onRunMessage('请只使用 prepare_release_candidate 工具，从固定本地源码执行测试、打包并暂存一个不可变发布候选。不得提供路径、制品、命令、参数、环境变量、版本号、覆盖或部署选项。')
+    await props.onRunMessage('请只使用 prepare_release_candidate 工具，从固定本地源码执行测试、打包并暂存一个不可变发布候选。不得提供路径、制品、命令、参数、环境变量、版本号、覆盖或部署选项。', { name: 'prepare_release_candidate', arguments: {} })
+  }
+
+  async function requestReleaseImage() {
+    try {
+      const message = releaseImageRequest(imageReleaseId.trim(), imageManifestSha.trim())
+      setTab('deployment')
+      await props.onRunMessage(message, { name: 'build_release_candidate_image', arguments: { releaseId: imageReleaseId.trim(), manifestSha256: imageManifestSha.trim() } })
+    } catch (error) { window.alert(error instanceof Error ? error.message : '候选身份无效') }
+  }
+
+  async function requestBaseline() {
+    try {
+      const fresh = workflowReadiness({ candidate: releaseCandidateResult, image: releaseImageResult, backup: backupResult,
+        schema: schemaResult, baseline: baselineResult, status: baselineStatusResult, health: siteHealthResult }, expectedTarget, Date.now())
+      if (!fresh.canRegister || !baselineInputMatches || (baselineResult && !baselineResult.successful && !reviewedPriorFailure))
+        throw new Error('登记前必须核对同一目标的新镜像、30分钟内备份、完整结构摘要和六项绑定身份；前次失败还需人工确认。')
+      await props.onRunMessage(databaseBaselineRequest(baselineInput), { name: 'adopt_remote_database_baseline', arguments: JSON.parse(baselineInput) })
+    }
+    catch (error) { window.alert(error instanceof Error ? error.message : '绑定身份无效') }
   }
 
   async function submitDeployment(event: FormEvent) {
@@ -831,7 +937,33 @@ function RemoteWorkbench(props: RemoteWorkbenchProps) {
           {tab === 'changes' && <div className="remote-placeholder"><span>DIFF / ARTIFACT</span><h3>受审变更区</h3><p>远程补丁仍由 Agent 生成精确替换，并在审批卡中绑定目标、参数和文件摘要。下一批会在此提供并排 Diff 与恢复建议。</p><button className="secondary" onClick={() => setTab('output')}>查看当前运行步骤</button></div>}
           {tab === 'tasks' && <div className="remote-tasks"><div className="remote-task-path"><label>相对项目目录<input value={taskPath} onChange={(event) => setTaskPath(event.target.value)} /></label><small>任务命令由平台固定映射，输入框只接受授权根内的相对目录。</small></div><div className="remote-task-grid">{remoteTasks.map((item) => <article key={item.id}><div><span>{item.tone}</span><b>{item.title}</b></div><p>{item.detail}</p><code>fixed:{item.id}</code><button className="primary" disabled={!selectedReady || props.busy} onClick={() => void requestTask(item.id)}>请求执行</button></article>)}</div></div>}
           {tab === 'deployment' && <div className="remote-deployment">
-            <div className="remote-deployment-head"><div><span>READ-ONLY DEPLOYMENT DIAGNOSTICS</span><h3>固定生产目标</h3><p>复用当前 SSH 凭据和固定主机指纹；这里只读检查，不执行启动、重启、构建、发布或回滚。</p></div><span className={`badge badge--${props.deployment?.status === 'READY' ? 'ready' : 'warning'}`}>{props.deployment?.status ?? 'NOT_CONFIGURED'}</span></div>
+            <div className="remote-deployment-head"><div><span>GUIDED CONTROLLED RELEASE</span><h3>准备 → 受审上线 → 只读验收</h3><p>前六步准备候选和首次数据库基线；下面的第七步才会切换网站。已登记基线的数据库不要重复登记。每次上线仍须新备份和一次性审批。</p></div><span className={`badge badge--${props.deployment?.status === 'READY' ? 'ready' : 'warning'}`}>{props.deployment?.status ?? 'NOT_CONFIGURED'}</span></div>
+            <section className="release-guide" aria-label="六步操作引导">
+              <div className="release-guide-intro"><strong>先看状态，再点当前步骤</strong><p>绿色表示工具结果已核对；灰色表示尚无足够证据。会话完成不等于工具成功。刷新后会从运行记录恢复最近的结果。</p>{historyLoading && <small>正在恢复历史结果…</small>}{historyError && <small className="error-text">{historyError}</small>}</div>
+              <ol className="release-guide-steps">
+                <li className={workflow.candidate ? 'done' : 'next'}><header><span>01</span><div><h4>准备候选</h4><p>本地测试并打包，把固定文件放进服务器的新候选目录；不影响网站。</p></div><b>{workflow.candidate ? '已完成' : '待执行'}</b></header><p className="release-guide-proof">成功证据：候选 ID 与 64 位清单摘要。失败可能留下构建文件或未完成目录，不能用于下一步。</p>{releaseCandidateResult && <small>最近候选：{releaseCandidateResult.releaseId || releaseCandidateResult.stage} · {releaseCandidateResult.successful ? '成功' : '失败'}</small>}<button className="primary" disabled={!releaseCandidateReady || props.busy || props.deployment?.status !== 'READY'} onClick={() => void requestReleaseCandidate()}>{workflow.candidate ? '重新准备候选' : '准备候选'}</button></li>
+                <li className={workflow.image ? 'done' : workflow.candidate ? 'next' : 'blocked'}><header><span>02</span><div><h4>构建并自检镜像</h4><p>生成独立镜像，以非 root、无网络方式验证启动；不切换生产。</p></div><b>{workflow.image ? '已完成' : workflow.candidate ? '可执行' : '等待候选'}</b></header><p className="release-guide-proof">成功证据：IMAGE_READY、新 imageId 与 RUNTIME_SMOKE。失败可能留下镜像或构建记录，占用磁盘。</p>{releaseImageResult && <small>最近镜像：{releaseImageResult.imageId || releaseImageResult.stage} · {releaseImageResult.successful ? '成功' : '失败'}</small>}<button className="primary" disabled={!releaseImageReady || !workflow.candidate || !imageReleaseId || !imageManifestSha || props.busy || props.deployment?.status !== 'READY'} onClick={() => void requestReleaseImage()}>构建镜像</button></li>
+                <li className={workflow.backup ? 'done' : workflow.image ? 'next' : 'blocked'}><header><span>03</span><div><h4>创建近期备份</h4><p>新建数据库与 uploads 等材料的备份；不覆盖旧备份、不恢复数据库。</p></div><b>{workflow.backup ? '30分钟内有效' : backupResult?.successful ? '已过期或不匹配' : '待执行'}</b></header><p className="release-guide-proof">成功证据：备份 ID、清单摘要。失败可能留有不完整目录；备份过期不会自动删除，只是不能用于登记。</p>{backupResult && <small>最近备份：{backupResult.backupId || '失败'}{workflow.backupAgeMinutes !== undefined ? ` · 已过 ${Math.max(0, Math.floor(workflow.backupAgeMinutes))} 分钟` : ''}</small>}<button className="primary" disabled={!selectedReady || !workflow.image || props.busy || props.deployment?.status !== 'READY'} onClick={() => void requestDeploymentBackup()}>{workflow.backup ? '重新创建备份' : '创建备份'}</button></li>
+                <li className={workflow.schema ? 'done' : workflow.image ? 'next' : 'blocked'}><header><span>04</span><div><h4>核对数据库结构</h4><p>只读采集表、字段、索引和外键，不读取业务数据，不登记版本。</p></div><b>{workflow.schema ? '已完成' : '待执行'}</b></header><p className="release-guide-proof">成功证据：结构完整及 schemaSha256。失败不应改变数据库，但不能继续登记。</p>{schemaResult && <small>最近结构核查：{schemaResult.successful && schemaResult.schemaComplete ? schemaResult.schemaSha256 : `失败，退出码 ${schemaResult.exitCode}`}</small>}<button className="primary" disabled={!selectedReady || !workflow.image || props.busy || props.deployment?.status !== 'READY'} onClick={() => void requestDeploymentTask('DATABASE_SCHEMA')}>只读核查结构</button></li>
+                <li className={workflow.baseline ? 'done' : workflow.canRegister ? 'next' : 'blocked'}><header><span>05</span><div><h4>登记版本 1 基线</h4><p>首次在生产数据库建立 Flyway 历史；短暂阻止业务写入，是本流程唯一会改数据库的一步。</p></div><b>{workflow.baseline ? '已登记' : workflow.canRegister ? '待审批' : '证据未齐'}</b></header><p className="release-guide-proof">必须绑定同一目标的候选、镜像、结构和近期备份。失败后可能已有部分历史，先查状态，不盲重试。</p><details className="release-identity"><summary>查看本次六项绑定证据</summary><pre>{baselineInput}</pre></details>{baselineResult && !baselineResult.successful && <label className="release-guide-warning"><input type="checkbox" checked={reviewedPriorFailure} onChange={(event) => setReviewedPriorFailure(event.target.checked)} />我已复核上次失败及只读基线状态，知晓不能把失败当成无副作用</label>}{!baselineInputMatches && <small>六项身份尚未齐全或与当前结果不一致；不能登记。</small>}<button className="danger" disabled={!baselineReady || !workflow.canRegister || !baselineInputMatches || (Boolean(baselineResult) && !baselineResult?.successful && !reviewedPriorFailure) || props.busy || props.deployment?.status !== 'READY'} onClick={() => void requestBaseline()}>请求登记基线</button></li>
+                <li className={workflow.baseline && workflow.status && workflow.health ? 'done' : workflow.baseline ? 'next' : 'blocked'}><header><span>06</span><div><h4>只读验收</h4><p>确认 Flyway 版本 1 记录，再核查网站健康；不做发布切换。</p></div><b>{workflow.baseline && workflow.status && workflow.health ? '已完成' : '等待登记'}</b></header><p className="release-guide-proof">基线状态应成功返回版本 1；网站仍应健康。异常时停下排查，不删除历史或自动重试。</p><div className="release-guide-actions"><button className="secondary" disabled={!selectedReady || props.busy || props.deployment?.status !== 'READY'} onClick={() => void requestDeploymentTask('DATABASE_BASELINE_STATUS')}>检查基线状态</button><button className="secondary" disabled={!selectedReady || props.busy || props.deployment?.status !== 'READY'} onClick={() => void requestDeploymentTask('SITE_HEALTH')}>检查站点健康</button></div></li>
+              </ol>
+              <p className="release-guide-boundary">准备步骤不切换生产，也不自动删除产物。第七步切换失败会尝试恢复旧应用，但不会回滚数据库DDL或覆盖业务数据。原始回执、审批与审计保留在“运行记录”。</p>
+            </section>
+            <section className="release-guide" aria-label="真正上线">
+              <div className="release-guide-intro"><strong>07 · 真正上线（会短暂影响访问）</strong><p>校验候选、近期备份和当前生产身份 → 执行向后兼容迁移 → 只重建 app → 刷新 Nginx → 检查容器、首页和浏览页 → 同步生产 app.jar / Dockerfile。健康失败自动恢复旧镜像和文件；不恢复数据库、不删除备份。</p><p>这次须重新准备候选及镜像，使它包含新的发布维护入口；旧候选不能直接上线。Compose、网络、卷和 Nginx 配置变更不属于应用上线，配置不一致会明确拦截。</p></div>
+              <div className="release-guide-actions"><button className="secondary" disabled={!selectedReady || props.busy} onClick={() => void requestDeploymentTask('DATABASE_SCHEMA')}>核查数据库结构</button><button className="secondary" disabled={!selectedReady || props.busy} onClick={() => void requestDeploymentTask('DATABASE_BASELINE_STATUS')}>检查版本历史</button><button className="secondary" disabled={!selectedReady || props.busy} onClick={() => void requestDeploymentTask('RELEASE_STATUS')}>读取当前线上版本</button></div>
+              {productionStatus?.target === expectedTarget && <p>当前镜像：<code>{productionStatus.currentImageId || '未确认'}</code> · 容器健康：{productionStatus.appHealth || '未确认'}</p>}
+              {!publishState.ready && <ul>{publishState.reasons.map(reason => <li key={reason}>{reason}</li>)}</ul>}
+              <details className="release-identity"><summary>查看本次上线的八项绑定身份</summary><pre>{JSON.stringify(publishState.args, null, 2)}</pre></details>
+              {!publishToolReady && <p className="release-guide-warning">先在 Agent Builder 勾选“受审上线并验证恢复”，发布新 Agent 版本，再选择该版本。</p>}
+              <label className="release-guide-warning"><input type="checkbox" checked={publishAcknowledged} onChange={event => setPublishAcknowledged(event.target.checked)} />我已确认备份和候选，接受短暂中断；失败时只自动恢复应用，数据库状态不明需停止排查。</label>
+              <button className="danger" disabled={!publishToolReady || !publishState.ready || !publishAcknowledged || props.busy || props.deployment?.status !== 'READY'} onClick={() => void requestPublish()}>请求真正上线（下一步仍需审批）</button>
+              {publishResult?.target === expectedTarget && <div className={`fixed-tool-reply ${publishResult.deployed && publishResult.successful ? 'fixed-tool-reply--success' : 'fixed-tool-reply--failed'}`}><strong>{publishResult.deployed && publishResult.successful ? '已上线且健康验证通过' : publishResult.rolledBack ? '上线未成功，旧应用已恢复并验证健康' : '上线未确认，停止重试并检查线上状态'}</strong><p>最终确认的镜像：{publishResult.currentImageId || '未确认'}。{publishResult.manualInterventionRequired ? '需要人工介入；不要直接重试。' : ''}</p></div>}
+              <p>08 · 上线后点击“读取当前线上版本”和“检查站点健康”，再到网站验收实际改动。同样的页面内容不会因为重新打包而自动变化。</p>
+              <button className="secondary" disabled={!selectedReady || props.busy} onClick={() => void requestDeploymentTask('SITE_HEALTH')}>检查上线后站点健康</button>
+            </section>
+            <details className="release-advanced" open={props.deployment?.status !== 'READY'}><summary>高级配置、单项诊断与技术结果</summary><div className="release-advanced-content">
             <form className="remote-deployment-form" onSubmit={submitDeployment}>
               <label>本地源码根<input required value={props.deploymentForm.localSourceRoot} onChange={(e) => props.onDeploymentFormChange({ ...props.deploymentForm, localSourceRoot: e.target.value })} /></label>
               <label>远程部署根<input required value={props.deploymentForm.remoteDeployRoot} onChange={(e) => props.onDeploymentFormChange({ ...props.deploymentForm, remoteDeployRoot: e.target.value })} /></label>
@@ -846,15 +978,21 @@ function RemoteWorkbench(props: RemoteWorkbenchProps) {
             {props.deployment?.lastError && <p className="error-text">{props.deployment.lastError}</p>}
             <div className="remote-service-ghosts">{['nginx', 'app', 'mysql', 'phpmyadmin'].map((name) => <i key={name}>{name}<small>{props.deployment?.status === 'READY' ? '固定服务' : '等待目标检查'}</small></i>)}</div>
             <div className="remote-deployment-tasks">{deploymentTasks.map((item) => <article key={item.id}><div><b>{item.title}</b><code>{item.id}</code></div><p>{item.detail}</p><button className="primary" disabled={!selectedReady || props.busy || props.deployment?.status !== 'READY'} onClick={() => void requestDeploymentTask(item.id)}>请求诊断</button></article>)}</div>
-            {deploymentResult && <div className="remote-deployment-result"><div><strong>{deploymentResult.task}</strong><span className={`badge badge--${deploymentResult.successful ? 'completed' : 'failed'}`}>{deploymentResult.successful ? 'SUCCESS' : `EXIT ${deploymentResult.exitCode}`}</span></div><pre>{deploymentResult.output || '(诊断没有输出)'}</pre><footer>{deploymentResult.durationMs} ms · {deploymentResult.target}{deploymentResult.outputTruncated ? ' · 输出已截断' : ''}</footer></div>}
-            <div className="remote-backup-card"><div><span>CREATE-ONLY / HIGH</span><h4>发布前固定备份</h4><p>新建不可覆盖的时间戳目录，固定备份数据库、uploads、部署文件、受保护 .env、镜像与服务清单；不会删除旧备份，也不会恢复数据库。</p></div><button className="danger" disabled={!selectedReady || props.busy || props.deployment?.status !== 'READY'} onClick={() => void requestDeploymentBackup()}>请求创建备份</button></div>
+            {deploymentResult && <div className="remote-deployment-result"><div><strong>{deploymentResult.task}</strong><span className={`badge badge--${deploymentResult.successful ? 'completed' : 'failed'}`}>{deploymentResult.successful ? 'SUCCESS' : `EXIT ${deploymentResult.exitCode}`}</span></div>{deploymentResult.task === 'DATABASE_SCHEMA' && <p>{deploymentResult.schemaComplete ? `结构 SHA-256：${deploymentResult.schemaSha256}。仅完成结构采集，未登记基线，也不代表已兼容新版本。` : '结构采集未完整完成，不能用于基线登记或发布。'}</p>}<pre>{deploymentResult.output || '(诊断没有输出)'}</pre><footer>{deploymentResult.durationMs} ms · {deploymentResult.target}{deploymentResult.outputTruncated ? ' · 输出已截断' : ''}</footer></div>}
+            <div className="remote-backup-card"><div><span>CREATE-ONLY / HIGH</span><h4>发布前固定备份</h4><p>新建不可覆盖的时间戳目录，固定备份数据库、uploads、部署文件、受保护 .env、镜像与服务清单；不会删除旧备份，也不会恢复数据库。请从上方第 3 步执行。</p></div></div>
             {backupResult && <div className="remote-backup-result"><div><strong>{backupResult.backupId || 'BACKUP FAILED'}</strong><span className={`badge badge--${backupResult.successful ? 'completed' : 'failed'}`}>{backupResult.successful ? 'VERIFIED' : `EXIT ${backupResult.exitCode}`}</span></div>{backupResult.successful ? <dl><div><dt>备份路径</dt><dd>{backupResult.backupPath}</dd></div><div><dt>数据库</dt><dd>{formatCompactBytes(backupResult.databaseBytes)}</dd></div><div><dt>Uploads</dt><dd>{formatCompactBytes(backupResult.uploadsBytes)}</dd></div><div><dt>Manifest</dt><dd>{backupResult.manifestSha256}</dd></div></dl> : <pre>{backupResult.output || '备份未完成'}</pre>}<footer>{backupResult.durationMs} ms · 固定文件 {backupResult.fileCount || 0} 项 · 仅创建、不覆盖</footer></div>}
             <div className="remote-backup-card remote-restore-card"><div><span>ISOLATED RESTORE DRILL / HIGH</span><h4>备份恢复材料演练</h4><p>自动选择最新合格备份，在 restore-drills 下新建隔离目录，重新校验并展开数据库、uploads 与部署文件；不会导入数据库、替换生产文件、启动容器或删除备份。</p></div><button className="danger" disabled={!restoreDrillReady || props.busy || props.deployment?.status !== 'READY'} onClick={() => void requestRestoreDrill()}>请求恢复演练</button></div>
             {!restoreDrillReady && selectedReady && <p className="remote-tool-hint">当前 Agent 版本尚未包含恢复演练工具，请在 Agent Builder 发布包含该工具的新版本后再执行。</p>}
             {restoreDrillResult && <div className="remote-backup-result remote-restore-result"><div><strong>{restoreDrillResult.drillId || 'RESTORE DRILL FAILED'}</strong><span className={`badge badge--${restoreDrillResult.successful ? 'completed' : 'failed'}`}>{restoreDrillResult.successful ? 'MATERIALIZED' : `EXIT ${restoreDrillResult.exitCode}`}</span></div>{restoreDrillResult.successful ? <dl><div><dt>来源备份</dt><dd>{restoreDrillResult.backupId}</dd></div><div><dt>隔离目录</dt><dd>{restoreDrillResult.drillPath}</dd></div><div><dt>数据库文件</dt><dd>{formatCompactBytes(restoreDrillResult.databaseBytes)}（未导入）</dd></div><div><dt>展开 Uploads</dt><dd>{formatCompactBytes(restoreDrillResult.restoredUploadsBytes)}</dd></div><div><dt>演练摘要</dt><dd>{restoreDrillResult.drillSha256}</dd></div></dl> : <pre>{restoreDrillResult.output || '恢复演练未完成'}</pre>}<footer>{restoreDrillResult.durationMs} ms · 文件 {restoreDrillResult.restoredFileCount || 0} 项 · 生产目录未修改 · 数据库未导入</footer></div>}
-            <div className="remote-backup-card"><div><span>LOCAL BUILD + IMMUTABLE STAGING / HIGH</span><h4>准备不可变发布候选</h4><p>平台从固定本地源码运行 Maven 测试与打包，只接受 target/app.jar；随后上传固定部署材料到全新的候选目录并核对摘要。不会读取 .env、构建镜像或修改生产目录。</p></div><button className="danger" disabled={!releaseCandidateReady || props.busy || props.deployment?.status !== 'READY'} onClick={() => void requestReleaseCandidate()}>请求准备候选</button></div>
+            <div className="remote-backup-card"><div><span>LOCAL BUILD + IMMUTABLE STAGING / HIGH</span><h4>准备不可变发布候选</h4><p>平台从固定本地源码运行 Maven 测试与打包，只接受 target/app.jar；随后上传固定部署材料到全新的候选目录并核对摘要。不会读取 .env、构建镜像或修改生产目录。请从上方第 1 步执行。</p></div></div>
             {!releaseCandidateReady && selectedReady && <p className="remote-tool-hint">当前 Agent 版本尚未包含“准备不可变发布候选”，请在 Agent Builder 发布包含该工具的新版本后再执行。</p>}
+            <div className="remote-backup-card"><div><span>ISOLATED IMAGE BUILD / HIGH</span><h4>构建候选应用镜像</h4><p>绑定明确候选与清单摘要，只生成独立镜像，不切换生产、不重启网站。使用 512 MiB / 0.5 CPU 的临时构建器；可能下载构建器和基础镜像。旧格式候选需重新准备。请从上方第 2 步执行。</p></div></div>
+            {!releaseImageReady && selectedReady && <p className="remote-tool-hint">请在 Agent Builder 勾选“构建候选应用镜像（build_release_candidate_image）”并发布新版本。</p>}
+            <div className="remote-backup-card"><div><span>EXPLICIT DATABASE BASELINE / HIGH</span><h4>登记受审数据库基线</h4><p>必须使用本轮网站源码的新候选镜像与30分钟内新备份。仅创建 Flyway 版本1历史，不建业务表、不迁移、不重启网站；登记期间短暂阻止业务写入。请避开人工 DDL 操作，并从上方第 5 步核对身份后执行。</p></div></div>
+            {!baselineReady && selectedReady && <p className="remote-tool-hint">请在 Agent Builder 勾选“登记受审数据库基线（adopt_remote_database_baseline）”并发布新版本。</p>}
+            {releaseImageResult && <div className="remote-backup-result"><div><strong>{releaseImageResult.releaseId}</strong><span className={`badge badge--${releaseImageResult.successful ? 'completed' : 'failed'}`}>{releaseImageResult.successful ? 'IMAGE READY' : `EXIT ${releaseImageResult.exitCode}`}</span></div><dl><div><dt>独立镜像标签</dt><dd>{releaseImageResult.imageTag}</dd></div><div><dt>镜像 ID</dt><dd>{releaseImageResult.imageId || '未生成已验证镜像'}</dd></div><div><dt>清单摘要</dt><dd>{releaseImageResult.manifestSha256}</dd></div><div><dt>构建记录目录</dt><dd>{releaseImageResult.buildAttemptPath}</dd></div></dl><pre>{releaseImageResult.output}</pre><footer>{releaseImageResult.durationMs} ms · 未切换生产 · 未重启服务{releaseImageResult.outputTruncated ? ' · 输出已截断' : ''}</footer></div>}
             {releaseCandidateResult && <div className="remote-backup-result"><div><strong>{releaseCandidateResult.releaseId || releaseCandidateResult.stage}</strong><span className={`badge badge--${releaseCandidateResult.successful ? 'completed' : 'failed'}`}>{releaseCandidateResult.successful ? 'STAGED' : `EXIT ${releaseCandidateResult.exitCode}`}</span></div>{releaseCandidateResult.successful ? <dl><div><dt>固定制品</dt><dd>{releaseCandidateResult.artifactPath} · {formatCompactBytes(releaseCandidateResult.artifactBytes)}</dd></div><div><dt>候选目录</dt><dd>{releaseCandidateResult.candidatePath}</dd></div><div><dt>制品摘要</dt><dd>{releaseCandidateResult.artifactSha256}</dd></div><div><dt>清单摘要</dt><dd>{releaseCandidateResult.manifestSha256}</dd></div></dl> : <pre>{releaseCandidateResult.output || '候选版本未完成'}</pre>}<footer>{releaseCandidateResult.durationMs} ms · 生产目录未修改 · 未构建镜像{releaseCandidateResult.outputTruncated ? ' · 输出已截断' : ''}</footer></div>}
+            </div></details>
           </div>}
           {tab === 'output' && <div className="remote-output"><div className="remote-output-head"><div><span>CONTROLLED TASK OUTPUT</span><strong>{task ? `${task.task} · ${task.path}` : '等待固定任务'}</strong></div>{task && <span className={`badge badge--${task.successful ? 'completed' : 'failed'}`}>{task.successful ? 'SUCCESS' : `EXIT ${task.exitCode}`}</span>}</div>{task ? <><pre>{task.output || '(任务没有输出)'}</pre><footer>{task.durationMs} ms · {task.target}{task.outputTruncated ? ' · 输出已截断' : ''}</footer></> : <Empty text="从“任务”标签请求 Git、Maven 或 npm 固定任务" />}</div>}
         </div>
@@ -864,8 +1002,8 @@ function RemoteWorkbench(props: RemoteWorkbenchProps) {
         <div className="remote-pane-title"><div><span>AGENT</span><strong>操作助手</strong></div><i className={props.busy ? 'busy' : ''} /></div>
         <div className="remote-agent-feed">
           {props.pendingApproval && <aside className="approval-card remote-approval" role="alert"><div className="approval-heading"><strong>等待一次性审批</strong><b>{props.approvalSecondsLeft > 0 ? `${props.approvalSecondsLeft} 秒` : '已过期'}</b></div><p>工具：<code>{props.pendingApproval.toolName}</code></p><p>目标：{props.pendingApproval.targetEnvironment}</p><pre>{props.pendingApproval.argumentsJson}</pre><small>参数摘要 {props.pendingApproval.argumentsSha256.slice(0, 16)}…</small><div><button className="danger" disabled={props.approvalBusy || props.approvalSecondsLeft <= 0} onClick={() => void props.onDecideApproval(false)}>拒绝</button><button className="primary" disabled={props.approvalBusy || props.approvalSecondsLeft <= 0} onClick={() => void props.onDecideApproval(true)}>批准一次</button></div></aside>}
-          {props.steps.length > 0 && <aside className="run-steps remote-steps"><strong>当前运行步骤</strong>{props.steps.map((step) => <details key={step.id} open={step.stepType === 'TOOL_RESULT' || step.stepType.startsWith('APPROVAL')}><summary>#{step.stepNumber} {step.stepType}<span className={`step-status step-status--${step.status.toLowerCase()}`}>{step.status}</span></summary>{step.toolName && <code>{step.toolName}</code>}{step.outputText && <pre>{step.outputText}</pre>}</details>)}</aside>}
-          {props.messages.length === 0 && props.steps.length === 0 ? <Empty text={selectedReady ? '选择左侧文件或中间固定任务开始' : '浏览无需 Agent；执行任务前请选择 Agent 版本'} /> : <>{hiddenMessageCount > 0 && <p className="remote-history-note">已收起更早的 {hiddenMessageCount} 条会话消息，完整记录仍保留在运行记录中。</p>}{visibleMessages.map((message, index) => <article className={`remote-message remote-message--${message.role}`} key={`${hiddenMessageCount}-${index}`}><span>{message.role === 'user' ? 'YOU' : 'AGENT'}</span>{message.content ? message.role === 'assistant' ? <MarkdownMessage content={message.content} /> : <p>{message.content}</p> : <p><i className="typing">正在处理</i></p>}</article>)}</>}
+          {props.steps.length > 0 && <aside className="run-steps remote-steps"><strong>本次运行步骤（点开看原始记录）</strong>{props.steps.map((step) => <details key={step.id}><summary>#{step.stepNumber} {step.stepType}<span className={`step-status step-status--${step.status.toLowerCase()}`}>{step.status}</span></summary>{step.toolName && <code>{step.toolName}</code>}{step.outputText && <pre>{step.outputText}</pre>}</details>)}</aside>}
+          {props.messages.length === 0 && props.steps.length === 0 ? <Empty text={selectedReady ? '按中间的分步引导操作；执行后在这里查看结果' : '浏览无需 Agent；执行任务前请选择 Agent 版本'} /> : <>{hiddenMessageCount > 0 && <p className="remote-history-note">已收起更早的 {hiddenMessageCount} 条会话消息，完整记录仍保留在运行记录中。</p>}{visibleMessages.map((message, index) => <article className={`remote-message remote-message--${message.role}`} key={`${hiddenMessageCount}-${index}`}><span>{message.role === 'user' ? 'YOU' : 'AGENT'}</span>{message.content ? message.role === 'assistant' ? <FixedToolReply content={message.content} /> : <UserToolRequest content={message.content} /> : <p><i className="typing">正在处理</i></p>}</article>)}</>}
         </div>
         <form className="remote-agent-composer" onSubmit={submitAssistant}><textarea rows={3} value={assistantInput} onChange={(event) => setAssistantInput(event.target.value)} placeholder="让 Agent 检查文件、解释结果或提出受控操作……" /><div><button className="primary" disabled={!selectedReady || props.busy || !assistantInput.trim()}>{props.busy ? '运行中' : '发送'}</button>{props.busy && props.currentRunId && <button className="danger" type="button" disabled={props.cancelBusy} onClick={() => void props.onCancel()}>{props.cancelBusy ? '停止中' : '停止'}</button>}</div></form>
       </aside>
@@ -878,9 +1016,55 @@ function latestToolJson<T>(steps: RunStep[], toolName: string): T | undefined {
   for (let index = steps.length - 1; index >= 0; index--) {
     const step = steps[index]
     if (step.toolName !== toolName || !step.outputText) continue
-    try { return JSON.parse(step.outputText) as T } catch { return undefined }
+    try { const result = JSON.parse(step.outputText) as T; return step.observedAt && result && typeof result === 'object'
+      ? { ...result, observedAt: step.observedAt } : result } catch { return undefined }
   }
   return undefined
+}
+
+function latestDeploymentTask(steps: RunStep[], task: string): TaskResult | undefined {
+  for (let index = steps.length - 1; index >= 0; index--) {
+    const step = steps[index]
+    if (step.toolName !== 'inspect_remote_deployment' || !step.outputText) continue
+    try { const result = JSON.parse(step.outputText) as TaskResult; if (result.task === task) return { ...result, observedAt: step.observedAt } } catch { /* older malformed record */ }
+  }
+  return undefined
+}
+
+const fixedToolLabels: Record<string, string> = {
+  prepare_release_candidate: '准备候选', build_release_candidate_image: '构建候选镜像',
+  prepare_remote_deployment_backup: '创建发布前备份', inspect_remote_deployment: '只读部署诊断',
+  adopt_remote_database_baseline: '登记数据库基线', verify_remote_deployment_backup_restore: '备份恢复材料演练',
+  publish_remote_release: '受审上线并验证恢复',
+}
+
+function UserToolRequest({ content }: { content: string }) {
+  const tool = Object.keys(fixedToolLabels).find((name) => content.startsWith(`请只使用 ${name} 工具`))
+  if (!tool) return <p>{content}</p>
+  return <div className="fixed-tool-request"><strong>已请求：{fixedToolLabels[tool]}</strong><details><summary>查看原始请求</summary><p>{content}</p></details></div>
+}
+
+function FixedToolReply({ content }: { content: string }) {
+  const receipt = fixedToolReceipt(content)
+  if (!receipt) return <MarkdownMessage content={content} />
+  const success = fixedToolSucceeded(receipt)
+  const title = receipt.task === 'PUBLISH_RELEASE' ? '受审上线并验证恢复' : typeof receipt.task === 'string' ? deploymentTasks.find((task) => task.id === receipt.task)?.title ?? String(receipt.task)
+    : isBaselineRegistrationReceipt(receipt) ? '登记数据库基线'
+      : 'releaseId' in receipt && 'imageId' in receipt ? '构建候选镜像'
+      : 'backupId' in receipt && 'drillId' in receipt ? '备份恢复材料演练'
+        : 'backupId' in receipt && 'databaseBytes' in receipt ? '创建发布前备份'
+          : 'releaseId' in receipt ? '准备候选' : '固定任务'
+  const identifier = [receipt.releaseId, receipt.imageId, receipt.backupId, receipt.schemaSha256].find((item) => typeof item === 'string')
+  return <div className={`fixed-tool-reply ${success ? 'fixed-tool-reply--success' : 'fixed-tool-reply--failed'}`}>
+    <strong>{title}：{success ? '执行成功' : '未成功'}</strong>
+    <p>工具结果：successful={String(receipt.successful)}，exitCode={String(receipt.exitCode ?? '未知')}{typeof receipt.stage === 'string' ? `，阶段 ${receipt.stage}` : ''}。</p>
+    {identifier && <p className="fixed-tool-identifier">关键标识：{String(identifier)}</p>}
+    {receipt.task === 'DATABASE_SCHEMA' && success && <p>数据库结构核查通过；本次只读操作没有登记基线。</p>}
+    {receipt.task === 'PUBLISH_RELEASE' && <p>{receipt.deployed === true && success ? '已切换候选，健康验证通过。' : receipt.rolledBack === true ? '上线失败；旧应用已恢复并验证健康，数据库扩展不会自动撤销。' : '不能确认上线；先查线上版本和数据库历史。'}{receipt.manualInterventionRequired === true ? '需要人工介入，不要直接重试。' : ''}</p>}
+    {receipt.outputTruncated === true && <p>输出已截断，请到运行记录查看完整的有界回执。</p>}
+    {!success && <p>请先查看失败原因及可能残留的产物，不要直接重试下一步。</p>}
+    <details><summary>技术详情与原始 JSON</summary><pre>{JSON.stringify(receipt, null, 2)}</pre></details>
+  </div>
 }
 
 function formatCompactBytes(bytes: number) {

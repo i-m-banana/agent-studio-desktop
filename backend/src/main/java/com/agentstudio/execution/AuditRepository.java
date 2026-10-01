@@ -53,8 +53,12 @@ public class AuditRepository {
                         rs.getTimestamp("created_at").toInstant()));
     }
 
-    private String truncate(String value) {
+    static String truncate(String value) {
         if (value == null) return null;
-        return value.length() <= 1000 ? value : value.substring(0, 1000) + "…";
+        if (value.length() <= 1000) return value;
+        // The ellipsis counts toward VARCHAR(1000); never split a UTF-16 surrogate pair.
+        int end = 999;
+        if (Character.isHighSurrogate(value.charAt(end - 1))) end--;
+        return value.substring(0, end) + "…";
     }
 }

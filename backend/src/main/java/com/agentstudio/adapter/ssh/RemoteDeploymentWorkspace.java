@@ -59,6 +59,64 @@ class RemoteDeploymentWorkspace {
 
         String releaseRoot() { return profile.remoteDeployRoot().replaceAll("/+$", "") + "-releases"; }
 
+        String validateCandidate(String releaseId) throws Exception {
+            if (!releaseId.matches("[0-9]{8}T[0-9]{6}Z-[0-9a-f]{8}"))
+                throw new IllegalArgumentException("候选 ID 格式无效");
+            var candidate = releaseRoot() + "/" + releaseId;
+            // Include every ancestor, not only the configured root or final child.
+            var policy = new RemotePathPolicy("/" + releaseRoot().substring(1).split("/")[0]);
+            if (!safeAttributes(candidate, policy).isDirectory())
+                throw new IllegalArgumentException("候选目录不存在或不安全");
+            for (var name : java.util.List.of("app.jar", "Dockerfile", "compose.yml", "nginx.conf", "manifest.properties", "SHA256SUMS")) {
+                if (!safeAttributes(candidate + "/" + name, policy).isRegularFile())
+                    throw new IllegalArgumentException("候选文件不存在或不安全：" + name);
+            }
+            return candidate;
+        }
+
+        byte[] readCandidateManifest(String candidate) throws Exception {
+            try (var input = sftp.read(candidate + "/manifest.properties")) {
+                var bytes = input.readNBytes(16_385);
+                if (bytes.length > 16_384) throw new IllegalArgumentException("候选清单超过大小上限");
+                return bytes;
+            }
+        }
+
+        String validateBackup(String backupId) throws Exception {
+            if (!backupId.matches("[0-9]{8}T[0-9]{6}Z-[0-9a-f]{8}")) throw new IllegalArgumentException("备份 ID 格式无效");
+            var path = profile.remoteBackupRoot().replaceAll("/+$", "") + "/" + backupId;
+            var policy = new RemotePathPolicy("/" + path.substring(1).split("/")[0]);
+            if (!safeAttributes(path, policy).isDirectory()) throw new SecurityException("备份目录不安全");
+            for (var name : java.util.List.of("database.sql", "uploads.tar.gz", "app.jar", "Dockerfile", "compose.yml", "nginx.conf", ".env", "images.json", "services.json", "SHA256SUMS", "manifest.properties", "manifest.sha256"))
+                if (!safeAttributes(path + "/" + name, policy).isRegularFile()) throw new SecurityException("备份文件不安全：" + name);
+            return path;
+        }
+
+        String createBaselineAttempt(String candidate, String id) throws Exception {
+            if (!id.matches("[0-9a-f]{32}")) throw new IllegalArgumentException("基线任务标识无效");
+            var path = candidate + "/baseline-" + id;
+            sftp.mkdir(path);
+            if (sftp.lstat(path).isSymbolicLink() || !sftp.lstat(path).isDirectory()) throw new SecurityException("基线目录不安全");
+            return path;
+        }
+
+        String createPublishAttempt(String candidate, String id) throws Exception {
+            if (!id.matches("[0-9a-f]{32}")) throw new IllegalArgumentException("发布任务标识无效");
+            var path = candidate + "/publish-" + id;
+            sftp.mkdir(path);
+            if (sftp.lstat(path).isSymbolicLink() || !sftp.lstat(path).isDirectory()) throw new SecurityException("发布目录不安全");
+            return path;
+        }
+
+        String createImageAttempt(String candidate, String attemptId) throws Exception {
+            if (!attemptId.matches("[0-9a-f]{32}")) throw new IllegalArgumentException("镜像构建标识无效");
+            var attempt = candidate + "/image-build-" + attemptId;
+            sftp.mkdir(attempt); // exclusive: do not reuse or overwrite any prior attempt
+            if (sftp.lstat(attempt).isSymbolicLink() || !sftp.lstat(attempt).isDirectory())
+                throw new IllegalArgumentException("镜像构建目录不安全");
+            return attempt;
+        }
+
         String createCandidateDirectory(String releaseId) throws Exception {
             if (!releaseId.matches("[0-9]{8}T[0-9]{6}Z-[0-9a-f]{8}")) {
                 throw new IllegalArgumentException("平台生成的 releaseId 格式无效");

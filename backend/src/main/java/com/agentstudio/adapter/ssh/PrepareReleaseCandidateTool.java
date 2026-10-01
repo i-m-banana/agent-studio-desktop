@@ -79,8 +79,11 @@ public class PrepareReleaseCandidateTool implements AgentTool {
         files.put("Dockerfile", build.sourceRoot().resolve("Dockerfile"));
         files.put("compose.yml", build.sourceRoot().resolve(profile.localComposeFile()));
         files.put("nginx.conf", build.sourceRoot().resolve(profile.nginxConfig()));
-        var manifest = "candidateFormat=1\nreleaseId=" + releaseId + "\ncreatedAt=" + clock.instant()
+        var manifest = "candidateFormat=2\nreleaseId=" + releaseId + "\ncreatedAt=" + clock.instant()
                 + "\nartifactPath=target/app.jar\nartifactSha256=" + artifactSha
+                + "\ndockerfileSha256=" + RemoteReleaseCandidateStager.sha256(files.get("Dockerfile"))
+                + "\ncomposeSha256=" + RemoteReleaseCandidateStager.sha256(files.get("compose.yml"))
+                + "\nnginxSha256=" + RemoteReleaseCandidateStager.sha256(files.get("nginx.conf"))
                 + "\ncomposeSource=" + profile.localComposeFile()
                 + "\nproductionModified=false\nfiles=app.jar,Dockerfile,compose.yml,nginx.conf\n";
         var stage = stager.stage(profile, releaseId, files, artifactSha, manifest);

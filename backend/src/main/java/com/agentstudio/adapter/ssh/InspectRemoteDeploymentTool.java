@@ -19,7 +19,7 @@ public class InspectRemoteDeploymentTool implements AgentTool {
     private static final int MAX_OUTPUT_BYTES = 16_000;
     private static final ToolDescriptor DESCRIPTOR = new ToolDescriptor(
             "inspect_remote_deployment", "检查受控远程部署",
-            "审批后对固定生产部署目标执行 Compose、Nginx、站点健康或发布指纹的只读诊断；不接受路径、命令、服务名、URL、参数或环境变量。",
+            "审批后对固定生产部署目标执行 Compose、Nginx、站点健康、发布指纹或数据库结构的只读诊断；不接受路径、SQL、命令、服务名、URL、参数或环境变量。",
             "SSH", "EXECUTE", "HIGH", 45,
             Map.of("type", "object", "properties", Map.of(
                     "task", Map.of("type", "string", "enum", RemoteDeploymentCommands.TASKS,
@@ -55,11 +55,11 @@ public class InspectRemoteDeploymentTool implements AgentTool {
         }
         var task = arguments.path("task").asText("").trim();
         if (!RemoteDeploymentCommands.TASKS.contains(task)) {
-            throw new IllegalArgumentException("task 只允许五种固定部署诊断");
+            throw new IllegalArgumentException("task 只允许固定部署诊断");
         }
         var profile = profiles.current();
         return workspace.execute(profile, (session, access, properties) -> {
-            var output = new BoundedSshOutputStream(MAX_OUTPUT_BYTES);
+            var output = new BoundedSshOutputStream(task.equals("DATABASE_SCHEMA") ? 48_000 : MAX_OUTPUT_BYTES);
             var started = System.nanoTime();
             try (var channel = session.createExecChannel(commands.command(task, profile))) {
                 channel.setOut(output); channel.setRedirectErrorStream(true);
@@ -87,6 +87,22 @@ public class InspectRemoteDeploymentTool implements AgentTool {
                 response.put("successful", exitCode == 0); response.put("exitCode", exitCode);
                 response.put("durationMs", Duration.ofNanos(System.nanoTime() - started).toMillis());
                 response.put("output", output.value()); response.put("outputTruncated", output.truncated());
+                if (task.equals("RELEASE_STATUS") && exitCode == 0 && !output.truncated()) {
+                    for (var line : output.value().lines().toList()) {
+                        if (line.matches("CURRENT_IMAGE_ID=sha256:[0-9a-f]{64}")) response.put("currentImageId", line.substring("CURRENT_IMAGE_ID=".length()));
+                        if (line.matches("PRODUCTION_SHA256=[0-9a-f]{64}")) response.put("productionSha256", line.substring("PRODUCTION_SHA256=".length()));
+                        if (line.matches("APP_HEALTH=(healthy|unhealthy|starting|missing)")) response.put("appHealth", line.substring("APP_HEALTH=".length()));
+                    }
+                    response.put("successful", response.containsKey("currentImageId") && response.containsKey("productionSha256") && response.containsKey("appHealth"));
+                }
+                if (task.equals("DATABASE_SCHEMA")) {
+                    response.put("schemaComplete", false);
+                    response.put("databaseModified", false);
+                    response.put("baselineRegistered", false);
+                    // Never issue a usable approval fingerprint for partial or failed diagnostics.
+                    if (exitCode == 0 && !output.truncated())
+                        response.putAll(RemoteDatabaseSchemaResult.parse(output.value(), objectMapper));
+                }
                 return objectMapper.writeValueAsString(response);
             }
         });
