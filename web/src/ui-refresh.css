@@ -1,0 +1,233 @@
+/* Common presentation for the existing eight workflows. */
+:root { font-size: 14px; color: #e4eee8; }
+.app-shell { grid-template-columns: 208px minmax(0, 1fr); }
+.sidebar { padding: 28px 16px; gap: 30px; }
+.sidebar h1 { font-size: 34px; line-height: .98; letter-spacing: -.04em; }
+.eyebrow { font-size: 11px; margin-bottom: 12px; letter-spacing: .12em; }
+.sidebar nav { gap: 4px; }
+.sidebar nav button { padding: 12px; gap: 10px; font-size: 14px; }
+.sidebar nav button span { font-size: 12px; }
+.workspace { padding: 30px 32px; }
+.workspace > section { max-width: 1240px; }
+.page-header { gap: 14px; margin-bottom: 24px; }
+.page-header h2 { font-size: clamp(28px, 3vw, 36px); letter-spacing: -.03em; line-height: 1.2; }
+.page-header p { font-size: 14px; max-width: 800px; margin-top: 8px; }
+.panel { border-radius: 12px; box-shadow: none; }
+.panel h2 { font-size: 18px; margin-bottom: 18px; }
+.form, .list-panel, .secret-panel, .mcp-library { padding: 20px; }
+.form { gap: 16px; }
+.two-column { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+.two-column:has(> .form-disclosure), .two-column:has(> .panel-stack) { display: flex; flex-direction: column; }
+.two-column:has(> .form-disclosure) > *, .two-column:has(> .panel-stack) > * { width: 100%; }
+.two-column:has(> .panel-stack) > .panel-stack { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.form-disclosure > summary, .settings-disclosure > summary { padding: 16px 20px; font-size: 15px; font-weight: 650; }
+.form-disclosure[open] > summary, .settings-disclosure[open] > summary { border-bottom: 1px solid #2b4136; }
+.form-disclosure .form { max-width: 920px; }
+.form-disclosure .form h2 { display: none; }
+.settings-disclosure { margin-top: 18px; }
+.settings-disclosure > .two-column { padding: 18px; }
+.settings-disclosure .secret-panel { margin-top: 0; }
+summary { cursor: pointer; color: #bfcec5; line-height: 1.5; overflow-wrap: anywhere; }
+details > summary:hover { color: #eaf6ee; }
+details[open] > summary { color: #83ddaf; }
+.conversation-details, .tool-disclosure { padding: 12px 0; border-top: 1px solid #2b4136; }
+.conversation-details > summary, .tool-disclosure > summary { font-size: 13px; }
+.conversation-details > p { color: #a4b7aa; line-height: 1.7; }
+.tool-options { margin-top: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.tool-choice { min-width: 0; border: 1px solid #2b4136; border-radius: 8px; padding: 12px; }
+.tool-option { border: 0; padding: 0; }
+.tool-option b { font-size: 14px; }
+.tool-option small, .tool-description { font-size: 12px; }
+.tool-description { margin-left: 24px; margin-top: 8px; color: #a1b2a8; }
+.tool-description p { line-height: 1.65; }
+.tool-description code { overflow-wrap: anywhere; }
+input, textarea, select { min-width: 0; padding: 10px 12px; font-size: 14px; border-radius: 8px; }
+.field > span, .hint, .edit-hint { color: #a1b2a8; font-size: 13px; }
+.primary, .secondary, .danger, .ghost { font-size: 14px; border-radius: 8px; }
+.primary, .secondary { padding: 10px 14px; }
+.danger { margin-top: 0; padding: 9px 12px; }
+button:focus-visible, summary:focus-visible, a:focus-visible { outline: 2px solid #80dfaf; outline-offset: 3px; }
+button:disabled { opacity: .6; }
+.card-actions, .form-actions, .section-head, .card-head { flex-wrap: wrap; }
+.card-head > div { min-width: 0; }
+.card-head strong, .document-card strong { overflow-wrap: anywhere; }
+.model-card span, .model-card p, .agent-card p, .document-card p { font-size: 13px; line-height: 1.65; }
+.agent-secondary { display: flex; gap: 12px 24px; align-items: center; flex-wrap: wrap; margin: 12px 0; }
+.agent-secondary .agent-meta { margin: 0; gap: 10px; }
+.agent-secondary .tool-disclosure, .agent-secondary .version-manager { padding: 0; margin: 0; border: 0; background: transparent; }
+.agent-secondary .version-manager > summary { font-size: 13px; }
+.agent-secondary > details[open] { flex-basis: 100%; }
+.operation-feedback { margin: 0; padding: 12px; color: #efaba1; border: 1px solid #724338; background: #281b17; border-radius: 8px; font-size: 13px; line-height: 1.6; grid-column: 1 / -1; overflow-wrap: anywhere; }
+.mcp-card .card-actions small, .mcp-tools p, .mcp-tools summary, .mcp-tools code, .tool-policy label, .tool-policy input, .tool-policy select { font-size: 12px; }
+.mcp-card > code { margin: 10px 0; font-size: 12px; }
+.connection-details { margin: 10px 0; }
+.connection-details > summary, .card-more > summary { font-size: 13px; }
+.connection-details code { display: block; font-size: 12px; margin: 10px 0; overflow-wrap: anywhere; }
+.card-more { position: relative; }
+.card-more > div { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 0; }
+.badge, .step-status { font-size: 12px; }
+.badge--ended { color: #b9c8c0; background: #25342c; }
+.list-panel > .field { max-width: 540px; margin-bottom: 18px; }
+.document-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; }
+.document-card > div { min-width: 0; flex-wrap: wrap; }
+.document-card > .error-text { grid-column: 1 / -1; }
+.chat-toolbar { gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+.chat-toolbar > label:first-child { flex: 1 1 300px; min-width: 0; }
+.chat-toolbar > span { font-size: 12px; }
+.history-compact > select { font-size: 13px; }
+.history-toggle { font-size: 12px; }
+.messages { padding: 20px; }
+.message { grid-template-columns: 56px minmax(0, 1fr); gap: 12px; margin-bottom: 18px; }
+.message > span { font-size: 12px; }
+.message > p, .markdown-message { font-size: 14px; line-height: 1.75; }
+.message .fixed-tool-reply, .message .fixed-tool-request { min-width: 0; }
+.composer { padding: 16px; }
+.run-steps, .sources, .audit-events { margin: 12px 0 0; }
+.run-conclusion { padding: 12px; background: #16261d; border-radius: 8px; color: #cadbce; line-height: 1.7; }
+.run-card, .run-detail { min-width: 0; }
+.run-history-layout > .list-panel { max-height: 70vh; overflow-y: auto; }
+.history-dialog p, .history-list > label, .history-dialog summary { font-size: 13px; }
+.history-compact > button { font-size: 13px; }
+.run-detail dd, .readiness-card p, .readiness-card small { font-size: 13px; overflow-wrap: anywhere; line-height: 1.7; }
+.readiness-list { gap: 14px; }
+.notice { font-size: 14px; }
+/* The central workspace gets the available width; sides are optional. */
+.workspace:has(.remote-workbench-section) { padding: 20px 24px; height: 100vh; display: flex; overflow: hidden; }
+.workspace > .remote-workbench-section { width: 100%; flex: 1; min-height: 0; height: auto; margin: 0 !important; display: grid; grid-template-rows: auto auto auto minmax(0, 1fr) auto; overflow: hidden; border-radius: 12px; border: 1px solid #2b4136; }
+.remote-workbench-header { padding: 18px 20px; flex-wrap: wrap; gap: 12px; }
+.remote-workbench-header h2 { font-size: 28px; }
+.remote-workbench-header p { font-size: 13px; line-height: 1.6; }
+.remote-workbench-header .eyebrow { display: none; }
+.remote-target-summary { max-width: 300px; min-width: 0; }
+.remote-target-summary strong, .remote-target-summary small { font-size: 12px; }
+.remote-toolbar { padding: 10px 16px; gap: 10px; flex-wrap: wrap; }
+.remote-toolbar label { min-width: 0; flex: 1 1 250px; font-size: 13px; }
+.remote-toolbar .remote-policy { display: none; }
+.workbench-layout-controls { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 12px; border-bottom: 1px solid #2b4136; background: #0d1713; }
+.workbench-layout-controls > span { font-size: 12px; color: #e4b966; }
+.mobile-pane-controls { display: none; }
+.remote-workbench { grid-template-columns: 220px minmax(0, 1fr) 300px; min-height: 0; }
+.remote-workbench.explorer-closed { grid-template-columns: minmax(0, 1fr) 300px; }
+.remote-workbench.assistant-closed { grid-template-columns: 220px minmax(0, 1fr); }
+.remote-workbench.explorer-closed.assistant-closed { grid-template-columns: minmax(0, 1fr); }
+.remote-workbench.explorer-closed > .remote-explorer, .remote-workbench.assistant-closed > .remote-agent-pane { display: none; }
+.remote-center { grid-column: auto; grid-row: auto; min-height: 0; }
+.remote-explorer, .remote-agent-pane { grid-column: auto; grid-row: auto; min-height: 0; }
+.remote-agent-pane { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; }
+.remote-agent-feed { min-height: 0; overflow: auto; padding: 14px; }
+.remote-tabs { padding: 0 8px; }
+.remote-tabs button { font-size: 14px; padding: 12px; }
+.remote-tab-content { padding: 18px; }
+.remote-pane-title strong, .remote-tree > button { font-size: 13px; }
+.remote-pane-title span, .remote-tree > small, .remote-tree > button em { font-size: 11px; }
+.remote-path-input input, .remote-path-input button { font-size: 12px; }
+.remote-protection strong, .remote-protection p, .remote-tree > p { font-size: 12px; }
+.remote-hero-card { padding: 20px; }
+.remote-hero-card p { font-size: 14px; }
+.remote-overview-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.remote-message { padding: 12px; }
+.remote-message > span { font-size: 11px; }
+.remote-message p, .fixed-tool-reply p, .fixed-tool-request p, .remote-message .markdown-message { font-size: 13px; line-height: 1.7; }
+.fixed-tool-reply strong, .fixed-tool-request strong { font-size: 14px; }
+.fixed-tool-reply summary, .fixed-tool-request summary { font-size: 12px; }
+.remote-agent-composer { padding: 12px; }
+.remote-agent-composer textarea { font-size: 14px; }
+.remote-agent-composer button { font-size: 13px; }
+.remote-agent-composer .primary, .remote-agent-composer .danger { font-size: 13px; }
+.remote-statusbar { flex-wrap: wrap; height: auto; min-height: 28px; padding: 6px 12px; gap: 12px; font-size: 11px; }
+.remote-deployment-head h3 { font-size: 22px; }
+.remote-deployment-head p, .release-guide-intro p, .release-guide-boundary, .release-guide-proof { font-size: 13px; line-height: 1.65; }
+.release-guide-steps { grid-template-columns: 1fr; }
+.release-guide-steps > li { min-width: 0; padding: 16px; }
+.release-guide-steps > li header h4 { font-size: 15px; }
+.release-guide-steps > li header p, .release-guide-steps > li small { font-size: 12px; }
+.release-guide-steps > li header b { font-size: 12px; }
+.release-step-details { margin-top: 10px; }
+.release-step-details > summary { font-size: 13px; }
+.release-step-details > button { margin-top: 12px; }
+.release-guide-proof { margin: 8px 0; }
+.release-next { padding: 14px; margin-bottom: 16px; background: #193326; border: 1px solid #356b4e; border-radius: 8px; }
+.release-next strong { font-size: 15px; color: #93e3b6; }
+.release-next p { font-size: 12px; margin: 7px 0 0; color: #b1c6b8; line-height: 1.65; }
+.release-guide-actions { flex-wrap: wrap; }
+.release-guide-warning { font-size: 13px; line-height: 1.7; }
+.release-guide-warning input { width: auto; }
+.first-time-setup { margin: 16px 0; }
+.release-advanced > summary, .release-identity > summary { font-size: 13px; }
+.remote-deployment-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.remote-deployment-form label, .remote-deployment-form input, .remote-backup-card p, .remote-deployment-tasks p, .remote-deployment-result footer, .remote-backup-result footer, .remote-task-path small { font-size: 12px; }
+.remote-deployment-tasks, .remote-task-grid { grid-template-columns: 1fr; }
+.remote-task-grid article { min-width: 0; }
+.remote-task-grid article p, .remote-task-path input, .remote-task-path label { font-size: 13px; }
+.remote-code, .remote-output > pre { font-size: 13px; }
+.remote-file-meta span, .remote-file-meta code { font-size: 12px; }
+.remote-file-meta { grid-template-columns: 1fr; }
+.remote-service-ghosts { display: none; }
+.remote-deployment-tasks b { font-size: 14px; }
+.remote-deployment-tasks code, .remote-deployment-tasks button, .remote-backup-result dt, .remote-backup-result dd, .remote-history-note, .remote-tool-hint { font-size: 12px; }
+.remote-deployment-result pre, .fixed-tool-reply pre, .remote-approval pre, .remote-steps details code { font-size: 12px; }
+.remote-approval p { font-size: 13px; }
+.run-steps summary { flex-wrap: wrap; overflow-wrap: anywhere; }
+.run-steps details { font-size: 12px; }
+.remote-output-head strong, .remote-output > footer { font-size: 12px; overflow-wrap: anywhere; }
+.remote-overview .remote-hero-card > span, .remote-deployment-head > div > span { display: none; }
+pre { max-width: 100%; overflow: auto; }
+@media (max-width: 1200px) {
+  .remote-workbench, .remote-workbench.explorer-closed { grid-template-columns: minmax(0, 1fr) 270px; }
+  .remote-workbench:not(.explorer-closed) { grid-template-columns: 180px minmax(0, 1fr) 250px; }
+  .remote-workbench.assistant-closed { grid-template-columns: 180px minmax(0, 1fr); }
+  .remote-workbench.explorer-closed.assistant-closed { grid-template-columns: minmax(0, 1fr); }
+  .remote-tab-content { padding: 14px; }
+  .remote-toolbar .history-compact { margin-left: 0; }
+}
+@media (max-width: 900px) {
+  .app-shell { grid-template-columns: 1fr; }
+  .sidebar { position: static; height: auto; padding: 16px; gap: 14px; display: grid; grid-template-columns: 1fr auto; }
+  .sidebar h1 { font-size: 22px; }
+  .sidebar h1 br { display: none; }
+  .sidebar h1 br::after { content: ' '; }
+  .sidebar .eyebrow { display: none; }
+  .sidebar nav { display: flex; overflow-x: auto; gap: 4px; grid-column: 1 / -1; }
+  .sidebar nav button { flex: 0 0 auto; padding: 9px 10px; font-size: 13px; }
+  .sidebar nav button span { display: none; }
+  .workspace { padding: 20px 16px; }
+  .two-column, .readiness-list { grid-template-columns: 1fr; }
+  .run-history-layout > .list-panel { max-height: 42vh; }
+  .tool-options { grid-template-columns: 1fr; }
+  .two-column:has(> .panel-stack) > .panel-stack { grid-template-columns: 1fr; }
+  .workspace:has(.remote-workbench-section) { padding: 12px; height: auto; min-height: 0; overflow: visible; }
+  .workspace > .remote-workbench-section { height: 850px; max-height: none; grid-template-rows: auto auto auto minmax(0, 1fr) auto; }
+  .desktop-pane-controls { display: none; }
+  .mobile-pane-controls { display: flex; gap: 6px; }
+  .mobile-pane-controls button { font-size: 13px; padding: 8px 10px; border: 1px solid #314c3c; border-radius: 6px; background: transparent; color: #b2c6b8; }
+  .mobile-pane-controls button.active { background: #213e2c; color: #96e6b7; }
+  .workbench-layout-controls { flex-wrap: wrap; }
+  .remote-workbench, .remote-workbench:not(.explorer-closed), .remote-workbench.explorer-closed, .remote-workbench.assistant-closed, .remote-workbench.explorer-closed.assistant-closed { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+  .remote-workbench > .remote-explorer, .remote-workbench > .remote-agent-pane, .remote-workbench > .remote-center { display: none; min-height: 0; height: auto; grid-column: 1; grid-row: 1; }
+  .remote-workbench[data-pane="workspace"] > .remote-center, .remote-workbench[data-pane="files"] > .remote-explorer, .remote-workbench[data-pane="assistant"] > .remote-agent-pane { display: grid; }
+  .remote-agent-pane { border-left: 0; }
+  .remote-workbench-header { padding: 14px; }
+  .remote-target-summary { max-width: 100%; }
+  .remote-task-path label, .remote-deployment-form { grid-template-columns: 1fr; }
+  .remote-toolbar { padding: 10px; }
+  .remote-toolbar label { display: grid; }
+  .history-compact { width: 100%; }
+  .history-compact > select { flex: 1; min-width: 0; max-width: none; }
+  .remote-statusbar span:nth-child(2) { display: none; }
+}
+@media (max-width: 620px) {
+  .page-header h2 { font-size: 26px; }
+  .page-header p { font-size: 13px; }
+  .form, .list-panel { padding: 16px; }
+  .settings-disclosure > .two-column { padding: 10px; }
+  .chat-toolbar { flex-direction: row; align-items: center; }
+  .chat-toolbar > label:first-child { flex-basis: 100%; }
+  .message { grid-template-columns: 1fr; }
+  .document-card { grid-template-columns: minmax(0, 1fr); }
+  .document-card > .danger { justify-self: end; }
+  .remote-file-toolbar { grid-template-columns: minmax(0, 1fr); }
+  .remote-workbench-header h2 { font-size: 24px; }
+  .release-guide-steps > li header { flex-wrap: wrap; }
+  .release-guide-steps > li header > div { min-width: 0; flex: 1; }
+  .remote-deployment-head { flex-wrap: wrap; }
+}
