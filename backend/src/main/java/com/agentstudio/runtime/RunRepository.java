@@ -20,9 +20,12 @@ public class RunRepository {
 
     private static final RowMapper<RunStep> STEP_MAPPER = RunRepository::mapStep;
     private final NamedParameterJdbcTemplate jdbc;
+    private final com.agentstudio.release.ReleaseTaskRepository releaseTasks;
 
-    public RunRepository(@Qualifier("primaryNamedParameterJdbcTemplate") NamedParameterJdbcTemplate jdbc) {
+    public RunRepository(@Qualifier("primaryNamedParameterJdbcTemplate") NamedParameterJdbcTemplate jdbc,
+                         com.agentstudio.release.ReleaseTaskRepository releaseTasks) {
         this.jdbc = jdbc;
+        this.releaseTasks = releaseTasks;
     }
 
     public AgentRun start(String conversationId, String agentVersionId) {
@@ -38,6 +41,7 @@ public class RunRepository {
         return run;
     }
 
+    @org.springframework.transaction.annotation.Transactional
     public RunStep addStep(String runId, String stepType, String status, String toolCallId,
                            String toolName, String inputJson, String outputText, Long durationMs) {
         var step = new RunStep(UUID.randomUUID().toString(), runId, nextStepNumber(runId),
@@ -50,6 +54,7 @@ public class RunRepository {
                     (:id, :runId, :stepNumber, :stepType, :status, :toolCallId, :toolName,
                      :inputJson, :outputText, :durationMs, :createdAt)
                 """, stepParameters(step));
+        if ("TOOL_CALL".equals(stepType)) releaseTasks.capture(step.id(), runId, toolCallId, toolName);
         return step;
     }
 
@@ -108,6 +113,12 @@ public class RunRepository {
                         rs.getString("agent_version_id"), rs.getString("status"),
                         rs.getTimestamp("started_at").toInstant(), instant(rs, "completed_at"),
                         rs.getString("error_message"), steps(runId))).stream().findFirst();
+    }
+
+    public List<AgentRun> forConversation(String conversationId) {
+        return jdbc.query("SELECT id FROM agent_run WHERE conversation_id=:id ORDER BY started_at,id",
+                Map.of("id",conversationId), (rs,row) -> rs.getString("id")).stream()
+                .map(id -> find(id).orElseThrow()).toList();
     }
 
     private List<RunStep> steps(String runId) {

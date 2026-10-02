@@ -79,7 +79,8 @@ public class ChatService {
         this.releaseCandidateTimeout = releaseCandidateTimeout;
     }
 
-    public SseEmitter stream(ChatStreamRequest request) {
+    public synchronized SseEmitter stream(ChatStreamRequest request) {
+        synchronized (conversations) {
         var version = agents.getVersion(request.agentVersionId());
         if (request.requestedTool() != null) {
             var requested = request.requestedTool();
@@ -92,11 +93,16 @@ public class ChatService {
             throw new ApiException(HttpStatus.CONFLICT, "该 Agent 版本已归档，不能创建新会话");
         }
         var conversationId = resolveConversation(request.conversationId(), version.id());
+        if (runs.forConversation(conversationId).stream().anyMatch(r -> !java.util.Set.of(
+                "COMPLETED", "FAILED", "CANCELLED", "TIMED_OUT", "INTERRUPTED").contains(r.status())))
+            throw new ApiException(HttpStatus.CONFLICT, "该会话仍有运行中的任务，请观察原运行，不要重复执行");
         conversations.addMessage(conversationId, "user", request.message().trim());
 
         var emitter = new SseEmitter(runTimeout(version.toolNames()).plusSeconds(10).toMillis());
-        taskExecutor.execute(() -> executeStream(emitter, conversationId, version, request.requestedTool()));
+        var run = runs.start(conversationId, version.id());
+        taskExecutor.execute(() -> executeStream(emitter, conversationId, version, request.requestedTool(), run));
         return emitter;
+        }
     }
 
     Duration runTimeout(java.util.List<String> toolNames) {
@@ -123,9 +129,9 @@ public class ChatService {
     }
 
     private void executeStream(SseEmitter emitter, String conversationId,
-                               com.agentstudio.agent.AgentVersion version, ChatStreamRequest.RequestedTool requestedTool) {
+                               com.agentstudio.agent.AgentVersion version, ChatStreamRequest.RequestedTool requestedTool,
+                               com.agentstudio.runtime.AgentRun run) {
         var answer = new StringBuilder();
-        var run = runs.start(conversationId, version.id());
         controls.register(run.id(), Thread.currentThread(), runTimeout(version.toolNames()));
         try {
             send(emitter, "run", Map.of(

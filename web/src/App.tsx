@@ -1,9 +1,11 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react'
+import { FormEvent, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { MarkdownMessage } from './MarkdownMessage'
 import { releaseImageRequest } from './releaseImage'
 import { databaseBaselineRequest, mergeBaselineEvidence } from './databaseBaseline'
 import { fixedToolReceipt, fixedToolSucceeded, isBaselineRegistrationReceipt, workflowReadiness } from './releaseWorkflow'
 import { publishReadiness, type ProductionStatus } from './publishRelease'
+import { HistoryPanel, type ConversationSummary } from './HistoryPanel'
+import { historyEvidence, knownBaseline, type ReleaseTask } from './releaseHistory'
 
 type BackendState = 'checking' | 'online' | 'offline'
 type View = 'models' | 'knowledge' | 'mcp' | 'agents' | 'chat' | 'remote' | 'runs' | 'system'
@@ -16,7 +18,7 @@ type ToolDefinition = { name: string; displayName: string; description: string; 
 type AgentDefinition = { id: string; name: string; description: string; draftModelProfileId: string; draftKnowledgeBaseId?: string; draftSystemPrompt: string; draftToolNames: string[]; latestVersionNumber: number; status: 'DRAFT' | 'PUBLISHED' }
 type AgentVersion = { id: string; agentDefinitionId: string; versionNumber: number; modelProfileName: string; modelName: string; systemPrompt: string; toolNames: string[]; publishedAt: string; archivedAt?: string; archived: boolean; usageCount: number; deletable: boolean }
 type ChatMessage = { role: 'user' | 'assistant'; content: string }
-type RunStep = { id: string; stepNumber: number; stepType: string; status: string; toolName?: string; inputJson?: string; outputText?: string; durationMs?: number; observedAt?: number }
+type RunStep = { id: string; stepNumber: number; stepType: string; status: string; toolName?: string; inputJson?: string; outputText?: string; durationMs?: number; observedAt?: number; createdAt?: string }
 type ApprovalRequest = { id: string; toolName: string; capability: string; riskLevel: string; targetEnvironment: string; argumentsJson: string; argumentsSha256: string; status: string; expiresAt: string }
 type RunSummary = { id: string; conversationId: string; agentVersionId: string; status: string; startedAt: string; completedAt?: string; errorMessage?: string; stepCount: number }
 type AgentRun = Omit<RunSummary, 'stepCount'> & { steps: RunStep[] }
@@ -53,7 +55,11 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
 
 function App() {
   const [backendState, setBackendState] = useState<BackendState>('checking')
-  const [view, setView] = useState<View>('models')
+  const [view, setView] = useState<View>(() => {
+    try { const saved = JSON.parse(localStorage.getItem('agentstudio-history') ?? '{}');
+      return ['models','knowledge','mcp','agents','chat','remote','runs','system'].includes(saved.view) ? saved.view : 'models'
+    } catch { return 'models' }
+  })
   const [models, setModels] = useState<ModelProfile[]>([])
   const [agents, setAgents] = useState<AgentDefinition[]>([])
   const [tools, setTools] = useState<ToolDefinition[]>([])
@@ -97,12 +103,63 @@ function App() {
   const [sshFingerprint, setSshFingerprint] = useState<SshFingerprint>()
   const [deployment, setDeployment] = useState<DeploymentProfile>()
   const [deploymentForm, setDeploymentForm] = useState(emptyDeployment)
+  const [conversations, setConversations] = useState<ConversationSummary[]>([])
+  const [releaseTasks, setReleaseTasks] = useState<ReleaseTask[]>([])
+  const [candidateId, setCandidateId] = useState<string>()
+  const [observingRun, setObservingRun] = useState(false)
+  const baselineAlreadyKnown = knownBaseline(releaseTasks, `${sshStatus?.username ?? ''}@${sshStatus?.host ?? ''}:${sshStatus?.port ?? ''}${deployment?.remoteDeployRoot ?? ''}`)
+
+  useEffect(() => {
+    if (!notice) return
+    const timer = window.setTimeout(() => setNotice(''), 6500)
+    return () => window.clearTimeout(timer)
+  }, [notice])
+
+  async function loadDeletedHistory() {
+    const records: ConversationSummary[] = []
+    for (let offset = 0; ; offset += 100) {
+      const page = await api<ConversationSummary[]>(`/api/conversations?deleted=true&limit=100&offset=${offset}`)
+      records.push(...page)
+      if (page.length < 100) return records
+    }
+  }
+  async function changeHistory(ids: string[], restore: boolean) {
+    await api(`/api/conversations/${restore ? 'restore' : 'trash'}`, { method: 'POST', body: JSON.stringify({ids}) })
+    if (!restore && conversationId && ids.includes(conversationId)) switchVersion(selectedVersion)
+    if (!restore && candidateId && releaseTasks.some(t => t.id === candidateId && ids.includes(t.conversationId))) setCandidateId(undefined)
+    await refreshHistory()
+    setNotice(restore ? '已恢复选中的聊天。' : '已删除选中的聊天；可在“管理 → 已删除”中恢复。')
+  }
+  async function refreshHistory() {
+    const [history, tasks] = await Promise.all([api<ConversationSummary[]>('/api/conversations'), api<ReleaseTask[]>('/api/release-tasks?limit=200')])
+    setConversations(history); setReleaseTasks(tasks)
+  }
+  async function openConversation(id: string, notify = true) {
+    const detail = await api<{ id: string; agentVersionId: string; messages: ChatMessage[]; runs: AgentRun[] }>(`/api/conversations/${encodeURIComponent(id)}`)
+    setConversationId(detail.id); setSelectedVersion(detail.agentVersionId); setShowHistoricalVersions(true)
+    setMessages(detail.messages); setSources([]); setPendingApproval(undefined)
+    const last = detail.runs.at(-1)
+    setRunSteps(last?.steps.map(s => ({ ...s, observedAt: Date.parse(s.createdAt ?? last.startedAt) })) ?? [])
+    const active = detail.runs.find(r => !['COMPLETED','FAILED','CANCELLED','TIMED_OUT','INTERRUPTED'].includes(r.status))
+    setObservingRun(Boolean(active)); setCurrentRunId(active?.id)
+    if (notify) setNotice(active ? '这段会话的任务仍在进行，请等它结束后再继续。' : '已打开以前的聊天。')
+  }
+
+  useEffect(() => {
+    if (!observingRun || !conversationId) return
+    const timer = window.setInterval(() => { void openConversation(conversationId,false).then(refreshHistory).catch(e => setNotice(String(e))) }, 5000)
+    return () => window.clearInterval(timer)
+  }, [observingRun, conversationId])
+
+  useEffect(() => {
+    if (conversationId || candidateId) localStorage.setItem('agentstudio-history', JSON.stringify({ conversationId, candidateId, view }))
+  }, [conversationId, candidateId, view])
 
   const versionLabels = useMemo(() => {
     const names = new Map(agents.map((agent) => [agent.id, agent.name]))
-    return versions.filter((version) => !version.archived && (showHistoricalVersions || agents.find((agent) => agent.id === version.agentDefinitionId)?.latestVersionNumber === version.versionNumber))
+    return versions.filter((version) => (version.id === selectedVersion && Boolean(conversationId)) || (!version.archived && (showHistoricalVersions || agents.find((agent) => agent.id === version.agentDefinitionId)?.latestVersionNumber === version.versionNumber)))
       .map((version) => ({ ...version, label: `${names.get(version.agentDefinitionId) ?? 'Agent'} · v${version.versionNumber} · ${version.modelName}${version.toolNames.length ? ` · ${version.toolNames.length} 工具` : ''}` }))
-  }, [agents, versions, showHistoricalVersions])
+  }, [agents, versions, showHistoricalVersions, selectedVersion, conversationId])
 
   async function refresh() {
     try {
@@ -130,7 +187,13 @@ function App() {
     } catch { setBackendState('offline') }
   }
 
-  useEffect(() => { void refresh() }, [])
+  useEffect(() => { void refresh(); void refreshHistory().then(async () => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('agentstudio-history') ?? '{}')
+      if (typeof saved.candidateId === 'string') setCandidateId(saved.candidateId)
+      if (typeof saved.conversationId === 'string') await openConversation(saved.conversationId)
+    } catch { setNotice('历史恢复未完成，请从历史会话重新选择。') }
+  }).catch(() => setNotice('历史服务暂不可用；请刷新历史，不要据空白界面重复执行任务。')) }, [])
 
   useEffect(() => {
     if (!pendingApproval) { setApprovalSecondsLeft(0); return }
@@ -441,7 +504,7 @@ function App() {
   }
 
   async function runMessage(input: string, requestedTool?: { name: string; arguments: Record<string, unknown> }) {
-    if (!input.trim() || !selectedVersion || busy) return
+    if (!input.trim() || !selectedVersion || busy || observingRun) return
     setMessages((current) => [...current, { role: 'user', content: input.trim() }, { role: 'assistant', content: '' }]); setSources([]); setRunSteps([]); setPendingApproval(undefined); setCurrentRunId(undefined); setBusy(true); setNotice('')
     try {
       const response = await fetch('/api/chat/stream', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' }, body: JSON.stringify({ agentVersionId: selectedVersion, conversationId, message: input.trim(), requestedTool }) })
@@ -469,6 +532,7 @@ function App() {
     } finally {
       setBusy(false); setPendingApproval(undefined); setCurrentRunId(undefined)
       api<RunSummary[]>('/api/runs?limit=50').then(setRunHistory).catch(() => undefined)
+      void refreshHistory().catch(() => undefined)
     }
   }
 
@@ -503,7 +567,21 @@ function App() {
     } finally { setApprovalBusy(false) }
   }
 
-  function switchVersion(id: string) { setSelectedVersion(id); setConversationId(undefined); setMessages([]); setSources([]); setRunSteps([]); setPendingApproval(undefined) }
+  function switchVersion(id: string) {
+    if (busy || observingRun) return
+    localStorage.removeItem('agentstudio-history'); setCandidateId(undefined)
+    setSelectedVersion(id); setConversationId(undefined); setMessages([]); setSources([]); setRunSteps([]); setPendingApproval(undefined)
+  }
+
+  const historyControl = <HistoryPanel conversations={conversations} tasks={releaseTasks} conversationId={conversationId} candidateId={candidateId}
+        target={`${sshStatus?.username ?? ''}@${sshStatus?.host ?? ''}:${sshStatus?.port ?? ''}${deployment?.remoteDeployRoot ?? ''}`} busy={busy || observingRun}
+        onOpen={id => void openConversation(id).catch(e => setNotice(String(e)))} onNew={() => switchVersion(selectedVersion)}
+        onCandidate={id => { setCandidateId(id || undefined); setNotice('已选择候选来源；不会自动构建、上线或复用审批。') }}
+        onRefresh={() => void refreshHistory().catch(e => setNotice(String(e)))}
+        onMore={() => void Promise.all([api<ConversationSummary[]>(`/api/conversations?offset=${conversations.length}`), api<ReleaseTask[]>(`/api/release-tasks?limit=200&offset=${releaseTasks.length}`)]).then(([next,tasks]) => {
+          setConversations(current => [...current,...next.filter(c => !current.some(old => old.id === c.id))]); setReleaseTasks(current => [...current,...tasks.filter(t => !current.some(old => old.id === t.id))])
+        }).catch(e => setNotice(String(e)))}
+        onTrash={changeHistory} onLoadTrash={loadDeletedHistory} onError={setNotice} onRun={id => { setView('runs'); void openRun(id) }} />
 
   return <div className="app-shell">
     <aside className="sidebar">
@@ -521,7 +599,7 @@ function App() {
       <div className={`connection connection--${backendState}`}><i />{backendState === 'online' ? '后端已连接' : backendState === 'checking' ? '正在连接' : '后端未连接'}</div>
     </aside>
     <main className="workspace">
-      {notice && <div className={`notice ${view === 'remote' ? 'notice--remote' : ''}`}>{notice}<button onClick={() => setNotice('')}>×</button></div>}
+      {notice && <div className="notice" role="status" aria-live="polite">{notice}<button aria-label="关闭提示" onClick={() => setNotice('')}>×</button></div>}
       {view === 'models' && <section><PageHeader number="01" title="模型与凭据" description="连接参数保存在业务数据库；密钥由当前 Windows 用户的安全存储保护，也可由环境变量覆盖。" /><div className="two-column">
         <form className="panel form" onSubmit={submitModel}><h2>新增模型连接</h2>
           <Field label="显示名称"><input required value={modelForm.name} onChange={(e) => setModelForm({ ...modelForm, name: e.target.value })} placeholder="例如：OpenAI 主模型" /></Field>
@@ -624,12 +702,12 @@ function App() {
         })}</div>
       </div></section>}
       {view === 'chat' && <section><PageHeader number="05" title="对话测试台" description="选择已发布版本；MCP 工具与内置工具共享审批和运行记录。" />
-        <div className="chat-toolbar"><label>Agent 版本<select value={selectedVersion} onChange={(e) => switchVersion(e.target.value)}><option value="">选择已发布版本</option>{versionLabels.map((version) => <option key={version.id} value={version.id}>{version.label}</option>)}</select></label><label className="history-toggle"><input type="checkbox" checked={showHistoricalVersions} onChange={(e) => setShowHistoricalVersions(e.target.checked)} />显示历史版本</label><span>{conversationId ? `会话 ${conversationId.slice(0, 8)}` : '新会话'}</span><button className="ghost" onClick={() => { setConversationId(undefined); setMessages([]); setSources([]); setRunSteps([]); setPendingApproval(undefined) }}>清空会话</button></div>
-        <div className="chat-panel"><div className="messages">{pendingApproval && <aside className="approval-card" role="alert" aria-live="assertive"><div className="approval-heading"><strong>等待高风险操作审批</strong><b>{approvalSecondsLeft > 0 ? `${approvalSecondsLeft} 秒` : '已过期'}</b></div><p>工具：<code>{pendingApproval.toolName}</code> · {pendingApproval.capability}/{pendingApproval.riskLevel}</p><p>目标：{pendingApproval.targetEnvironment}</p><pre>{pendingApproval.argumentsJson}</pre><small>参数摘要：{pendingApproval.argumentsSha256.slice(0, 16)}… · {new Date(pendingApproval.expiresAt).toLocaleTimeString()} 前有效</small><div><button className="danger" disabled={approvalBusy || approvalSecondsLeft <= 0} onClick={() => void decideApproval(false)}>拒绝</button><button className="primary" disabled={approvalBusy || approvalSecondsLeft <= 0} onClick={() => void decideApproval(true)}>批准执行一次</button></div></aside>}{sources.length > 0 && <aside className="sources"><strong>本次检索来源</strong>{sources.map((source) => <details key={`${source.documentId}-${source.chunkIndex}`}><summary>{source.fileName} · chunk {source.chunkIndex} · {Math.round(source.score * 100)}%</summary><p>{source.content}</p></details>)}</aside>}{runSteps.length > 0 && <aside className="run-steps"><strong>运行步骤</strong>{runSteps.map((step) => <details key={step.id} open={step.stepType === 'TOOL_RESULT' || step.stepType.startsWith('APPROVAL')}><summary>#{step.stepNumber} {step.stepType}{step.toolName ? ` · ${step.toolName}` : ''}<span className={`step-status step-status--${step.status.toLowerCase()}`}>{step.status}</span></summary>{step.inputJson && <pre>输入：{step.inputJson}</pre>}{step.outputText && <pre>输出：{step.outputText}</pre>}{step.durationMs != null && <small>{step.durationMs} ms</small>}</details>)}</aside>}{messages.length === 0 ? <Empty text={versions.length ? '选择版本并发送第一条消息' : '请先发布一个 Agent 版本'} /> : messages.map((message, index) => <article className={`message message--${message.role}`} key={index}><span>{message.role === 'user' ? 'YOU' : 'AGENT'}</span>{message.content ? message.role === 'assistant' ? <MarkdownMessage content={message.content} /> : <p>{message.content}</p> : <p><i className="typing">正在生成</i></p>}</article>)}</div>
-          <form className="composer" onSubmit={sendMessage}><textarea rows={3} value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder="输入测试问题……" onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); e.currentTarget.form?.requestSubmit() } }} /><div className="composer-actions"><button className="primary" disabled={busy || !selectedVersion || !chatInput.trim()}>{busy ? '生成中' : '发送'}</button>{busy && currentRunId && <button className="danger" type="button" disabled={cancelBusy} onClick={() => void cancelCurrentRun()}>{cancelBusy ? '停止中' : '停止运行'}</button>}</div></form>
+        <div className="chat-toolbar"><label>Agent 版本<select disabled={busy || observingRun} value={selectedVersion} onChange={(e) => switchVersion(e.target.value)}><option value="">选择已发布版本</option>{versionLabels.map((version) => <option key={version.id} value={version.id}>{version.label}</option>)}</select></label><label className="history-toggle"><input type="checkbox" checked={showHistoricalVersions} onChange={(e) => setShowHistoricalVersions(e.target.checked)} />显示历史版本</label><span>{conversationId ? `会话 ${conversationId.slice(0, 8)}` : '新会话'}</span>{historyControl}</div>
+        <div className="chat-panel"><div className="messages">{pendingApproval && <aside className="approval-card" role="alert" aria-live="assertive"><div className="approval-heading"><strong>等待高风险操作审批</strong><b>{approvalSecondsLeft > 0 ? `${approvalSecondsLeft} 秒` : '已过期'}</b></div><p>工具：<code>{pendingApproval.toolName}</code> · {pendingApproval.capability}/{pendingApproval.riskLevel}</p><p>目标：{pendingApproval.targetEnvironment}</p><pre>{pendingApproval.argumentsJson}</pre><small>参数摘要：{pendingApproval.argumentsSha256.slice(0, 16)}… · {new Date(pendingApproval.expiresAt).toLocaleTimeString()} 前有效</small><div><button className="danger" disabled={approvalBusy || approvalSecondsLeft <= 0} onClick={() => void decideApproval(false)}>拒绝</button><button className="primary" disabled={approvalBusy || approvalSecondsLeft <= 0} onClick={() => void decideApproval(true)}>批准执行一次</button></div></aside>}{sources.length > 0 && <aside className="sources"><strong>本次检索来源</strong>{sources.map((source) => <details key={`${source.documentId}-${source.chunkIndex}`}><summary>{source.fileName} · chunk {source.chunkIndex} · {Math.round(source.score * 100)}%</summary><p>{source.content}</p></details>)}</aside>}{runSteps.length > 0 && <aside className="run-steps"><strong>运行步骤</strong>{runSteps.map((step) => <details key={step.id} open={step.stepType.startsWith('APPROVAL')}><summary>#{step.stepNumber} {step.stepType}{step.toolName ? ` · ${step.toolName}` : ''}<span className={`step-status step-status--${step.status.toLowerCase()}`}>{step.status}</span></summary>{step.inputJson && <pre>输入：{step.inputJson}</pre>}{step.outputText && <pre>输出：{step.outputText}</pre>}{step.durationMs != null && <small>{step.durationMs} ms</small>}</details>)}</aside>}{messages.length === 0 ? <Empty text={versions.length ? '选择版本并发送第一条消息' : '请先发布一个 Agent 版本'} /> : messages.map((message, index) => <article className={`message message--${message.role}`} key={index}><span>{message.role === 'user' ? 'YOU' : 'AGENT'}</span>{message.content ? message.role === 'assistant' ? <FixedToolReply content={message.content} /> : <p>{message.content}</p> : <p><i className="typing">正在生成</i></p>}</article>)}</div>
+          <form className="composer" onSubmit={sendMessage}><textarea rows={3} value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder="输入测试问题……" onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); e.currentTarget.form?.requestSubmit() } }} /><div className="composer-actions"><button className="primary" disabled={busy || observingRun || !selectedVersion || !chatInput.trim()}>{busy ? '生成中' : '发送'}</button>{busy && currentRunId && <button className="danger" type="button" disabled={cancelBusy} onClick={() => void cancelCurrentRun()}>{cancelBusy ? '停止中' : '停止运行'}</button>}</div></form>
         </div>
       </section>}
-      {view === 'remote' && <RemoteWorkbench sshStatus={sshStatus} deployment={deployment} deploymentForm={deploymentForm} onDeploymentFormChange={setDeploymentForm} onSaveDeployment={saveDeploymentProfile} onTestDeployment={testDeploymentProfile} versionLabels={versionLabels} selectedVersion={selectedVersion} onSelectVersion={switchVersion} messages={messages} steps={runSteps} runHistory={runHistory} pendingApproval={pendingApproval} approvalSecondsLeft={approvalSecondsLeft} approvalBusy={approvalBusy} busy={busy} currentRunId={currentRunId} cancelBusy={cancelBusy} onDecideApproval={decideApproval} onCancel={cancelCurrentRun} onRunMessage={runMessage} />}
+      {view === 'remote' && <RemoteWorkbench historyControl={historyControl} sshStatus={sshStatus} deployment={deployment} deploymentForm={deploymentForm} onDeploymentFormChange={setDeploymentForm} onSaveDeployment={saveDeploymentProfile} onTestDeployment={testDeploymentProfile} versionLabels={versionLabels} selectedVersion={selectedVersion} onSelectVersion={switchVersion} baselineAlreadyKnown={baselineAlreadyKnown} messages={messages} steps={runSteps} historySteps={historyEvidence(releaseTasks, conversationId, candidateId, `${sshStatus?.username ?? ''}@${sshStatus?.host ?? ''}:${sshStatus?.port ?? ''}${deployment?.remoteDeployRoot ?? ''}`)} pendingApproval={pendingApproval} approvalSecondsLeft={approvalSecondsLeft} approvalBusy={approvalBusy} busy={busy || observingRun} currentRunId={currentRunId} cancelBusy={cancelBusy} onDecideApproval={decideApproval} onCancel={cancelCurrentRun} onRunMessage={runMessage} />}
       {view === 'runs' && <section><PageHeader number="07" title="运行记录" description="查看每次 AgentRun 的最终状态、耗时、错误和完整步骤。" />
         <div className="two-column run-history-layout"><div className="panel list-panel"><div className="section-head"><h2>最近运行 <small>{runHistory.length}</small></h2><button className="ghost" onClick={() => void refresh()}>刷新</button></div>{runHistory.length === 0 ? <Empty text="尚无运行记录" /> : runHistory.map((run) => <button className={`run-card ${selectedRun?.id === run.id ? 'active' : ''}`} key={run.id} onClick={() => void openRun(run.id)}><div><strong>{run.id.slice(0, 8)}</strong><span className={`badge badge--${run.status.toLowerCase()}`}>{run.status}</span></div><p>{new Date(run.startedAt).toLocaleString()} · {run.stepCount} 步</p>{run.errorMessage && <small>{run.errorMessage}</small>}</button>)}</div>
           <div className="panel run-detail">{!selectedRun ? <Empty text="选择一条运行查看完整步骤" /> : <><div className="card-head"><div><strong>运行 {selectedRun.id.slice(0, 8)}</strong><p>会话 {selectedRun.conversationId.slice(0, 8)}</p></div><span className={`badge badge--${selectedRun.status.toLowerCase()}`}>{selectedRun.status}</span></div><dl><div><dt>AgentVersion</dt><dd>{selectedRun.agentVersionId}</dd></div><div><dt>开始</dt><dd>{new Date(selectedRun.startedAt).toLocaleString()}</dd></div>{selectedRun.completedAt && <div><dt>结束</dt><dd>{new Date(selectedRun.completedAt).toLocaleString()}</dd></div>}</dl>{selectedRun.errorMessage && <p className="run-error">{selectedRun.errorMessage}</p>}<aside className="run-steps"><strong>完整步骤</strong>{selectedRun.steps.map((step) => <details key={step.id}><summary>#{step.stepNumber} {step.stepType}{step.toolName ? ` · ${step.toolName}` : ''}<span className={`step-status step-status--${step.status.toLowerCase()}`}>{step.status}</span></summary>{step.inputJson && <pre>输入：{step.inputJson}</pre>}{step.outputText && <pre>输出：{step.outputText}</pre>}{step.durationMs != null && <small>{step.durationMs} ms</small>}</details>)}</aside><aside className="audit-events"><strong>安全审计</strong>{selectedAuditEvents.length === 0 ? <p>该运行没有工具审计事件</p> : selectedAuditEvents.map((event) => <article key={event.id}><div><b>{event.eventType}</b><span className={`step-status step-status--${event.status.toLowerCase()}`}>{event.status}</span></div><small>{new Date(event.createdAt).toLocaleTimeString()} · {event.toolName} · {event.capability}/{event.riskLevel}</small>{event.argumentsSha256 && <code>参数摘要 {event.argumentsSha256.slice(0, 16)}…</code>}{event.details && <p>{event.details}</p>}</article>)}</aside></>}</div></div>
@@ -656,7 +734,9 @@ type RemoteWorkbenchProps = {
   onSelectVersion: (id: string) => void
   messages: ChatMessage[]
   steps: RunStep[]
-  runHistory: RunSummary[]
+  historyControl: ReactNode
+  historySteps: RunStep[]
+  baselineAlreadyKnown: boolean
   pendingApproval?: ApprovalRequest
   approvalSecondsLeft: number
   approvalBusy: boolean
@@ -699,7 +779,11 @@ const deploymentTasks = [
 ] as const
 
 function RemoteWorkbench(props: RemoteWorkbenchProps) {
-  const [tab, setTab] = useState<WorkbenchTab>('overview')
+  const [tab, setTab] = useState<WorkbenchTab>(() => {
+    const saved = localStorage.getItem('agentstudio-workbench-tab')
+    return saved && ['overview','files','changes','tasks','deployment','output'].includes(saved) ? saved as WorkbenchTab : 'overview'
+  })
+  useEffect(() => { localStorage.setItem('agentstudio-workbench-tab', tab) }, [tab])
   const [directoryPath, setDirectoryPath] = useState('.')
   const [filePath, setFilePath] = useState('')
   const [taskPath, setTaskPath] = useState('.')
@@ -710,13 +794,12 @@ function RemoteWorkbench(props: RemoteWorkbenchProps) {
   const [imageReleaseId, setImageReleaseId] = useState('')
   const [imageManifestSha, setImageManifestSha] = useState('')
   const [baselineInput, setBaselineInput] = useState('{}')
-  const [historySteps, setHistorySteps] = useState<RunStep[]>([])
-  const [historyLoading, setHistoryLoading] = useState(false)
-  const [historyError, setHistoryError] = useState('')
+  const historySteps = props.historySteps
   const [reviewedPriorFailure, setReviewedPriorFailure] = useState(false)
   const [workflowNow, setWorkflowNow] = useState(Date.now())
+  const [showAllMessages, setShowAllMessages] = useState(false)
   const remoteVersions = props.versionLabels.filter((version) => version.toolNames.some((name) => name.includes('remote_workspace') || name === 'inspect_remote_deployment' || name === 'prepare_remote_deployment_backup' || name === 'verify_remote_deployment_backup_restore' || name === 'prepare_release_candidate' || name === 'build_release_candidate_image' || name === 'adopt_remote_database_baseline'))
-  const evidenceSteps = useMemo(() => [...historySteps, ...props.steps], [historySteps, props.steps])
+  const evidenceSteps = historySteps
   const parsedTask = useMemo(() => latestToolJson<TaskResult>(props.steps, 'run_remote_workspace_task'), [props.steps])
   const deploymentResult = useMemo(() => latestToolJson<TaskResult>(evidenceSteps, 'inspect_remote_deployment'), [evidenceSteps])
   const schemaResult = useMemo(() => latestDeploymentTask(evidenceSteps, 'DATABASE_SCHEMA'), [evidenceSteps])
@@ -741,11 +824,13 @@ function RemoteWorkbench(props: RemoteWorkbenchProps) {
   const publishToolReady = props.versionLabels.find((version) => version.id === props.selectedVersion)?.toolNames.includes('publish_remote_release') ?? false
   const browserReady = props.sshStatus?.status === 'READY' && props.sshStatus.passwordConfigured
   const browserTarget = `${props.sshStatus?.username ?? ''}@${props.sshStatus?.host ?? ''}:${props.sshStatus?.port ?? ''}${props.sshStatus?.remoteRoot ?? ''}#${props.sshStatus?.hostKeySha256 ?? ''}`
-  const visibleMessages = props.messages.slice(-6)
+  const visibleMessages = showAllMessages ? props.messages : props.messages.slice(-6)
   const hiddenMessageCount = Math.max(0, props.messages.length - visibleMessages.length)
   const expectedTarget = `${props.sshStatus?.username ?? ''}@${props.sshStatus?.host ?? ''}:${props.sshStatus?.port ?? ''}${props.deployment?.remoteDeployRoot ?? ''}`
-  const workflow = workflowReadiness({ candidate: releaseCandidateResult, image: releaseImageResult, backup: backupResult,
+  const sessionWorkflow = workflowReadiness({ candidate: releaseCandidateResult, image: releaseImageResult, backup: backupResult,
     schema: schemaResult, baseline: baselineResult, status: baselineStatusResult, health: siteHealthResult }, expectedTarget, workflowNow)
+  const workflow = { ...sessionWorkflow, baseline: sessionWorkflow.baseline || props.baselineAlreadyKnown,
+    canRegister: sessionWorkflow.canRegister && !props.baselineAlreadyKnown }
   const baselineEvidence = { releaseId: releaseImageResult?.releaseId, manifestSha256: releaseImageResult?.manifestSha256,
     imageId: releaseImageResult?.imageId, schemaSha256: schemaResult?.schemaSha256,
     backupId: backupResult?.backupId, backupManifestSha256: backupResult?.manifestSha256 }
@@ -765,24 +850,8 @@ function RemoteWorkbench(props: RemoteWorkbenchProps) {
     return () => window.clearInterval(timer)
   }, [tab])
 
-  useEffect(() => {
-    if (tab !== 'deployment') return
-    let cancelled = false
-    setHistoryLoading(true); setHistoryError('')
-    const relevant = new Set(['prepare_release_candidate', 'build_release_candidate_image', 'prepare_remote_deployment_backup',
-      'inspect_remote_deployment', 'adopt_remote_database_baseline', 'verify_remote_deployment_backup_restore', 'publish_remote_release'])
-    Promise.all(props.runHistory.slice(0, 50).map((run) => api<AgentRun>(`/api/runs/${run.id}`).catch(() => undefined)))
-      .then((runs) => {
-        if (!cancelled) setHistorySteps(runs.reverse().flatMap((run) => run?.steps.filter((step) => step.stepType === 'TOOL_RESULT'
-          && step.toolName && relevant.has(step.toolName)).map((step) => ({ ...step, observedAt: Date.parse(run.startedAt) })) ?? []))
-      })
-      .catch(() => { if (!cancelled) setHistoryError('无法读取历史运行；历史步骤暂不计入流程') })
-      .finally(() => { if (!cancelled) setHistoryLoading(false) })
-    return () => { cancelled = true }
-  }, [tab, props.runHistory])
-
   useEffect(() => { if (parsedTask) setTask(parsedTask) }, [parsedTask])
-  useEffect(() => { setBaselineInput('{}') }, [props.selectedVersion, browserTarget, props.deployment?.remoteDeployRoot, props.deployment?.remoteBackupRoot, props.deployment?.composeProject])
+  useEffect(() => { setBaselineInput('{}') }, [props.selectedVersion, browserTarget, props.deployment?.remoteDeployRoot, props.deployment?.remoteBackupRoot, props.deployment?.composeProject, releaseCandidateResult?.releaseId, releaseCandidateResult?.manifestSha256])
   useEffect(() => {
     const evidence: Record<string, string> = {}
     if (releaseImageResult?.successful && releaseImageResult.imageId) Object.assign(evidence, { releaseId: releaseImageResult.releaseId, manifestSha256: releaseImageResult.manifestSha256, imageId: releaseImageResult.imageId })
@@ -793,8 +862,10 @@ function RemoteWorkbench(props: RemoteWorkbenchProps) {
   useEffect(() => {
     if (releaseCandidateResult?.successful && releaseCandidateResult.releaseId && releaseCandidateResult.manifestSha256) {
       setImageReleaseId(releaseCandidateResult.releaseId); setImageManifestSha(releaseCandidateResult.manifestSha256)
-    }
+    } else { setImageReleaseId(''); setImageManifestSha('') }
   }, [releaseCandidateResult])
+  useEffect(() => { setPublishAcknowledged(false); setReviewedPriorFailure(false) },
+    [releaseCandidateResult?.releaseId, releaseCandidateResult?.manifestSha256])
   useEffect(() => {
     setDirectory(undefined); setFile(undefined); setDirectoryPath('.'); setFilePath('')
     if (!browserReady) return
@@ -889,7 +960,7 @@ function RemoteWorkbench(props: RemoteWorkbenchProps) {
     try {
       const fresh = workflowReadiness({ candidate: releaseCandidateResult, image: releaseImageResult, backup: backupResult,
         schema: schemaResult, baseline: baselineResult, status: baselineStatusResult, health: siteHealthResult }, expectedTarget, Date.now())
-      if (!fresh.canRegister || !baselineInputMatches || (baselineResult && !baselineResult.successful && !reviewedPriorFailure))
+      if (props.baselineAlreadyKnown || !fresh.canRegister || !baselineInputMatches || (baselineResult && !baselineResult.successful && !reviewedPriorFailure))
         throw new Error('登记前必须核对同一目标的新镜像、30分钟内备份、完整结构摘要和六项绑定身份；前次失败还需人工确认。')
       await props.onRunMessage(databaseBaselineRequest(baselineInput), { name: 'adopt_remote_database_baseline', arguments: JSON.parse(baselineInput) })
     }
@@ -914,9 +985,9 @@ function RemoteWorkbench(props: RemoteWorkbenchProps) {
       <div className="remote-target-summary"><span className={`connection-dot connection-dot--${props.sshStatus?.status === 'READY' ? 'ready' : 'warning'}`} /><div><strong>{props.sshStatus?.configured ? `${props.sshStatus.username}@${props.sshStatus.host}:${props.sshStatus.port}` : 'SSH 尚未配置'}</strong><small>{props.sshStatus?.remoteRoot || '请先在模型配置页设置远程根目录'}</small></div></div>
     </header>
     <div className="remote-toolbar">
-      <label>执行 Agent<select value={props.selectedVersion} onChange={(event) => props.onSelectVersion(event.target.value)}><option value="">选择包含远程工具的已发布版本</option>{remoteVersions.map((version) => <option key={version.id} value={version.id}>{version.label}</option>)}</select></label>
+      <label>执行 Agent<select disabled={props.busy} value={props.selectedVersion} onChange={(event) => props.onSelectVersion(event.target.value)}><option value="">选择包含远程工具的已发布版本</option>{remoteVersions.map((version) => <option key={version.id} value={version.id}>{version.label}</option>)}</select></label>
       <span className={`badge badge--${props.sshStatus?.status === 'READY' ? 'ready' : 'warning'}`}>{props.sshStatus?.status ?? 'NOT_CONFIGURED'}</span>
-      <span className="remote-policy">SSH · 固定指纹 · 受限根目录 · HIGH 审批</span>
+      <span className="remote-policy">SSH · 固定指纹 · 受限根目录 · HIGH 审批</span>{props.historyControl}
     </div>
     <div className="remote-workbench">
       <aside className="remote-explorer">
@@ -939,27 +1010,27 @@ function RemoteWorkbench(props: RemoteWorkbenchProps) {
           {tab === 'deployment' && <div className="remote-deployment">
             <div className="remote-deployment-head"><div><span>GUIDED CONTROLLED RELEASE</span><h3>准备 → 受审上线 → 只读验收</h3><p>前六步准备候选和首次数据库基线；下面的第七步才会切换网站。已登记基线的数据库不要重复登记。每次上线仍须新备份和一次性审批。</p></div><span className={`badge badge--${props.deployment?.status === 'READY' ? 'ready' : 'warning'}`}>{props.deployment?.status ?? 'NOT_CONFIGURED'}</span></div>
             <section className="release-guide" aria-label="六步操作引导">
-              <div className="release-guide-intro"><strong>先看状态，再点当前步骤</strong><p>绿色表示工具结果已核对；灰色表示尚无足够证据。会话完成不等于工具成功。刷新后会从运行记录恢复最近的结果。</p>{historyLoading && <small>正在恢复历史结果…</small>}{historyError && <small className="error-text">{historyError}</small>}</div>
+              <div className="release-guide-intro"><strong>先看状态，再点当前步骤</strong><p>恢复的是所选会话及明确候选来源的历史回执，不代表当前线上状态。绿色表示原始回执与审计已核对；会话完成不等于工具成功。备份和只读证据按原始时间判断是否过期；读取线上版本才会取得新的状态。</p></div>
               <ol className="release-guide-steps">
                 <li className={workflow.candidate ? 'done' : 'next'}><header><span>01</span><div><h4>准备候选</h4><p>本地测试并打包，把固定文件放进服务器的新候选目录；不影响网站。</p></div><b>{workflow.candidate ? '已完成' : '待执行'}</b></header><p className="release-guide-proof">成功证据：候选 ID 与 64 位清单摘要。失败可能留下构建文件或未完成目录，不能用于下一步。</p>{releaseCandidateResult && <small>最近候选：{releaseCandidateResult.releaseId || releaseCandidateResult.stage} · {releaseCandidateResult.successful ? '成功' : '失败'}</small>}<button className="primary" disabled={!releaseCandidateReady || props.busy || props.deployment?.status !== 'READY'} onClick={() => void requestReleaseCandidate()}>{workflow.candidate ? '重新准备候选' : '准备候选'}</button></li>
                 <li className={workflow.image ? 'done' : workflow.candidate ? 'next' : 'blocked'}><header><span>02</span><div><h4>构建并自检镜像</h4><p>生成独立镜像，以非 root、无网络方式验证启动；不切换生产。</p></div><b>{workflow.image ? '已完成' : workflow.candidate ? '可执行' : '等待候选'}</b></header><p className="release-guide-proof">成功证据：IMAGE_READY、新 imageId 与 RUNTIME_SMOKE。失败可能留下镜像或构建记录，占用磁盘。</p>{releaseImageResult && <small>最近镜像：{releaseImageResult.imageId || releaseImageResult.stage} · {releaseImageResult.successful ? '成功' : '失败'}</small>}<button className="primary" disabled={!releaseImageReady || !workflow.candidate || !imageReleaseId || !imageManifestSha || props.busy || props.deployment?.status !== 'READY'} onClick={() => void requestReleaseImage()}>构建镜像</button></li>
                 <li className={workflow.backup ? 'done' : workflow.image ? 'next' : 'blocked'}><header><span>03</span><div><h4>创建近期备份</h4><p>新建数据库与 uploads 等材料的备份；不覆盖旧备份、不恢复数据库。</p></div><b>{workflow.backup ? '30分钟内有效' : backupResult?.successful ? '已过期或不匹配' : '待执行'}</b></header><p className="release-guide-proof">成功证据：备份 ID、清单摘要。失败可能留有不完整目录；备份过期不会自动删除，只是不能用于登记。</p>{backupResult && <small>最近备份：{backupResult.backupId || '失败'}{workflow.backupAgeMinutes !== undefined ? ` · 已过 ${Math.max(0, Math.floor(workflow.backupAgeMinutes))} 分钟` : ''}</small>}<button className="primary" disabled={!selectedReady || !workflow.image || props.busy || props.deployment?.status !== 'READY'} onClick={() => void requestDeploymentBackup()}>{workflow.backup ? '重新创建备份' : '创建备份'}</button></li>
                 <li className={workflow.schema ? 'done' : workflow.image ? 'next' : 'blocked'}><header><span>04</span><div><h4>核对数据库结构</h4><p>只读采集表、字段、索引和外键，不读取业务数据，不登记版本。</p></div><b>{workflow.schema ? '已完成' : '待执行'}</b></header><p className="release-guide-proof">成功证据：结构完整及 schemaSha256。失败不应改变数据库，但不能继续登记。</p>{schemaResult && <small>最近结构核查：{schemaResult.successful && schemaResult.schemaComplete ? schemaResult.schemaSha256 : `失败，退出码 ${schemaResult.exitCode}`}</small>}<button className="primary" disabled={!selectedReady || !workflow.image || props.busy || props.deployment?.status !== 'READY'} onClick={() => void requestDeploymentTask('DATABASE_SCHEMA')}>只读核查结构</button></li>
                 <li className={workflow.baseline ? 'done' : workflow.canRegister ? 'next' : 'blocked'}><header><span>05</span><div><h4>登记版本 1 基线</h4><p>首次在生产数据库建立 Flyway 历史；短暂阻止业务写入，是本流程唯一会改数据库的一步。</p></div><b>{workflow.baseline ? '已登记' : workflow.canRegister ? '待审批' : '证据未齐'}</b></header><p className="release-guide-proof">必须绑定同一目标的候选、镜像、结构和近期备份。失败后可能已有部分历史，先查状态，不盲重试。</p><details className="release-identity"><summary>查看本次六项绑定证据</summary><pre>{baselineInput}</pre></details>{baselineResult && !baselineResult.successful && <label className="release-guide-warning"><input type="checkbox" checked={reviewedPriorFailure} onChange={(event) => setReviewedPriorFailure(event.target.checked)} />我已复核上次失败及只读基线状态，知晓不能把失败当成无副作用</label>}{!baselineInputMatches && <small>六项身份尚未齐全或与当前结果不一致；不能登记。</small>}<button className="danger" disabled={!baselineReady || !workflow.canRegister || !baselineInputMatches || (Boolean(baselineResult) && !baselineResult?.successful && !reviewedPriorFailure) || props.busy || props.deployment?.status !== 'READY'} onClick={() => void requestBaseline()}>请求登记基线</button></li>
-                <li className={workflow.baseline && workflow.status && workflow.health ? 'done' : workflow.baseline ? 'next' : 'blocked'}><header><span>06</span><div><h4>只读验收</h4><p>确认 Flyway 版本 1 记录，再核查网站健康；不做发布切换。</p></div><b>{workflow.baseline && workflow.status && workflow.health ? '已完成' : '等待登记'}</b></header><p className="release-guide-proof">基线状态应成功返回版本 1；网站仍应健康。异常时停下排查，不删除历史或自动重试。</p><div className="release-guide-actions"><button className="secondary" disabled={!selectedReady || props.busy || props.deployment?.status !== 'READY'} onClick={() => void requestDeploymentTask('DATABASE_BASELINE_STATUS')}>检查基线状态</button><button className="secondary" disabled={!selectedReady || props.busy || props.deployment?.status !== 'READY'} onClick={() => void requestDeploymentTask('SITE_HEALTH')}>检查站点健康</button></div></li>
+                <li className={workflow.baseline && workflow.status && workflow.health ? 'done' : workflow.baseline ? 'next' : 'blocked'}><header><span>06</span><div><h4>只读验收</h4><p>确认 Flyway 版本 1 记录，再核查网站健康；不做发布切换。</p></div><b>{workflow.baseline && workflow.status && workflow.health ? '已完成' : workflow.baseline ? '待重新只读验收' : '等待登记'}</b></header><p className="release-guide-proof">基线状态应成功返回版本 1；网站仍应健康。异常时停下排查，不删除历史或自动重试。</p><div className="release-guide-actions"><button className="secondary" disabled={!selectedReady || props.busy || props.deployment?.status !== 'READY'} onClick={() => void requestDeploymentTask('DATABASE_BASELINE_STATUS')}>检查基线状态</button><button className="secondary" disabled={!selectedReady || props.busy || props.deployment?.status !== 'READY'} onClick={() => void requestDeploymentTask('SITE_HEALTH')}>检查站点健康</button></div></li>
               </ol>
               <p className="release-guide-boundary">准备步骤不切换生产，也不自动删除产物。第七步切换失败会尝试恢复旧应用，但不会回滚数据库DDL或覆盖业务数据。原始回执、审批与审计保留在“运行记录”。</p>
             </section>
             <section className="release-guide" aria-label="真正上线">
-              <div className="release-guide-intro"><strong>07 · 真正上线（会短暂影响访问）</strong><p>校验候选、近期备份和当前生产身份 → 执行向后兼容迁移 → 只重建 app → 刷新 Nginx → 检查容器、首页和浏览页 → 同步生产 app.jar / Dockerfile。健康失败自动恢复旧镜像和文件；不恢复数据库、不删除备份。</p><p>这次须重新准备候选及镜像，使它包含新的发布维护入口；旧候选不能直接上线。Compose、网络、卷和 Nginx 配置变更不属于应用上线，配置不一致会明确拦截。</p></div>
+              <div className="release-guide-intro"><strong>07 · 真正上线（会短暂影响访问）</strong><p>校验候选、近期备份和当前生产身份 → 执行向后兼容迁移 → 只重建 app → 刷新 Nginx → 检查容器、首页和浏览页 → 同步生产 app.jar / Dockerfile。健康失败自动恢复旧镜像和文件；不恢复数据库、不删除备份。</p><p>候选必须包含发布维护入口；历史候选保留，实际兼容性由服务器在审批后核验。Compose、网络、卷和 Nginx 配置变更不属于应用上线，配置不一致会明确拦截。</p></div>
               <div className="release-guide-actions"><button className="secondary" disabled={!selectedReady || props.busy} onClick={() => void requestDeploymentTask('DATABASE_SCHEMA')}>核查数据库结构</button><button className="secondary" disabled={!selectedReady || props.busy} onClick={() => void requestDeploymentTask('DATABASE_BASELINE_STATUS')}>检查版本历史</button><button className="secondary" disabled={!selectedReady || props.busy} onClick={() => void requestDeploymentTask('RELEASE_STATUS')}>读取当前线上版本</button></div>
-              {productionStatus?.target === expectedTarget && <p>当前镜像：<code>{productionStatus.currentImageId || '未确认'}</code> · 容器健康：{productionStatus.appHealth || '未确认'}</p>}
+              {productionStatus?.target === expectedTarget && <p>历史核查时的镜像：<code>{productionStatus.currentImageId || '未确认'}</code> · 原容器健康：{productionStatus.appHealth || '未确认'}</p>}
               {!publishState.ready && <ul>{publishState.reasons.map(reason => <li key={reason}>{reason}</li>)}</ul>}
               <details className="release-identity"><summary>查看本次上线的八项绑定身份</summary><pre>{JSON.stringify(publishState.args, null, 2)}</pre></details>
               {!publishToolReady && <p className="release-guide-warning">先在 Agent Builder 勾选“受审上线并验证恢复”，发布新 Agent 版本，再选择该版本。</p>}
               <label className="release-guide-warning"><input type="checkbox" checked={publishAcknowledged} onChange={event => setPublishAcknowledged(event.target.checked)} />我已确认备份和候选，接受短暂中断；失败时只自动恢复应用，数据库状态不明需停止排查。</label>
               <button className="danger" disabled={!publishToolReady || !publishState.ready || !publishAcknowledged || props.busy || props.deployment?.status !== 'READY'} onClick={() => void requestPublish()}>请求真正上线（下一步仍需审批）</button>
-              {publishResult?.target === expectedTarget && <div className={`fixed-tool-reply ${publishResult.deployed && publishResult.successful ? 'fixed-tool-reply--success' : 'fixed-tool-reply--failed'}`}><strong>{publishResult.deployed && publishResult.successful ? '已上线且健康验证通过' : publishResult.rolledBack ? '上线未成功，旧应用已恢复并验证健康' : '上线未确认，停止重试并检查线上状态'}</strong><p>最终确认的镜像：{publishResult.currentImageId || '未确认'}。{publishResult.manualInterventionRequired ? '需要人工介入；不要直接重试。' : ''}</p></div>}
+              {publishResult?.target === expectedTarget && <div className={`fixed-tool-reply ${publishResult.deployed && publishResult.successful ? 'fixed-tool-reply--success' : 'fixed-tool-reply--failed'}`}><strong>{publishResult.deployed && publishResult.successful ? '历史上线回执：已上线且健康验证通过' : publishResult.rolledBack ? '上线未成功，旧应用已恢复并验证健康' : '上线未确认，停止重试并检查线上状态'}</strong><p>最终确认的镜像：{publishResult.currentImageId || '未确认'}。{publishResult.manualInterventionRequired ? '需要人工介入；不要直接重试。' : ''}</p></div>}
               <p>08 · 上线后点击“读取当前线上版本”和“检查站点健康”，再到网站验收实际改动。同样的页面内容不会因为重新打包而自动变化。</p>
               <button className="secondary" disabled={!selectedReady || props.busy} onClick={() => void requestDeploymentTask('SITE_HEALTH')}>检查上线后站点健康</button>
             </section>
@@ -1003,7 +1074,8 @@ function RemoteWorkbench(props: RemoteWorkbenchProps) {
         <div className="remote-agent-feed">
           {props.pendingApproval && <aside className="approval-card remote-approval" role="alert"><div className="approval-heading"><strong>等待一次性审批</strong><b>{props.approvalSecondsLeft > 0 ? `${props.approvalSecondsLeft} 秒` : '已过期'}</b></div><p>工具：<code>{props.pendingApproval.toolName}</code></p><p>目标：{props.pendingApproval.targetEnvironment}</p><pre>{props.pendingApproval.argumentsJson}</pre><small>参数摘要 {props.pendingApproval.argumentsSha256.slice(0, 16)}…</small><div><button className="danger" disabled={props.approvalBusy || props.approvalSecondsLeft <= 0} onClick={() => void props.onDecideApproval(false)}>拒绝</button><button className="primary" disabled={props.approvalBusy || props.approvalSecondsLeft <= 0} onClick={() => void props.onDecideApproval(true)}>批准一次</button></div></aside>}
           {props.steps.length > 0 && <aside className="run-steps remote-steps"><strong>本次运行步骤（点开看原始记录）</strong>{props.steps.map((step) => <details key={step.id}><summary>#{step.stepNumber} {step.stepType}<span className={`step-status step-status--${step.status.toLowerCase()}`}>{step.status}</span></summary>{step.toolName && <code>{step.toolName}</code>}{step.outputText && <pre>{step.outputText}</pre>}</details>)}</aside>}
-          {props.messages.length === 0 && props.steps.length === 0 ? <Empty text={selectedReady ? '按中间的分步引导操作；执行后在这里查看结果' : '浏览无需 Agent；执行任务前请选择 Agent 版本'} /> : <>{hiddenMessageCount > 0 && <p className="remote-history-note">已收起更早的 {hiddenMessageCount} 条会话消息，完整记录仍保留在运行记录中。</p>}{visibleMessages.map((message, index) => <article className={`remote-message remote-message--${message.role}`} key={`${hiddenMessageCount}-${index}`}><span>{message.role === 'user' ? 'YOU' : 'AGENT'}</span>{message.content ? message.role === 'assistant' ? <FixedToolReply content={message.content} /> : <UserToolRequest content={message.content} /> : <p><i className="typing">正在处理</i></p>}</article>)}</>}
+          {props.messages.length > 6 && <button className="ghost" onClick={() => setShowAllMessages(current => !current)}>{showAllMessages ? '收起更早消息' : `查看完整会话（${props.messages.length}条）`}</button>}
+          {props.messages.length === 0 && props.steps.length === 0 ? <Empty text={selectedReady ? '按中间的分步引导操作；执行后在这里查看结果' : '浏览无需 Agent；执行任务前请选择 Agent 版本'} /> : <>{hiddenMessageCount > 0 && <p className="remote-history-note">已收起更早的 {hiddenMessageCount} 条消息，可点击“查看完整会话”展开。</p>}{visibleMessages.map((message, index) => <article className={`remote-message remote-message--${message.role}`} key={`${hiddenMessageCount}-${index}`}><span>{message.role === 'user' ? 'YOU' : 'AGENT'}</span>{message.content ? message.role === 'assistant' ? <FixedToolReply content={message.content} /> : <UserToolRequest content={message.content} /> : <p><i className="typing">正在处理</i></p>}</article>)}</>}
         </div>
         <form className="remote-agent-composer" onSubmit={submitAssistant}><textarea rows={3} value={assistantInput} onChange={(event) => setAssistantInput(event.target.value)} placeholder="让 Agent 检查文件、解释结果或提出受控操作……" /><div><button className="primary" disabled={!selectedReady || props.busy || !assistantInput.trim()}>{props.busy ? '运行中' : '发送'}</button>{props.busy && props.currentRunId && <button className="danger" type="button" disabled={props.cancelBusy} onClick={() => void props.onCancel()}>{props.cancelBusy ? '停止中' : '停止'}</button>}</div></form>
       </aside>

@@ -1,5 +1,8 @@
 # 工程文档
 
+- `decisions/0032-persistent-release-stage-history.md`：独立发布阶段身份、原始回执/审批/审计投影、历史来源与观察式刷新恢复；
+- `RELEASE_HISTORY_ACCEPTANCE.md`：完整历史会话、候选选择、刷新不重放与过期证据的人工验收步骤。
+
 - `decisions/0001-modular-monolith.md`：为何使用模块化单体；
 - `decisions/0002-agent-version-and-sse.md`：版本快照与流式事件协议；
 - `decisions/0003-local-rag-baseline.md`：本地 RAG 存储、检索和当前向量化边界；

@@ -39,6 +39,11 @@ public class ApprovalRepository {
                 ApprovalRepository::map).stream().findFirst();
     }
 
+    public List<ApprovalRequest> forToolCall(String runId, String toolCallId) {
+        return jdbc.query("SELECT * FROM approval_request WHERE run_id=:runId AND tool_call_id=:callId ORDER BY created_at,id",
+                Map.of("runId",runId,"callId",toolCallId), ApprovalRepository::map);
+    }
+
     public boolean decide(String id, String status, String reason, Instant decidedAt) {
         return jdbc.update("""
                 UPDATE approval_request SET status=:status, reason=:reason, decided_at=:decidedAt

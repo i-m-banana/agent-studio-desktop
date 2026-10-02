@@ -1,5 +1,7 @@
 # ADR 0031：受审应用上线与保守恢复
 
+2026-10-01 后续补充：发布阶段历史与观察式恢复见ADR0032。原发布网关、一次性审批、八项身份及保守恢复边界不变；历史记录不能当作新执行授权或当前线上状态。
+
 2026-10-01，状态：本地自动化与真实生产正向上线验收通过；真实故障恢复尚未演练。开发锚点：feat/release-candidate-workflow / 83314bb。验收运行、身份与审批审计见 CONTROLLED_RELEASE_ACCEPTANCE.md。
 
 六步基线准备不发布网站。增加单一业务工具 publish_remote_release，八项身份绑定候选、镜像、结构、新备份、当前生产镜像及组合文件指纹。沿用 ToolRegistry、SafeExecutionGateway、不可变 AgentVersion、ApprovalRequest、RunStep、AuditEvent；固定任务入口仅解析展示/持久化真实结果，不让模型伪造执行或选择命令。

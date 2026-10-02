@@ -6,6 +6,8 @@
 
 ## 当前已具备
 
+2026-10-01 新增发布阶段任务持久化、历史会话与候选来源选择：本地 V16 为每次原子发布调用建立独立业务记录，关联原运行、一次性审批、原始回执和审计。对话测试台与远程工作台可恢复完整消息、原 AgentVersion 和所选候选；刷新只观察已知状态，不自动执行或重用审批。历史成功不代表当前线上状态，过期备份继续保留。首批人工操作单见 [RELEASE_HISTORY_ACCEPTANCE.md](docs/RELEASE_HISTORY_ACCEPTANCE.md)；统一一键编排仍是下一批。
+
 2026-10-01 新增“受审上线并验证恢复（publish_remote_release）”：绑定八项身份，核查近期备份和生产指纹，校验兼容扩展迁移，只重建 app、刷新 Nginx、验证实际镜像/容器/首页/浏览页，成功后同步生产 app.jar/Dockerfile；失败尝试恢复旧应用，不覆盖数据库或 uploads。代码/自动化验收不等于生产已经上线，真实发版待逐次审批。完整中文操作单：[CONTROLLED_RELEASE_USER_GUIDE.md](docs/CONTROLLED_RELEASE_USER_GUIDE.md)。
 
 2026-10-01 完整应用上线正向人工验收通过：新候选镜像已切换，上线回执 DEPLOYED，后置健康 HTTP200；完整运行、审批与审计证据见 [CONTROLLED_RELEASE_ACCEPTANCE.md](docs/CONTROLLED_RELEASE_ACCEPTANCE.md)。本次没有待执行迁移；失败恢复有自动化覆盖，未做真实生产故障注入。上方“待逐次审批”指后续每次发版仍必须审批，不表示本次尚未上线。
