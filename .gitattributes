@@ -1,0 +1,2 @@
+# Server shell resources must stay executable across Windows and Linux checkouts.
+*.sh text eol=lf

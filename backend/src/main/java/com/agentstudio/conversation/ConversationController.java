@@ -12,16 +12,19 @@ import org.springframework.web.bind.annotation.*;
 public class ConversationController {
     private final ConversationRepository conversations;
     private final RunRepository runs;
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.agentstudio.project.LocalProjectService localProjects;
     public ConversationController(ConversationRepository conversations, RunRepository runs) {
         this.conversations = conversations; this.runs = runs;
     }
     public record Detail(String id, String agentVersionId, List<ConversationRepository.HistoryMessage> messages,
-                         List<AgentRun> runs) {}
+                         List<AgentRun> runs, com.agentstudio.project.LocalProjectService.Binding localProject) {}
     @GetMapping
     List<ConversationRepository.Summary> list(@RequestParam(defaultValue="50") int limit,
                                               @RequestParam(defaultValue="0") int offset,
-                                              @RequestParam(defaultValue="false") boolean deleted) {
-        return conversations.list(limit,offset,deleted);
+                                              @RequestParam(defaultValue="false") boolean deleted,
+                                              @RequestParam(defaultValue="") String query) {
+        return conversations.list(limit,offset,deleted,query);
     }
     public record Selection(List<String> ids) {}
     @PostMapping("/trash")
@@ -37,6 +40,6 @@ public class ConversationController {
     @GetMapping("/{id}")
     Detail detail(@PathVariable String id) {
         var version = conversations.findAgentVersionId(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND,"会话不存在"));
-        return new Detail(id,version,conversations.historyMessages(id),runs.forConversation(id));
+        return new Detail(id,version,conversations.historyMessages(id),runs.forConversation(id),localProjects == null ? null : localProjects.binding(id));
     }
 }

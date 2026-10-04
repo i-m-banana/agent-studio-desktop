@@ -67,6 +67,7 @@ public class PrepareReleaseCandidateTool implements AgentTool {
         }
         var started = System.nanoTime(); var profile = profiles.current();
         var build = builder.build(profile);
+        try {
         if (!build.successful()) return result(profile, null, build, null, null,
                 Duration.ofNanos(System.nanoTime() - started).toMillis());
 
@@ -85,10 +86,16 @@ public class PrepareReleaseCandidateTool implements AgentTool {
                 + "\ncomposeSha256=" + RemoteReleaseCandidateStager.sha256(files.get("compose.yml"))
                 + "\nnginxSha256=" + RemoteReleaseCandidateStager.sha256(files.get("nginx.conf"))
                 + "\ncomposeSource=" + profile.localComposeFile()
+                + (build.sourceSha256()==null ? "" : "\nsourceSha256="+build.sourceSha256())
+                + (com.agentstudio.project.ProjectExecutionContext.current()==null ? "" : "\nprojectId="+com.agentstudio.project.ProjectExecutionContext.current().id()+"\nprojectRevision="+com.agentstudio.project.ProjectExecutionContext.current().revision())
                 + "\nproductionModified=false\nfiles=app.jar,Dockerfile,compose.yml,nginx.conf\n";
         var stage = stager.stage(profile, releaseId, files, artifactSha, manifest);
         return result(profile, releaseId, build, stage, artifactSha,
                 Duration.ofNanos(System.nanoTime() - started).toMillis());
+        } finally {
+            if(build.sourceRoot()!=null && build.sourceRoot().getParent()!=null && build.sourceRoot().getParent().getFileName()!=null && build.sourceRoot().getParent().getFileName().toString().startsWith("agent-studio-source-") && Files.exists(build.sourceRoot()))
+                com.agentstudio.coding.IsolatedProjectRunner.removeSnapshot(build.sourceRoot().getParent());
+        }
     }
 
     private String result(RemoteDeploymentProfile profile, String releaseId,
@@ -97,6 +104,9 @@ public class PrepareReleaseCandidateTool implements AgentTool {
         var response = new LinkedHashMap<String, Object>();
         response.put("releaseId", releaseId); response.put("target", profiles.target(profile));
         response.put("localSourceRoot", profile.localSourceRoot());
+        response.put("sourceSha256",build.sourceSha256());
+        var project=com.agentstudio.project.ProjectExecutionContext.current();
+        if(project!=null){response.put("projectId",project.id());response.put("projectRevision",project.revision());response.put("isolated",true);}
         response.put("artifactPath", "target/app.jar");
         response.put("remoteReleaseRoot", stage == null ? profile.remoteDeployRoot() + "-releases" : stage.releaseRoot());
         response.put("candidatePath", stage == null ? null : stage.candidatePath());

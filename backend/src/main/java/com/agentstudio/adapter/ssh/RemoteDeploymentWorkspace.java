@@ -21,6 +21,11 @@ class RemoteDeploymentWorkspace {
         execute(profile, (session, access, properties) -> null);
     }
 
+    <T> T reconnect(SshWorkspaceProperties properties, SftpSessionFactory.SessionOperation<T> operation) throws Exception {
+        // Reuse the operation's original target and pinned host key, not mutable profile settings.
+        return sessions.executeSession(properties, operation);
+    }
+
     <T> T execute(RemoteDeploymentProfile profile, Operation<T> operation) throws Exception {
         RemoteDeploymentService.validate(profile);
         var properties = ssh.current(); properties.validate();

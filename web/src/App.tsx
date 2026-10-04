@@ -1,27 +1,40 @@
 import { FormEvent, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { statusLabel, shouldSubmitOnEnter, runConclusion } from './uiPresentation'
+import { CopyButton } from './CopyButton'
+import { LocalProjects, type ProjectStatus, type ProjectBinding, type SandboxStatus } from './LocalProjects'
+import { SessionProjectMenu } from './SessionProjectMenu'
+import { ProjectPreview } from './ProjectPreview'
+import { RunDock, type RunActivity } from './RunDock'
+import { ReleaseRecords } from './ReleaseRecords'
+import { ToolResultCard } from './ToolResultCard'
+import { ReleaseWorkflowPanel, type WorkflowAdvance } from './ReleaseWorkflowPanel'
+import { terminalRun } from './runFeedback'
+import { localVerificationVersion } from './localVerification'
+import { MessageFeed } from './MessageFeed'
+import { DocumentReader, type TextPreview } from './DocumentReader'
+import { matchesText, readablePreview, conversationMarkdown, downloadText, nextFileLine } from './listTools'
 import { MarkdownMessage } from './MarkdownMessage'
 import { releaseImageRequest } from './releaseImage'
 import { databaseBaselineRequest, mergeBaselineEvidence } from './databaseBaseline'
-import { fixedToolReceipt, fixedToolSucceeded, isBaselineRegistrationReceipt, workflowReadiness } from './releaseWorkflow'
+import { fixedToolReceipt, fixedToolSucceeded, workflowReadiness } from './releaseWorkflow'
 import { publishReadiness, type ProductionStatus } from './publishRelease'
 import { HistoryPanel, type ConversationSummary } from './HistoryPanel'
 import { historyEvidence, knownBaseline, type ReleaseTask } from './releaseHistory'
 
 type BackendState = 'checking' | 'online' | 'offline'
-type View = 'models' | 'knowledge' | 'mcp' | 'agents' | 'chat' | 'remote' | 'runs' | 'system'
+type View = 'models' | 'knowledge' | 'mcp' | 'agents' | 'chat' | 'remote' | 'runs' | 'system' | 'projects'
 type ModelProfile = { id: string; name: string; provider: string; baseUrl: string; modelName: string; apiKeyEnv: string; temperature: number }
 type KnowledgeBase = { id: string; name: string; description: string }
 type KnowledgeDocument = { id: string; fileName: string; fileSize: number; status: string; chunkCount: number; errorMessage?: string }
 type ReindexResult = { knowledgeBaseId: string; embedding: string; documentCount: number; chunkCount: number }
 type RagSource = { documentId: string; fileName: string; chunkIndex: number; content: string; score: number }
 type ToolDefinition = { name: string; displayName: string; description: string; source: string; capability: string; riskLevel: string; timeoutSeconds: number }
-type AgentDefinition = { id: string; name: string; description: string; draftModelProfileId: string; draftKnowledgeBaseId?: string; draftSystemPrompt: string; draftToolNames: string[]; latestVersionNumber: number; status: 'DRAFT' | 'PUBLISHED' }
+type AgentDefinition = { id: string; name: string; description: string; draftModelProfileId: string; draftKnowledgeBaseId?: string; draftSystemPrompt: string; draftToolNames: string[]; latestVersionNumber: number; archivedAt?: string; status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED' }
 type AgentVersion = { id: string; agentDefinitionId: string; versionNumber: number; modelProfileName: string; modelName: string; systemPrompt: string; toolNames: string[]; publishedAt: string; archivedAt?: string; archived: boolean; usageCount: number; deletable: boolean }
 type ChatMessage = { role: 'user' | 'assistant'; content: string; createdAt?: string }
 type RunStep = { id: string; stepNumber: number; stepType: string; status: string; toolName?: string; inputJson?: string; outputText?: string; durationMs?: number; observedAt?: number; createdAt?: string }
 type ApprovalRequest = { id: string; toolName: string; capability: string; riskLevel: string; targetEnvironment: string; argumentsJson: string; argumentsSha256: string; status: string; expiresAt: string }
-type RunSummary = { id: string; conversationId: string; agentVersionId: string; status: string; startedAt: string; completedAt?: string; errorMessage?: string; stepCount: number }
+type RunSummary = { id: string; conversationId: string; agentVersionId: string; status: string; startedAt: string; completedAt?: string; errorMessage?: string; stepCount: number; preview?: string; agentName?: string }
 type AgentRun = Omit<RunSummary, 'stepCount'> & { steps: RunStep[] }
 type AuditEvent = { id: string; eventType: string; toolName?: string; capability?: string; riskLevel?: string; status: string; argumentsSha256?: string; details?: string; createdAt: string }
 type McpTool = { publicName: string; remoteName: string; displayName: string; description: string; capability: string; riskLevel: string; timeoutSeconds: number; active: boolean; enabled: boolean; schemaSha256: string }
@@ -58,7 +71,7 @@ function App() {
   const [backendState, setBackendState] = useState<BackendState>('checking')
   const [view, setView] = useState<View>(() => {
     try { const saved = JSON.parse(localStorage.getItem('agentstudio-history') ?? '{}');
-      return ['models','knowledge','mcp','agents','chat','remote','runs','system'].includes(saved.view) ? saved.view : 'models'
+      return ['models','knowledge','mcp','agents','chat','remote','runs','system','projects'].includes(saved.view) ? saved.view : 'models'
     } catch { return 'models' }
   })
   const [models, setModels] = useState<ModelProfile[]>([])
@@ -76,6 +89,15 @@ function App() {
   const [knowledgeForm, setKnowledgeForm] = useState({ name: '', description: '' })
   const [versions, setVersions] = useState<AgentVersion[]>([])
   const [modelForm, setModelForm] = useState(emptyModel)
+  const [editingModelId, setEditingModelId] = useState<string>()
+  const [localProjects, setLocalProjects] = useState<ProjectStatus[]>([])
+  const [projectRoots, setProjectRoots] = useState<string[]>([])
+  const [sandbox, setSandbox] = useState<SandboxStatus>()
+  const [selectedProject, setSelectedProject] = useState('')
+  const [projectBinding, setProjectBinding] = useState<ProjectBinding>()
+  const [projectLoadError, setProjectLoadError] = useState('')
+  const [validationPath, setValidationPath] = useState('.')
+  const [validationTask, setValidationTask] = useState('MAVEN_TEST')
   const [agentForm, setAgentForm] = useState(emptyAgent)
   const [editingAgentId, setEditingAgentId] = useState<string>()
   const [selectedVersion, setSelectedVersion] = useState('')
@@ -89,10 +111,29 @@ function App() {
   const [approvalBusy, setApprovalBusy] = useState(false)
   const [currentRunId, setCurrentRunId] = useState<string>()
   const [cancelBusy, setCancelBusy] = useState(false)
+  const [agentQuery, setAgentQuery] = useState('')
+  const [agentStatus, setAgentStatus] = useState('')
+  const [documentQuery, setDocumentQuery] = useState('')
+  const [documentStatus, setDocumentStatus] = useState('')
+  const [toolQuery, setToolQuery] = useState('')
+  const [readingDocument, setReadingDocument] = useState<KnowledgeDocument>()
+  const [runQuery, setRunQuery] = useState('')
+  const [runStatus, setRunStatus] = useState('')
+  const [runListBusy, setRunListBusy] = useState(false)
+  const [runListError, setRunListError] = useState('')
+  const [moreRuns, setMoreRuns] = useState(false)
+  const runListRequest = useRef(0)
   const [runHistory, setRunHistory] = useState<RunSummary[]>([])
   const [selectedRun, setSelectedRun] = useState<AgentRun>()
   const [selectedAuditEvents, setSelectedAuditEvents] = useState<AuditEvent[]>([])
   const [busy, setBusy] = useState(false)
+  const [runStartedAt,setRunStartedAt] = useState<number>()
+  const [liveRun,setLiveRun] = useState<RunActivity>()
+  const [runCheckedAt,setRunCheckedAt] = useState<number>()
+  const [runCheckError,setRunCheckError] = useState('')
+  const [activityRetry,setActivityRetry] = useState(0)
+  const resolvedApprovals = useRef(new Set<string>())
+  const [recordTab,setRecordTab] = useState<'runs'|'releases'>('runs')
   const [notice, setNotice] = useState('')
   const [actionError, setActionError] = useState<{ context: string; message: string }>()
   const conversationRequest = useRef(0)
@@ -114,6 +155,8 @@ function App() {
   const [releaseTasks, setReleaseTasks] = useState<ReleaseTask[]>([])
   const [candidateId, setCandidateId] = useState<string>()
   const [observingRun, setObservingRun] = useState(false)
+  const [projectMenuRequest,setProjectMenuRequest]=useState(0)
+  const liveStream = useRef<{ controller: AbortController; terminalConfirmed: boolean } | undefined>(undefined)
   const baselineAlreadyKnown = knownBaseline(releaseTasks, `${sshStatus?.username ?? ''}@${sshStatus?.host ?? ''}:${sshStatus?.port ?? ''}${deployment?.remoteDeployRoot ?? ''}`)
 
   useEffect(() => {
@@ -122,14 +165,6 @@ function App() {
     return () => window.clearTimeout(timer)
   }, [notice])
 
-  async function loadDeletedHistory() {
-    const records: ConversationSummary[] = []
-    for (let offset = 0; ; offset += 100) {
-      const page = await api<ConversationSummary[]>(`/api/conversations?deleted=true&limit=100&offset=${offset}`)
-      records.push(...page)
-      if (page.length < 100) return records
-    }
-  }
   async function changeHistory(ids: string[], restore: boolean) {
     await api(`/api/conversations/${restore ? 'restore' : 'trash'}`, { method: 'POST', body: JSON.stringify({ids}) })
     if (!restore && conversationId && ids.includes(conversationId)) switchVersion(selectedVersion)
@@ -139,18 +174,31 @@ function App() {
   }
   async function refreshHistory() {
     const [history, tasks] = await Promise.all([api<ConversationSummary[]>('/api/conversations'), api<ReleaseTask[]>('/api/release-tasks?limit=200')])
-    setConversations(history); setReleaseTasks(tasks)
+    setConversations(current => {
+      const opened = current.find(c => c.id === conversationId)
+      return opened && !history.some(c => c.id === opened.id) ? [...history,opened] : history
+    }); setReleaseTasks(tasks)
   }
   async function openConversation(id: string, notify = true) {
     const request = ++conversationRequest.current
-    const detail = await api<{ id: string; agentVersionId: string; messages: ChatMessage[]; runs: AgentRun[] }>(`/api/conversations/${encodeURIComponent(id)}`)
+    const detail = await api<{ id: string; agentVersionId: string; messages: ChatMessage[]; runs: AgentRun[]; localProject?: ProjectBinding }>(`/api/conversations/${encodeURIComponent(id)}`)
     if (request !== conversationRequest.current) return
     setConversationId(detail.id); setSelectedVersion(detail.agentVersionId); setShowHistoricalVersions(true)
-    setMessages(detail.messages); setSources([]); setPendingApproval(undefined)
+    setProjectBinding(detail.localProject); setSelectedProject(detail.localProject?.projectId ?? '')
     const last = detail.runs.at(-1)
+    const missingConclusion = last && ['FAILED','CANCELLED','TIMED_OUT','INTERRUPTED'].includes(last.status)
+      && detail.messages.at(-1)?.role === 'user'
+    setMessages(missingConclusion ? [...detail.messages, { role: 'assistant', content: `${statusLabel(last.status)}：${runConclusion(last)}\n\n已完成的操作保留；没有回执的验证不能算作通过。继续前请核对运行记录。` }] : detail.messages)
+    setSources([]); if (notify) setPendingApproval(undefined)
     setRunSteps(last?.steps.map(s => ({ ...s, observedAt: Date.parse(s.createdAt ?? last.startedAt) })) ?? [])
     const active = detail.runs.find(r => !['COMPLETED','FAILED','CANCELLED','TIMED_OUT','INTERRUPTED'].includes(r.status))
-    setObservingRun(Boolean(active)); setCurrentRunId(active?.id)
+    setConversations(current => current.some(c => c.id === detail.id) ? current : [...current, {
+      id: detail.id, agentVersionId: detail.agentVersionId, messageCount: detail.messages.length,
+      preview: detail.messages.find(m => m.role === 'user')?.content,
+      updatedAt: detail.messages.at(-1)?.createdAt ?? last?.startedAt ?? '', activeRunId: active?.id,
+    }])
+    setObservingRun(Boolean(active)); setCurrentRunId(active?.id); setRunStartedAt(active ? Date.parse(active.startedAt) : undefined)
+    if (!active) setPendingApproval(undefined)
     if (notify) setNotice(active ? '这段会话的任务仍在进行，请等它结束后再继续。' : '已打开以前的聊天。')
   }
 
@@ -166,15 +214,15 @@ function App() {
 
   const versionLabels = useMemo(() => {
     const names = new Map(agents.map((agent) => [agent.id, agent.name]))
-    return versions.filter((version) => (version.id === selectedVersion && Boolean(conversationId)) || (!version.archived && (showHistoricalVersions || agents.find((agent) => agent.id === version.agentDefinitionId)?.latestVersionNumber === version.versionNumber)))
+    return versions.filter((version) => (version.id === selectedVersion && Boolean(conversationId)) || (!version.archived && !agents.find(agent => agent.id === version.agentDefinitionId)?.archivedAt && (showHistoricalVersions || agents.find((agent) => agent.id === version.agentDefinitionId)?.latestVersionNumber === version.versionNumber)))
       .map((version) => ({ ...version, label: `${names.get(version.agentDefinitionId) ?? 'Agent'} · v${version.versionNumber} · ${version.modelName}${version.toolNames.length ? ` · ${version.toolNames.length} 工具` : ''}` }))
   }, [agents, versions, showHistoricalVersions, selectedVersion, conversationId])
 
   async function refresh() {
     try {
-      const [nextModels, nextAgents, nextBases, nextTools, nextRuns, nextMcpServers, nextSsh, nextDeployment] = await Promise.all([api<ModelProfile[]>('/api/models'), api<AgentDefinition[]>('/api/agents'), api<KnowledgeBase[]>('/api/knowledge-bases'), api<ToolDefinition[]>('/api/tools'), api<RunSummary[]>('/api/runs?limit=50'), api<McpServer[]>('/api/mcp/servers'), api<SshWorkspaceStatus>('/api/ssh/workspace'), api<DeploymentProfile>('/api/ssh/deployment')])
+      const [nextModels, nextAgents, nextBases, nextTools, nextRuns, nextMcpServers, nextSsh, nextDeployment] = await Promise.all([api<ModelProfile[]>('/api/models'), api<AgentDefinition[]>('/api/agents?includeArchived=true'), api<KnowledgeBase[]>('/api/knowledge-bases'), api<ToolDefinition[]>('/api/tools'), api<RunSummary[]>(`/api/runs?limit=50&query=${encodeURIComponent(runQuery)}&status=${encodeURIComponent(runStatus)}`), api<McpServer[]>('/api/mcp/servers'), api<SshWorkspaceStatus>('/api/ssh/workspace'), api<DeploymentProfile>('/api/ssh/deployment')])
       const [groups, nextSecrets] = await Promise.all([Promise.all(nextAgents.map((agent) => api<AgentVersion[]>(`/api/agents/${agent.id}/versions?includeArchived=true`))), api<SecretStatus[]>('/api/secrets')])
-      setModels(nextModels); setAgents(nextAgents); setVersions(groups.flat()); setSecrets(nextSecrets); setKnowledgeBases(nextBases); setTools(nextTools); setRunHistory(nextRuns); setMcpServers(nextMcpServers); setBackendState('online')
+      setModels(nextModels); setAgents(nextAgents); setVersions(groups.flat()); setSecrets(nextSecrets); setKnowledgeBases(nextBases); setTools(nextTools); if (view !== 'runs') { setRunHistory(nextRuns); setMoreRuns(nextRuns.length === 50) }; setMcpServers(nextMcpServers); setBackendState('online')
       setSshStatus(nextSsh)
       setDeployment(nextDeployment)
       setDeploymentForm((current) => nextDeployment.configured ? { localSourceRoot: nextDeployment.localSourceRoot, remoteDeployRoot: nextDeployment.remoteDeployRoot, remoteBackupRoot: nextDeployment.remoteBackupRoot, localComposeFile: nextDeployment.localComposeFile, composeFile: nextDeployment.composeFile, composeProject: nextDeployment.composeProject, nginxConfig: nextDeployment.nginxConfig, healthUrl: nextDeployment.healthUrl } : current)
@@ -201,6 +249,14 @@ function App() {
       try { await api<SystemReadiness>('/api/system/readiness'); setBackendState('online') } catch { setBackendState('offline') }
     }
   }
+
+  async function refreshProjects() {
+    try {
+      const [projects, allowed, isolated] = await Promise.all([api<ProjectStatus[]>('/api/local-projects'), api<{ roots: string[] }>('/api/local-projects/allowed-roots'), api<SandboxStatus>('/api/local-projects/sandbox')])
+      setLocalProjects(projects); setProjectRoots(allowed.roots); setSandbox(isolated); setProjectLoadError('')
+    } catch (e) { setProjectLoadError(e instanceof Error ? e.message : '本地项目未能读取') }
+  }
+  useEffect(() => { void refreshProjects() }, [])
 
   useEffect(() => { void refresh(); void refreshHistory().then(async () => {
     try {
@@ -240,9 +296,9 @@ function App() {
   async function submitModel(event: FormEvent) {
     event.preventDefault()
     await perform(async () => {
-      await api('/api/models', { method: 'POST', body: JSON.stringify(modelForm) })
-      setModelForm(emptyModel); await refresh()
-      setNotice('模型配置已保存。现在可以在下方“安全凭据”中保存对应密钥。')
+      await api(editingModelId ? `/api/models/${editingModelId}` : '/api/models', { method: editingModelId ? 'PUT' : 'POST', body: JSON.stringify(modelForm) })
+      setModelForm(emptyModel); setEditingModelId(undefined); await refresh()
+      setNotice('模型配置已保存。已有助手发布版本保持原配置；需要使用修改时，请发布助手新版本。')
     }, 'model')
   }
 
@@ -526,21 +582,35 @@ function App() {
     await runMessage(input)
   }
 
-  async function runMessage(input: string, requestedTool?: { name: string; arguments: Record<string, unknown> }) {
-    if (!input.trim() || !selectedVersion || busy || observingRun) return
-    setMessages((current) => [...current, { role: 'user', content: input.trim() }, { role: 'assistant', content: '' }]); setSources([]); setRunSteps([]); setPendingApproval(undefined); setCurrentRunId(undefined); setBusy(true); setNotice('')
+  async function runMessage(input: string, requestedTool?: { name: string; arguments: Record<string, unknown> }, workflow?: { id: string; request: WorkflowAdvance }) {
+    if (!input.trim() || (!selectedVersion && !workflow) || busy || observingRun) return
+    if(workflow){
+      try{
+        const owner=await api<{workflow:{conversationId:string}}>(`/api/release-workflows/${workflow.id}`)
+        const history=await api<{id:string;agentVersionId:string;messages:ChatMessage[];localProject?:ProjectBinding}>(`/api/conversations/${owner.workflow.conversationId}`)
+        setConversationId(history.id);setSelectedVersion(history.agentVersionId);setShowHistoricalVersions(true);if(history.localProject)setSelectedProject(history.localProject.projectId)
+        setMessages([...history.messages,{role:'user',content:input.trim()},{role:'assistant',content:''}])
+      }catch(e){setNotice(`发布任务读取失败：${e instanceof Error ? e.message : String(e)}`);return}
+    }else setMessages((current) => [...current, { role: 'user', content: input.trim() }, { role: 'assistant', content: '' }])
+    setSources([]); setRunSteps([]); setPendingApproval(undefined); setCurrentRunId(undefined); setBusy(true); setNotice(''); setRunStartedAt(Date.now()); setLiveRun(undefined); setRunCheckedAt(undefined); setRunCheckError('')
+    let streamRunId: string | undefined
+    let streamConversationId: string | undefined
+    let keepObserving = false
+    const connection = { controller: new AbortController(), terminalConfirmed: false }
+    liveStream.current = connection
     try {
-      const response = await fetch('/api/chat/stream', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' }, body: JSON.stringify({ agentVersionId: selectedVersion, conversationId, message: input.trim(), requestedTool }) })
+      const response = await fetch(workflow ? `/api/release-workflows/${workflow.id}/advance` : '/api/chat/stream', { method: 'POST', signal: connection.controller.signal, headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' }, body: JSON.stringify(workflow ? workflow.request : { agentVersionId: selectedVersion, conversationId, message: input.trim(), requestedTool, localProjectId: selectedProject || undefined }) })
       if (!response.ok || !response.body) {
         const body = await response.json().catch(() => ({ message: `HTTP ${response.status}` }))
         throw new Error(body.message ?? '无法建立流式连接')
       }
       await readSse(response.body, (eventName, data) => {
-        if (eventName === 'run') { setConversationId(String(data.conversationId)); setCurrentRunId(String(data.runId)) }
+        if (eventName === 'run') { streamRunId=String(data.runId); streamConversationId=String(data.conversationId); setConversationId(streamConversationId); setCurrentRunId(streamRunId); if(data.agentVersionId) setSelectedVersion(String(data.agentVersionId)) }
         if (eventName === 'sources') setSources((data.items as RagSource[]) ?? [])
         if (eventName === 'evidence' && data.status === 'INSUFFICIENT') setNotice(String(data.message ?? '知识库证据不足'))
         if (eventName === 'step') setRunSteps((current) => [...current, { ...(data as RunStep), observedAt: Date.now() }])
-        if (eventName === 'approval_required') setPendingApproval(data as ApprovalRequest)
+        if (eventName === 'approval_required' && !resolvedApprovals.current.has(String(data.id))) setPendingApproval(data as ApprovalRequest)
+        if (eventName === 'workflow_receipt') setMessages(current => [...current.filter((m,i) => i !== current.length-1 || m.content), { role: 'assistant', content: String(data.content) }, { role: 'assistant', content: '' }])
         if (eventName === 'delta') setMessages((current) => current.map((message, index) => index === current.length - 1 ? { ...message, content: message.content + String(data.content ?? '') } : message))
         if (eventName === 'terminated') {
           const text = String(data.message ?? '运行已停止')
@@ -550,11 +620,19 @@ function App() {
         if (eventName === 'error') throw new Error(String(data.message ?? '模型调用失败'))
       })
     } catch (error) {
-      const text = error instanceof Error ? error.message : '模型调用失败'
-      setMessages((current) => current.map((message, index) => index === current.length - 1 && !message.content ? { ...message, content: `调用失败：${text}` } : message)); setNotice(text)
+      if (!connection.terminalConfirmed) {
+        const text = error instanceof Error ? error.message : '模型调用失败'
+        setMessages((current) => current.map((message, index) => index === current.length - 1 && !message.content ? { ...message, content: `调用失败：${text}。任务结果请以运行记录为准。` } : message)); setNotice(text)
+      }
     } finally {
-      setBusy(false); setPendingApproval(undefined); setCurrentRunId(undefined)
-      api<RunSummary[]>('/api/runs?limit=50').then(setRunHistory).catch(() => undefined)
+      if (liveStream.current === connection) liveStream.current = undefined
+      if (streamRunId) {
+        try { const state=await api<RunActivity>(`/api/runs/${streamRunId}/activity`, { signal: AbortSignal.timeout(6000) }); keepObserving=!terminalRun(state.status) }
+        catch { keepObserving=true; setRunCheckError('暂时无法确认后台状态') }
+      }
+      setBusy(false); setObservingRun(keepObserving); if (!keepObserving) { setPendingApproval(undefined); setCurrentRunId(undefined); setRunStartedAt(undefined) }
+      if (connection.terminalConfirmed && streamConversationId) void openConversation(streamConversationId, false).catch(() => setNotice('任务已结束，但结果读取失败，请重新打开原会话。'))
+      api<RunSummary[]>(`/api/runs?limit=50&query=${encodeURIComponent(runQuery)}&status=${encodeURIComponent(runStatus)}`).then(setRunHistory).catch(() => undefined)
       void refreshHistory().catch(() => undefined)
     }
   }
@@ -569,6 +647,28 @@ function App() {
       setNotice(error instanceof Error ? error.message : '取消运行失败')
     } finally { setCancelBusy(false) }
   }
+
+  async function loadRuns(offset = 0) {
+    const token = ++runListRequest.current; setRunListBusy(true); setRunListError('')
+    try {
+      const page = await api<RunSummary[]>(`/api/runs?limit=50&offset=${offset}&query=${encodeURIComponent(runQuery)}&status=${encodeURIComponent(runStatus)}`)
+      if (token !== runListRequest.current) return
+      setRunHistory(current => offset ? [...current,...page.filter(item => !current.some(old => old.id === item.id))] : page)
+      setMoreRuns(page.length === 50)
+    } catch(e) { if (token === runListRequest.current) setRunListError(e instanceof Error ? e.message : '运行列表读取失败') }
+    finally { if (token === runListRequest.current) setRunListBusy(false) }
+  }
+  useEffect(() => {
+    runListRequest.current++
+    if (view !== 'runs') return
+    setRunHistory([]); setMoreRuns(false); setRunListBusy(true)
+    const timer = window.setTimeout(() => void loadRuns(), runQuery ? 250 : 0)
+    return () => { window.clearTimeout(timer); runListRequest.current++ }
+  }, [view,runQuery,runStatus])
+
+  const shownAgents = agents.filter(agent => (agentStatus ? agent.status === agentStatus : !agent.archivedAt) && matchesText(agentQuery, agent.name, agent.description, models.find(model => model.id === agent.draftModelProfileId)?.name))
+  const shownDocuments = documents.filter(document => (!documentStatus || document.status === documentStatus) && matchesText(documentQuery,document.fileName))
+  const shownTools = tools.filter(tool => matchesText(toolQuery,tool.displayName,tool.description,tool.name))
 
   async function openRun(id: string) {
     const request = ++runRequest.current
@@ -587,6 +687,7 @@ function App() {
     setApprovalBusy(true)
     try {
       await api(`/api/approvals/${pendingApproval.id}/${approved ? 'approve' : 'reject'}`, { method: 'POST', body: '{}' })
+      resolvedApprovals.current.add(pendingApproval.id)
       setNotice(approved ? '已批准，平台将按展示的原参数执行一次。' : '已拒绝，工具不会执行。')
       setPendingApproval(undefined)
     } catch (error) {
@@ -595,49 +696,118 @@ function App() {
   }
 
   function switchVersion(id: string) {
+    setProjectBinding(undefined)
     if (busy || observingRun) return
     conversationRequest.current++
     localStorage.removeItem('agentstudio-history'); setCandidateId(undefined)
-    setSelectedVersion(id); setConversationId(undefined); setMessages([]); setSources([]); setRunSteps([]); setPendingApproval(undefined)
+    const definitionId=versions.find(v=>v.id===id)?.agentDefinitionId
+    setSelectedVersion(agents.find(a=>a.id===definitionId)?.archivedAt ? '' : id); setConversationId(undefined); setMessages([]); setSources([]); setRunSteps([]); setPendingApproval(undefined)
   }
 
-  const historyControl = <HistoryPanel conversations={conversations} tasks={releaseTasks} conversationId={conversationId} candidateId={candidateId}
-        target={`${sshStatus?.username ?? ''}@${sshStatus?.host ?? ''}:${sshStatus?.port ?? ''}${deployment?.remoteDeployRoot ?? ''}`} busy={busy || observingRun}
-        onOpen={id => void openConversation(id).catch(e => setNotice(String(e)))} onNew={() => switchVersion(selectedVersion)}
-        onCandidate={id => { setCandidateId(id || undefined); setNotice('已选择候选来源；不会自动构建、上线或复用审批。') }}
-        onRefresh={() => void refreshHistory().catch(e => setNotice(String(e)))}
-        onMore={() => void Promise.all([api<ConversationSummary[]>(`/api/conversations?offset=${conversations.length}`), api<ReleaseTask[]>(`/api/release-tasks?limit=200&offset=${releaseTasks.length}`)]).then(([next,tasks]) => {
-          setConversations(current => [...current,...next.filter(c => !current.some(old => old.id === c.id))]); setReleaseTasks(current => [...current,...tasks.filter(t => !current.some(old => old.id === t.id))])
-        }).catch(e => setNotice(String(e)))}
-        onTrash={changeHistory} onLoadTrash={loadDeletedHistory} onError={setNotice} onRun={id => { setView('runs'); void openRun(id) }} />
+  useEffect(() => {
+    if (!currentRunId || !(busy || observingRun)) return
+    let disposed=false
+    let timer: number | undefined
+    async function check() {
+      try {
+        const state=await api<RunActivity>(`/api/runs/${currentRunId}/activity`, { signal: AbortSignal.timeout(6000) })
+        if (disposed) return
+        setLiveRun(state); setRunCheckedAt(Date.now()); setRunCheckError('')
+        setBackendState('online')
+        if (terminalRun(state.status) && liveStream.current) {
+          liveStream.current.terminalConfirmed = true
+          liveStream.current.controller.abort()
+          return
+        }
+        const approval=state.pendingApproval
+        if (approval && !resolvedApprovals.current.has(approval.id)) setPendingApproval(approval as ApprovalRequest)
+        else setPendingApproval(undefined)
+      } catch(e) {
+        if (!disposed) setRunCheckError(String(e))
+        try { await api('/api/system/readiness', { signal: AbortSignal.timeout(3000) }); if (!disposed) setBackendState('online') }
+        catch { if (!disposed) setBackendState('offline') }
+      }
+      finally { if (!disposed) timer=window.setTimeout(()=>void check(),2000) }
+    }
+    void check()
+    return ()=>{disposed=true;window.clearTimeout(timer)}
+  },[currentRunId,busy,observingRun,activityRetry])
+
+  async function archiveAgent(agent: AgentDefinition, archive: boolean) {
+    setBusy(true)
+    try {
+      await api(`/api/agents/${agent.id}/${archive ? 'archive' : 'restore'}`,{method:'POST',body:'{}'})
+      if (archive && versions.some(v=>v.id===selectedVersion && v.agentDefinitionId===agent.id) && !conversationId) setSelectedVersion('')
+      if (archive && editingAgentId===agent.id) cancelAgentEdit()
+      await refresh(); setNotice(archive ? '助手已归档；已有会话和记录保留，可在“已归档”中恢复。' : '助手已恢复。')
+    } catch(e) { setNotice(String(e)) } finally {setBusy(false)}
+  }
+
+  async function moreReleaseRecords() {
+    const next=await api<ReleaseTask[]>(`/api/release-tasks?limit=200&offset=${releaseTasks.length}`)
+    setReleaseTasks(current=>[...current,...next.filter(t=>!current.some(old=>old.id===t.id))])
+  }
+
+  const target = `${sshStatus?.username ?? ''}@${sshStatus?.host ?? ''}:${sshStatus?.port ?? ''}${deployment?.remoteDeployRoot ?? ''}`
+  const historyControl = <HistoryPanel conversations={conversations} conversationId={conversationId} busy={busy || observingRun}
+    onOpen={id => void openConversation(id).catch(e => setNotice(String(e)))} onNew={() => switchVersion(selectedVersion)}
+    onSearch={(query,offset,deleted) => api<ConversationSummary[]>(`/api/conversations?limit=50&offset=${offset}&deleted=${deleted}&query=${encodeURIComponent(query)}`)} onTrash={changeHistory} onError={setNotice} />
+
+  function goToMysqlVerification(projectId:string) {
+    if(busy || observingRun)return
+    const available=versions.filter(v=>!v.archived && agents.some(a=>a.id===v.agentDefinitionId && !a.archivedAt && a.latestVersionNumber===v.versionNumber))
+    const version=localVerificationVersion(available,selectedVersion)
+    switchVersion(version ?? '')
+    setSelectedProject(projectId);setValidationTask('MYSQL_INTEGRATION');setValidationPath('.');setView('chat')
+    if(version){setProjectMenuRequest(Date.now());setNotice('已选择本地验证助手和当前项目。点击“请求验证”并批准一次；完成后回到 07 准备上线。')}
+    else setNotice('请先选择具有本地工作区验证工具的助手，再打开“项目”菜单请求 MySQL 集成验证。')
+  }
+  const projectControl = <SessionProjectMenu busy={busy || observingRun} openRequest={projectMenuRequest} onOpened={()=>setProjectMenuRequest(0)} label={selectedProject ? `项目：${localProjects.find(p => p.project.id === selectedProject)?.project.name ?? '已绑定'}` : '选择项目'}>
+    {selectedProject && <ProjectPreview projectId={selectedProject} busy={busy || observingRun} enabled={Boolean(versions.find(v => v.id === selectedVersion)?.toolNames.includes('start_project_preview'))} onStart={() => void runMessage('请只使用 start_project_preview 工具启动当前项目的H2隔离预览；不连接生产。', { name: 'start_project_preview', arguments: {} })} />}
+    <label className="session-project-field">本地项目<select disabled={busy || observingRun || Boolean(conversationId)} value={selectedProject} onChange={e => setSelectedProject(e.target.value)}><option value="">普通聊天 / 尚未绑定项目</option>{localProjects.filter(p => p.status === 'READY' || p.project.id === selectedProject).map(p => <option key={p.project.id} value={p.project.id}>{p.project.name}{p.status !== 'READY' ? ' · 不可用' : ''}</option>)}</select></label>
+    {conversationId && <p className="hint">{projectBinding ? `会话已绑定项目配置 v${projectBinding.revision}` : '旧会话未绑定项目，编码请新建会话'}</p>}
+    <div className="session-project-actions"><button className="ghost" onClick={() => setView('projects')}>管理本地项目</button>{conversationId && <button className="secondary" onClick={() => switchVersion(selectedVersion)}>新建会话 / 换项目</button>}</div>
+    {projectLoadError && <p role="alert" className="run-error">{projectLoadError}</p>}
+    {selectedProject && <div className="session-validation"><h3>本地测试与构建</h3><p className="hint">执行前需审批，使用隔离副本；源码和真实数据留在原目录。</p>
+      <label className="session-project-field">验证内容<select value={validationTask} onChange={e => setValidationTask(e.target.value)}><option value="MAVEN_TEST">Java 测试</option><option value="MYSQL_INTEGRATION">MySQL 集成验证（合成数据）</option><option value="NPM_TEST">前端测试</option><option value="NPM_BUILD">前端构建</option></select></label>
+      <label className="session-project-field">验证子目录<input value={validationPath} onChange={e => setValidationPath(e.target.value)} placeholder="项目根填 .，前端可填 web" /></label>
+      {!versions.find(v => v.id === selectedVersion)?.toolNames.includes('run_workspace_verification') && <p className="hint">请先选择包含验证工具的助手版本。</p>}
+      <button className="primary" disabled={!sandbox?.configured || !validationPath.trim() || !versions.find(v => v.id === selectedVersion)?.toolNames.includes('run_workspace_verification')} onClick={() => void runMessage(`请执行本地${validationTask === 'MAVEN_TEST' ? 'Java 测试' : validationTask === 'MYSQL_INTEGRATION' ? 'MySQL 集成验证' : validationTask === 'NPM_TEST' ? '前端测试' : '前端构建'}，以实际结果为准。`, { name: 'run_workspace_verification', arguments: { path: validationPath.trim(), task: validationTask } })}>请求验证</button>
+    </div>}
+  </SessionProjectMenu>
 
   return <div className="app-shell">
+    <RunDock active={(busy && runStartedAt!==undefined) || observingRun} startedAt={runStartedAt} activity={liveRun} toolLabel={tools.find(t=>t.name===liveRun?.lastStep?.toolName)?.displayName}
+      checkedAt={runCheckedAt} error={runCheckError} approval={pendingApproval} approvalSeconds={approvalSecondsLeft}
+      deciding={approvalBusy} stopping={cancelBusy} runId={currentRunId} onDecide={approved=>void decideApproval(approved)}
+      onStop={()=>void cancelCurrentRun()} onRetry={()=>setActivityRetry(n=>n+1)} />
     <aside className="sidebar">
       <div><p className="eyebrow">LOCAL AGENT STUDIO</p><h1>Agent<br />Studio</h1></div>
       <nav>
-        <button className={view === 'models' ? 'active' : ''} onClick={() => setView('models')}><span>01</span>模型配置</button>
-        <button className={view === 'knowledge' ? 'active' : ''} onClick={() => setView('knowledge')}><span>02</span>知识库</button>
-        <button className={view === 'mcp' ? 'active' : ''} onClick={() => setView('mcp')}><span>03</span>MCP 连接</button>
+        <button className={view === 'models' ? 'active' : ''} onClick={() => setView('models')}><span>01</span>模型管理</button>
+        <button className={view === 'knowledge' ? 'active' : ''} onClick={() => setView('knowledge')}><span>02</span>知识库管理</button>
+        <button className={view === 'mcp' ? 'active' : ''} onClick={() => setView('mcp')}><span>03</span>MCP管理</button>
         <button className={view === 'agents' ? 'active' : ''} onClick={() => setView('agents')}><span>04</span>助手管理</button>
-        <button className={view === 'chat' ? 'active' : ''} onClick={() => setView('chat')}><span>05</span>对话测试台</button>
-        <button className={view === 'remote' ? 'active' : ''} onClick={() => setView('remote')}><span>06</span>远程工作台</button>
-        <button className={view === 'runs' ? 'active' : ''} onClick={() => { setView('runs'); void refresh() }}><span>07</span>运行记录</button>
-        <button className={view === 'system' ? 'active' : ''} onClick={() => { setView('system'); void inspectReadiness() }}><span>08</span>系统诊断</button>
+        <button className={view === 'projects' ? 'active' : ''} onClick={() => setView('projects')}><span>05</span>项目管理</button>
+        <button className={view === 'chat' ? 'active' : ''} onClick={() => setView('chat')}><span>06</span>对话测试台</button>
+        <button className={view === 'remote' ? 'active' : ''} onClick={() => setView('remote')}><span>07</span>远程工作台</button>
+        <button className={view === 'runs' ? 'active' : ''} onClick={() => { setView('runs') }}><span>08</span>运行记录</button>
+        <button className={view === 'system' ? 'active' : ''} onClick={() => { setView('system'); void inspectReadiness() }}><span>09</span>系统诊断</button>
       </nav>
       <div className={`connection connection--${backendState}`}><i />{backendState === 'online' ? '后端已连接' : backendState === 'checking' ? '正在连接' : '后端未连接'}</div>
     </aside>
     <main className="workspace">
       {notice && <div className="notice" role="status" aria-live="polite">{notice}<button aria-label="关闭提示" onClick={() => setNotice('')}>×</button></div>}
-      {view === 'models' && <section><PageHeader number="01" title="模型与凭据" description="查看模型连接，按需新增模型、设置服务器或更新密钥。" /><div className="two-column">
-        <details className="panel form-disclosure" open={models.length === 0 ? true : undefined}><summary>新增模型连接</summary><form className="form" onSubmit={submitModel}><OperationFeedback message={actionError?.context === 'model' ? actionError.message : undefined} /><h2>新增模型连接</h2>
+      {view === 'models' && <section><PageHeader number="01" title="模型管理" description="查看模型连接，按需新增模型、设置服务器或更新密钥。" /><div className="two-column">
+        <details className="panel form-disclosure" open={editingModelId || models.length === 0 ? true : undefined}><summary>{editingModelId ? "编辑模型连接" : "新增模型连接"}</summary><form className="form" onSubmit={submitModel}><OperationFeedback message={actionError?.context === 'model' ? actionError.message : undefined} /><h2>{editingModelId ? "编辑模型连接" : "新增模型连接"}</h2><p className="hint">修改用于后续发布的助手版本，已有版本保留原配置快照。</p><Field label="服务类型"><input required value={modelForm.provider} onChange={e => setModelForm({ ...modelForm, provider: e.target.value })} /></Field>
           <Field label="显示名称"><input required value={modelForm.name} onChange={(e) => setModelForm({ ...modelForm, name: e.target.value })} placeholder="例如：OpenAI 主模型" /></Field>
           <Field label="兼容 API 地址"><input required type="url" value={modelForm.baseUrl} onChange={(e) => setModelForm({ ...modelForm, baseUrl: e.target.value })} /></Field>
           <Field label="模型名称"><input required value={modelForm.modelName} onChange={(e) => setModelForm({ ...modelForm, modelName: e.target.value })} placeholder="例如：gpt-4.1-mini" /></Field>
           <Field label="密钥环境变量"><input required value={modelForm.apiKeyEnv} onChange={(e) => setModelForm({ ...modelForm, apiKeyEnv: e.target.value })} /></Field>
           <Field label={`温度 ${modelForm.temperature}`}><input type="range" min="0" max="2" step="0.1" value={modelForm.temperature} onChange={(e) => setModelForm({ ...modelForm, temperature: Number(e.target.value) })} /></Field>
-          <button className="primary" disabled={busy}>保存模型配置</button>
+          <div className="card-actions"><button className="primary" disabled={busy}>{editingModelId ? "保存修改" : "保存模型配置"}</button>{editingModelId && <button type="button" className="ghost" disabled={busy} onClick={() => { setEditingModelId(undefined); setModelForm(emptyModel) }}>取消</button>}</div>
         </form></details>
-        <div className="panel list-panel"><h2>已配置模型 <small>{models.length}</small></h2>{models.length === 0 ? <Empty text="尚无模型配置" /> : models.map((model) => <article className="model-card" key={model.id}><div><strong>{model.name}</strong><span>{model.modelName}</span></div><code>{model.baseUrl}</code><p>密钥：{model.apiKeyEnv} · 温度 {model.temperature}</p></article>)}</div>
+        <div className="panel list-panel"><h2>已配置模型 <small>{models.length}</small></h2>{models.length === 0 ? <Empty text="尚无模型配置" /> : models.map((model) => <article className="model-card" key={model.id}><div><strong>{model.name}</strong><span>{model.modelName}</span></div><code>{model.baseUrl}</code><p>{model.apiKeyEnv} · 温度 {model.temperature}</p><button className="ghost" disabled={busy} onClick={() => { setEditingModelId(model.id); setModelForm({ name: model.name, provider: model.provider, baseUrl: model.baseUrl, modelName: model.modelName, apiKeyEnv: model.apiKeyEnv, temperature: model.temperature }); setActionError(undefined) }}>编辑</button></article>)}</div>
       </div>
         <details className="panel settings-disclosure"><summary>服务器连接 · {sshStatus?.configured ? `${sshStatus.username}@${sshStatus.host}` : '未配置'}</summary>        <div className="two-column">
           <form className="panel form" onSubmit={submitSshWorkspace}><OperationFeedback message={actionError?.context === 'ssh' ? actionError.message : undefined} /><div className="section-head"><div><h2>SSH 远程工作区</h2><p className="hint">连接信息保存在本机数据库，密码使用 Windows 安全存储；浏览为只读；写入和执行仍需逐次审批。</p></div></div>
@@ -665,7 +835,7 @@ function App() {
           {secrets.length === 0 ? <Empty text="创建模型或填写 MCP 凭据名称后，这里会出现对应项目" /> : <div className="secret-list">{secrets.map((secret) => <article key={secret.name} className="secret-card"><div><strong>{secret.name}</strong><span className={`badge badge--${secret.configured ? 'ready' : 'warning'}`}>{secret.configured ? secret.source === 'ENVIRONMENT' ? '环境变量' : '安全存储' : '未配置'}</span><p>{secret.usedBy.join(' · ')}</p></div><input type="password" autoComplete="new-password" value={secretValues[secret.name] ?? ''} onChange={(e) => setSecretValues((current) => ({ ...current, [secret.name]: e.target.value }))} placeholder={secret.configured ? '输入新值可替换' : '输入密钥'} /><div className="card-actions"><button className="secondary" disabled={busy || !(secretValues[secret.name]?.trim())} onClick={() => void saveSecret(secret.name)}>{secret.configured ? '更新' : '安全保存'}</button>{secret.configured && <button className="danger compact" disabled={busy || secret.source === 'ENVIRONMENT'} title={secret.source === 'ENVIRONMENT' ? '环境变量需在程序外清除' : undefined} onClick={() => void deleteSecret(secret.name)}>删除</button>}</div></article>)}</div>}
         </div></details>
       </section>}
-      {view === 'knowledge' && <section><PageHeader number="02" title="知识库" description="选择知识库查看文档；需要时上传资料或重建索引。删除文档会同时清理文件和索引。" /><div className="two-column">
+      {view === 'knowledge' && <section><PageHeader number="02" title="知识库管理" description="选择知识库查看文档；需要时上传资料或重建索引。删除文档会同时清理文件和索引。" /><div className="two-column">
         <div className="panel-stack">
           <details className="panel form-disclosure" open={knowledgeBases.length === 0 ? true : undefined}><summary>新建知识库</summary><form className="form" onSubmit={submitKnowledgeBase}><OperationFeedback message={actionError?.context === 'knowledge' ? actionError.message : undefined} /><h2>新建知识库</h2>
             <Field label="知识库名称"><input required value={knowledgeForm.name} onChange={(e) => setKnowledgeForm({ ...knowledgeForm, name: e.target.value })} placeholder="例如：科研资料库" /></Field>
@@ -680,9 +850,9 @@ function App() {
             <button className="ghost" type="button" disabled={busy || !selectedKnowledgeBase || documents.length === 0} onClick={() => void reindexKnowledgeBase()}>使用当前模型重建索引</button>
           </form></details>
         </div>
-        <div className="panel list-panel"><h2>文档 <small>{documents.length}</small></h2><Field label="当前知识库"><select value={selectedKnowledgeBase} onChange={(e) => void chooseKnowledgeBase(e.target.value)}><option value="">请选择</option>{knowledgeBases.map((base) => <option key={base.id} value={base.id}>{base.name}</option>)}</select></Field>{documents.length === 0 ? <Empty text="选择知识库并上传第一份文档" /> : documents.map((document) => <article className="document-card" key={document.id}><div><div><strong>{document.fileName}</strong><p>{formatBytes(document.fileSize)} · {document.chunkCount} 个片段</p></div><span className={`badge badge--${document.status.toLowerCase()}`}>{document.status === 'READY' ? '已解析' : statusLabel(document.status)}</span></div>{document.errorMessage && <p className="error-text">{document.errorMessage}</p>}<button className="danger" onClick={() => void deleteDocument(document.id)}>删除</button></article>)}</div>
-      </div></section>}
-      {view === 'mcp' && <section><PageHeader number="03" title="MCP 连接" description="查看工具连接；需要时展开工具权限，或编辑、测试连接。" /><div className="two-column">
+        <div className="panel list-panel"><h2>文档 <small>{shownDocuments.length}/{documents.length}</small></h2><Field label="当前知识库"><select value={selectedKnowledgeBase} onChange={(e) => void chooseKnowledgeBase(e.target.value)}><option value="">请选择</option>{knowledgeBases.map((base) => <option key={base.id} value={base.id}>{base.name}</option>)}</select></Field><div className="list-filters"><input type="search" aria-label="搜索文档" placeholder="搜索文件名" value={documentQuery} onChange={e => setDocumentQuery(e.target.value)} /><select aria-label="筛选文档状态" value={documentStatus} onChange={e => setDocumentStatus(e.target.value)}><option value="">全部文档</option><option value="READY">已解析</option><option value="PROCESSING">处理中</option><option value="FAILED">失败</option></select></div>{shownDocuments.length === 0 ? <Empty text={documents.length ? '没有匹配的文档' : '选择知识库并上传第一份文档'} /> : shownDocuments.map((document) => <article className="document-card" key={document.id}><div><div><strong>{document.fileName}</strong><p>{formatBytes(document.fileSize)} · {document.chunkCount} 个片段</p></div><span className={`badge badge--${document.status.toLowerCase()}`}>{document.status === 'READY' ? '已解析' : statusLabel(document.status)}</span></div>{document.errorMessage && <p className="error-text">{document.errorMessage}</p>}<div className="document-actions"><button className="secondary" onClick={() => setReadingDocument(document)}>阅读</button><button className="danger" onClick={() => void deleteDocument(document.id)}>删除</button></div></article>)}</div>
+      </div>{readingDocument && <DocumentReader key={readingDocument.id} document={readingDocument} onClose={() => setReadingDocument(undefined)} onLoad={offset => api<TextPreview>(`/api/knowledge-bases/${selectedKnowledgeBase}/documents/${readingDocument.id}/text?offset=${offset}&limit=8000`)} />}</section>}
+      {view === 'mcp' && <section><PageHeader number="03" title="MCP管理" description="查看工具连接；需要时展开工具权限，或编辑、测试连接。" /><div className="two-column">
         <details className="panel form-disclosure" open={Boolean(editingMcpId) || mcpServers.length === 0 ? true : undefined}><summary>新增 / 编辑 MCP 连接</summary><form className="form" onSubmit={submitMcpServer}><OperationFeedback message={actionError?.context === 'mcp' ? actionError.message : undefined} /><div className="section-head"><h2>{editingMcpId ? '编辑 MCP Server' : '新增 MCP Server'}</h2><label className="file-action">导入配置<input type="file" accept="application/json,.json" onChange={(event) => void importMcpConfiguration(event)} /></label></div>
           {editingMcpId && <p className="edit-hint">修改连接配置后会自动重新同步；历史运行和已发布版本不会被改写。</p>}
           <Field label="连接方式"><select value={mcpForm.transport} onChange={(e) => setMcpForm({ ...mcpForm, transport: e.target.value as 'STREAMABLE_HTTP' | 'STDIO' })}><option value="STREAMABLE_HTTP">Streamable HTTP</option><option value="STDIO">本机 stdio 子进程</option></select></Field>
@@ -714,6 +884,7 @@ function App() {
           })}
         </div></details>
       </section>}
+      {view === 'projects' && <section className="projects-page"><PageHeader number="05" title="项目管理" description="管理助手可以使用的本地项目，设置源码范围与数据保护。" />{projectLoadError && <p role="alert" className="run-error">{projectLoadError}<button className="ghost" onClick={() => void refreshProjects()}>重试</button></p>}<LocalProjects projects={localProjects} roots={projectRoots} sandbox={sandbox} onChanged={refreshProjects} /></section>}
       {view === 'agents' && <section><PageHeader number="04" title="助手管理" description="查看已有助手；编辑草稿后发布新版本，旧会话仍使用原版本。" /><div className="two-column">
         <details className="panel form-disclosure" open={Boolean(editingAgentId) || agents.length === 0 ? true : undefined}><summary>创建 / 编辑助手</summary><form className="form" onSubmit={submitAgent}><OperationFeedback message={actionError?.context === 'agent' ? actionError.message : undefined} /><h2>{editingAgentId ? '编辑 Agent 草稿' : '创建 Agent 草稿'}</h2>
           {editingAgentId && <p className="edit-hint">保存只会更新草稿，已发布版本不会改变。</p>}
@@ -721,27 +892,30 @@ function App() {
           <Field label="简介"><input value={agentForm.description} onChange={(e) => setAgentForm({ ...agentForm, description: e.target.value })} /></Field>
           <Field label="模型配置"><select required value={agentForm.modelProfileId} onChange={(e) => setAgentForm({ ...agentForm, modelProfileId: e.target.value })}><option value="">请选择</option>{models.map((model) => <option key={model.id} value={model.id}>{model.name} · {model.modelName}</option>)}</select></Field>
           <Field label="知识库（可选）"><select value={agentForm.knowledgeBaseId} onChange={(e) => setAgentForm({ ...agentForm, knowledgeBaseId: e.target.value })}><option value="">不使用知识库</option>{knowledgeBases.map((base) => <option key={base.id} value={base.id}>{base.name}</option>)}</select></Field>
-          <div className="field"><details className="tool-disclosure"><summary>选择工具 · 已选 {agentForm.toolNames.length} 项</summary><div className="tool-options">{tools.length === 0 ? <p className="hint">暂无可用工具</p> : tools.map((tool) => <div className="tool-choice" key={tool.name}><label className="tool-option"><input type="checkbox" checked={agentForm.toolNames.includes(tool.name)} onChange={(e) => setAgentForm({ ...agentForm, toolNames: e.target.checked ? [...agentForm.toolNames, tool.name] : agentForm.toolNames.filter((name) => name !== tool.name) })} /><span><b>{tool.displayName}</b><small>{tool.riskLevel === 'HIGH' ? '逐次审批' : '直接执行'} · 超时 {tool.timeoutSeconds} 秒</small></span></label><details className="tool-description"><summary>用途与权限详情</summary><p>{tool.description}</p><code>{tool.name} · {tool.source} · {tool.capability}</code></details></div>)}</div></details></div>
+          <div className="field"><details className="tool-disclosure"><summary>选择工具 · 已选 {agentForm.toolNames.length} 项</summary><input type="search" aria-label="搜索可选工具" placeholder="搜索工具名称或用途" value={toolQuery} onChange={e => setToolQuery(e.target.value)} /><div className="tool-options">{shownTools.length === 0 ? <p className="hint">{tools.length ? '没有匹配的工具' : '暂无可用工具'}</p> : shownTools.map((tool) => <div className="tool-choice" key={tool.name}><label className="tool-option"><input type="checkbox" checked={agentForm.toolNames.includes(tool.name)} onChange={(e) => setAgentForm({ ...agentForm, toolNames: e.target.checked ? [...agentForm.toolNames, tool.name] : agentForm.toolNames.filter((name) => name !== tool.name) })} /><span><b>{tool.displayName}</b><small>{tool.riskLevel === 'HIGH' ? '逐次审批' : '直接执行'} · 超时 {tool.timeoutSeconds} 秒</small></span></label><details className="tool-description"><summary>用途与权限详情</summary><p>{tool.description}</p><code>{tool.name} · {tool.source} · {tool.capability}</code></details></div>)}</div></details></div>
           <Field label="系统提示词"><textarea required rows={8} value={agentForm.systemPrompt} onChange={(e) => setAgentForm({ ...agentForm, systemPrompt: e.target.value })} placeholder="定义 Agent 的身份、目标和边界" /></Field>
           <div className="form-actions"><button className="primary" disabled={busy || models.length === 0}>{editingAgentId ? '保存草稿修改' : '创建草稿'}</button>{editingAgentId && <button className="ghost" type="button" disabled={busy} onClick={cancelAgentEdit}>取消编辑</button>}</div>
         </form></details>
-        <div className="panel list-panel"><h2>助手列表 <small>{agents.length}</small></h2>{agents.length === 0 ? <Empty text="先配置模型，再创建 Agent" /> : agents.map((agent) => {
+        <div className="panel list-panel"><h2>助手列表 <small>{shownAgents.length}/{agents.length}</small></h2><div className="list-filters"><input type="search" aria-label="搜索助手" placeholder="搜索名称、简介或模型" value={agentQuery} onChange={e => setAgentQuery(e.target.value)} /><select aria-label="筛选助手状态" value={agentStatus} onChange={e => setAgentStatus(e.target.value)}><option value="">使用中的助手</option><option value="PUBLISHED">已发布</option><option value="DRAFT">草稿</option><option value="ARCHIVED">已归档</option></select></div>{shownAgents.length === 0 ? <Empty text={agents.length ? '没有匹配的助手' : '先配置模型，再创建助手'} /> : shownAgents.map((agent) => {
           const agentVersions = versions.filter((version) => version.agentDefinitionId === agent.id)
-          return <article className="agent-card" key={agent.id}><div className="card-head"><div><strong>{agent.name}</strong><p>{agent.description || '暂无简介'}</p></div><span className={`badge badge--${(agent.status ?? 'DRAFT').toLowerCase()}`}>{statusLabel(agent.status ?? 'DRAFT')}</span></div><div className="agent-secondary">{agent.draftToolNames.length > 0 && <details className="tool-disclosure"><summary>已配置 {agent.draftToolNames.length} 项工具</summary><div className="tool-chips">{agent.draftToolNames.map((name) => <span key={name}>{tools.find(tool => tool.name === name)?.displayName ?? name}</span>)}</div></details>}<div className="agent-meta"><span>最新版本</span><b>{agent.latestVersionNumber ? `v${agent.latestVersionNumber}` : '未发布'}</b></div>{agentVersions.length > 0 && <details className="version-manager"><summary>管理历史版本（{agentVersions.length}）</summary>{agentVersions.map((version) => <div className={`version-row ${version.archived ? 'version-row--archived' : ''}`} key={version.id}><div><b>v{version.versionNumber}</b><span>{version.archived ? '已归档' : version.versionNumber === agent.latestVersionNumber ? '当前版本' : '历史版本'} · {version.usageCount} 条引用</span></div><div>{version.archived ? <><button className="ghost" disabled={busy} onClick={() => void changeVersionLifecycle(agent, version, 'restore')}>恢复</button>{version.deletable && <button className="danger compact" disabled={busy} onClick={() => void changeVersionLifecycle(agent, version, 'delete')}>永久删除</button>}</> : version.versionNumber !== agent.latestVersionNumber && <button className="ghost" disabled={busy} onClick={() => void changeVersionLifecycle(agent, version, 'archive')}>归档</button>}</div></div>)}</details>}</div><div className="card-actions"><button className="ghost" disabled={busy} onClick={() => editAgent(agent)}>编辑草稿</button><button className="secondary" disabled={busy} onClick={() => void publish(agent.id)}>发布新版本</button></div></article>
+          return <article className="agent-card" key={agent.id}><div className="card-head"><div><strong>{agent.name}</strong><p>{agent.description || '暂无简介'}</p></div><span className={`badge badge--${(agent.status ?? 'DRAFT').toLowerCase()}`}>{statusLabel(agent.status ?? 'DRAFT')}</span></div><div className="agent-secondary">{agent.draftToolNames.length > 0 && <details className="tool-disclosure"><summary>已配置 {agent.draftToolNames.length} 项工具</summary><div className="tool-chips">{agent.draftToolNames.map((name) => <span key={name}>{tools.find(tool => tool.name === name)?.displayName ?? name}</span>)}</div></details>}<div className="agent-meta"><span>最新版本</span><b>{agent.latestVersionNumber ? `v${agent.latestVersionNumber}` : '未发布'}</b></div>{agentVersions.length > 0 && <details className="version-manager"><summary>管理历史版本（{agentVersions.length}）</summary>{agentVersions.map((version) => <div className={`version-row ${version.archived ? 'version-row--archived' : ''}`} key={version.id}><div><b>v{version.versionNumber}</b><span>{version.archived ? '已归档' : version.versionNumber === agent.latestVersionNumber ? '当前版本' : '历史版本'} · {version.usageCount} 条引用</span></div><div>{version.archived ? <><button className="ghost" disabled={busy} onClick={() => void changeVersionLifecycle(agent, version, 'restore')}>恢复</button>{version.deletable && <button className="danger compact" disabled={busy} onClick={() => void changeVersionLifecycle(agent, version, 'delete')}>永久删除</button>}</> : version.versionNumber !== agent.latestVersionNumber && <button className="ghost" disabled={busy} onClick={() => void changeVersionLifecycle(agent, version, 'archive')}>归档</button>}</div></div>)}</details>}</div><div className="card-actions">{agent.archivedAt ? <button className="secondary" disabled={busy} onClick={() => void archiveAgent(agent,false)}>恢复助手</button> : <><button className="ghost" disabled={busy} onClick={() => editAgent(agent)}>编辑草稿</button><button className="secondary" disabled={busy} onClick={() => void publish(agent.id)}>发布新版本</button><button className="ghost" disabled={busy || observingRun} onClick={() => void archiveAgent(agent,true)}>归档助手</button></>}</div></article>
         })}</div>
       </div></section>}
-      {view === 'chat' && <section><PageHeader number="05" title="对话测试台" description="选择助手版本开始聊天，或打开历史会话。执行高风险操作前会请求审批。" />
-        <div className="chat-toolbar"><label>Agent 版本<select disabled={busy || observingRun} value={selectedVersion} onChange={(e) => switchVersion(e.target.value)}><option value="">选择已发布版本</option>{versionLabels.map((version) => <option key={version.id} value={version.id}>{version.label}</option>)}</select></label><label className="history-toggle"><input type="checkbox" checked={showHistoricalVersions} onChange={(e) => setShowHistoricalVersions(e.target.checked)} />显示历史版本</label><span>{conversationId ? `会话 ${conversationId.slice(0, 8)}` : '新会话'}</span>{historyControl}</div>
-        <div className="chat-panel"><div className="messages">{pendingApproval && <aside className="approval-card" role="alert" aria-live="assertive"><div className="approval-heading"><strong>等待高风险操作审批</strong><b>{approvalSecondsLeft > 0 ? `${approvalSecondsLeft} 秒` : '已过期'}</b></div><p>工具：<code>{pendingApproval.toolName}</code> · {pendingApproval.capability}/{pendingApproval.riskLevel}</p><p>目标：{pendingApproval.targetEnvironment}</p><pre>{pendingApproval.argumentsJson}</pre><small>参数摘要：{pendingApproval.argumentsSha256.slice(0, 16)}… · {new Date(pendingApproval.expiresAt).toLocaleTimeString()} 前有效</small><div><button className="danger" disabled={approvalBusy || approvalSecondsLeft <= 0} onClick={() => void decideApproval(false)}>拒绝</button><button className="primary" disabled={approvalBusy || approvalSecondsLeft <= 0} onClick={() => void decideApproval(true)}>批准执行一次</button></div></aside>}{messages.length === 0 ? <Empty text={versions.length ? '选择版本并发送第一条消息' : '请先发布一个 Agent 版本'} /> : messages.map((message, index) => <article className={`message message--${message.role}`} key={index}><span>{message.role === 'user' ? 'YOU' : 'AGENT'}</span>{message.content ? message.role === 'assistant' ? <FixedToolReply content={message.content} createdAt={message.createdAt} /> : <UserToolRequest content={message.content} /> : <p><i className="typing">正在生成</i></p>}</article>)}{sources.length > 0 && <details className="conversation-details"><summary>本次检索来源</summary><aside className="sources">{sources.map((source) => <details key={`${source.documentId}-${source.chunkIndex}`}><summary>{source.fileName} · chunk {source.chunkIndex} · {Math.round(source.score * 100)}%</summary><p>{source.content}</p></details>)}</aside></details>}{runSteps.length > 0 && <details className="conversation-details"><summary>运行详情 · {runSteps.length} 步（含历史审批）</summary><aside className="run-steps">{runSteps.map((step) => <details key={step.id}><summary>#{step.stepNumber} {step.stepType}{step.toolName ? ` · ${step.toolName}` : ''}<span className={`step-status step-status--${step.status.toLowerCase()}`}>{statusLabel(step.status)}</span></summary>{step.inputJson && <pre>输入：{step.inputJson}</pre>}{step.outputText && <pre>输出：{step.outputText}</pre>}{step.durationMs != null && <small>{step.durationMs} ms</small>}</details>)}</aside></details>}</div>
+      {view === 'chat' && <section className="chat-section"><PageHeader number="06" title="对话测试台" description="选择助手版本开始聊天，或打开历史会话。执行高风险操作前会请求审批。" />
+        <div className="chat-toolbar"><label>Agent 版本<select disabled={busy || observingRun} value={selectedVersion} onChange={(e) => switchVersion(e.target.value)}><option value="">选择已发布版本</option>{versionLabels.map((version) => <option key={version.id} value={version.id}>{version.label}</option>)}</select></label><label className="history-toggle"><input type="checkbox" checked={showHistoricalVersions} onChange={(e) => setShowHistoricalVersions(e.target.checked)} />显示历史版本</label><span>{conversationId ? `会话 ${conversationId.slice(0, 8)}` : '新会话'}</span>{projectControl}{historyControl}<button className="ghost" disabled={!messages.length || busy || observingRun} onClick={() => downloadText(`conversation-${conversationId ?? 'current'}.md`,conversationMarkdown(messages,selectedVersion,conversationId),'text/markdown;charset=utf-8')}>导出会话</button></div>
+        <div className="chat-panel"><MessageFeed className="messages" conversationKey={conversationId ?? selectedVersion} count={messages.length} lastContent={messages.at(-1)?.content ?? ''} busy={busy || observingRun}>{messages.length === 0 ? <Empty text={versions.length ? '选择版本并发送第一条消息' : '请先发布一个 Agent 版本'} /> : messages.map((message, index) => <article className={`message message--${message.role}`} key={index}><span>{message.role === 'user' ? 'YOU' : 'AGENT'}</span>{message.content ? message.role === 'assistant' ? <FixedToolReply content={message.content} createdAt={message.createdAt} /> : <UserToolRequest content={message.content} /> : <p><i className="typing">正在生成</i></p>}{message.content && <div className="message-actions"><CopyButton text={message.content} label="复制消息" /></div>}</article>)}{sources.length > 0 && <details className="conversation-details"><summary>本次检索来源</summary><aside className="sources">{sources.map((source) => <details key={`${source.documentId}-${source.chunkIndex}`}><summary>{source.fileName} · chunk {source.chunkIndex} · {Math.round(source.score * 100)}%</summary><p>{source.content}</p></details>)}</aside></details>}{runSteps.length > 0 && <details className="conversation-details"><summary>运行详情 · {runSteps.length} 步（含历史审批）</summary><aside className="run-steps">{runSteps.map((step) => <details key={step.id}><summary>#{step.stepNumber} {step.stepType}{step.toolName ? ` · ${step.toolName}` : ''}<span className={`step-status step-status--${step.status.toLowerCase()}`}>{statusLabel(step.status)}</span></summary>{step.inputJson && <pre>输入：{step.inputJson}</pre>}{step.outputText && <pre>输出：{step.outputText}</pre>}{step.durationMs != null && <small>{step.durationMs} ms</small>}</details>)}</aside></details>}</MessageFeed>
           <form className="composer" onSubmit={sendMessage}><textarea rows={3} value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder="输入测试问题……" onKeyDown={(e) => { if (shouldSubmitOnEnter({key: e.key, shiftKey: e.shiftKey, isComposing: e.nativeEvent.isComposing, keyCode: e.nativeEvent.keyCode})) { e.preventDefault(); e.currentTarget.form?.requestSubmit() } }} /><div className="composer-actions"><button className="primary" disabled={busy || observingRun || !selectedVersion || !chatInput.trim()}>{observingRun ? '原任务运行中' : busy ? '生成中' : '发送'}</button>{(busy || observingRun) && currentRunId && <button className="danger" type="button" disabled={cancelBusy} onClick={() => void cancelCurrentRun()}>{cancelBusy ? '停止中' : '停止运行'}</button>}</div></form>
         </div>
       </section>}
-      {view === 'remote' && <RemoteWorkbench deploymentError={actionError?.context === 'deployment' ? actionError.message : undefined} historyControl={historyControl} sshStatus={sshStatus} deployment={deployment} deploymentForm={deploymentForm} onDeploymentFormChange={setDeploymentForm} onSaveDeployment={saveDeploymentProfile} onTestDeployment={testDeploymentProfile} versionLabels={versionLabels} selectedVersion={selectedVersion} onSelectVersion={switchVersion} baselineAlreadyKnown={baselineAlreadyKnown} messages={messages} steps={runSteps} historySteps={historyEvidence(releaseTasks, conversationId, candidateId, `${sshStatus?.username ?? ''}@${sshStatus?.host ?? ''}:${sshStatus?.port ?? ''}${deployment?.remoteDeployRoot ?? ''}`)} pendingApproval={pendingApproval} approvalSecondsLeft={approvalSecondsLeft} approvalBusy={approvalBusy} busy={busy || observingRun} currentRunId={currentRunId} cancelBusy={cancelBusy} onDecideApproval={decideApproval} onCancel={cancelCurrentRun} onRunMessage={runMessage} />}
-      {view === 'runs' && <section><PageHeader number="07" title="运行记录" description="选择一条记录查看结果；需要排查时展开运行步骤和安全审计。" />
-        <div className="two-column run-history-layout"><div className="panel list-panel"><div className="section-head"><h2>最近运行 <small>{runHistory.length}</small></h2><button className="ghost" onClick={() => void refresh()}>刷新</button></div>{runHistory.length === 0 ? <Empty text="尚无运行记录" /> : runHistory.map((run) => <button className={`run-card ${selectedRun?.id === run.id ? 'active' : ''}`} key={run.id} onClick={() => void openRun(run.id)}><div><strong>{run.id.slice(0, 8)}</strong><span className={`badge badge--${run.status === 'COMPLETED' ? 'ended' : run.status.toLowerCase()}`}>{statusLabel(run.status)}</span></div><p>{new Date(run.startedAt).toLocaleString()} · {run.stepCount} 步</p>{run.errorMessage && <small>{run.errorMessage}</small>}</button>)}</div>
-          <div className="panel run-detail">{runLoading ? <Empty text="正在读取运行详情…" /> : !selectedRun ? <Empty text="选择一条运行查看结果" /> : <><div className="card-head"><div><strong>运行 {selectedRun.id.slice(0, 8)}</strong><p>会话 {selectedRun.conversationId.slice(0, 8)}</p></div><span className={`badge badge--${selectedRun.status === 'COMPLETED' ? 'ended' : selectedRun.status.toLowerCase()}`}>{statusLabel(selectedRun.status)}</span></div><p className="run-conclusion">{runConclusion(selectedRun)}</p><details className="conversation-details"><summary>时间与版本信息</summary><dl><div><dt>助手版本 ID</dt><dd>{selectedRun.agentVersionId}</dd></div><div><dt>开始</dt><dd>{new Date(selectedRun.startedAt).toLocaleString()}</dd></div>{selectedRun.completedAt && <div><dt>结束</dt><dd>{new Date(selectedRun.completedAt).toLocaleString()}</dd></div>}</dl></details>{selectedRun.errorMessage && <p className="run-error">{selectedRun.errorMessage}</p>}<details className="conversation-details"><summary>完整运行步骤 · {selectedRun.steps.length} 步</summary><aside className="run-steps">{selectedRun.steps.map((step) => <details key={step.id}><summary>#{step.stepNumber} {step.stepType}{step.toolName ? ` · ${step.toolName}` : ''}<span className={`step-status step-status--${step.status.toLowerCase()}`}>{statusLabel(step.status)}</span></summary>{step.inputJson && <pre>输入：{step.inputJson}</pre>}{step.outputText && <pre>输出：{step.outputText}</pre>}{step.durationMs != null && <small>{step.durationMs} ms</small>}</details>)}</aside></details><details className="conversation-details"><summary>安全审计 · {selectedAuditEvents.length} 项</summary><aside className="audit-events">{selectedAuditEvents.length === 0 ? <p>该运行没有工具审计事件</p> : selectedAuditEvents.map((event) => <article key={event.id}><div><b>{event.eventType}</b><span className={`step-status step-status--${event.status.toLowerCase()}`}>{event.status}</span></div><small>{new Date(event.createdAt).toLocaleTimeString()} · {event.toolName} · {event.capability}/{event.riskLevel}</small>{event.argumentsSha256 && <code>参数摘要 {event.argumentsSha256.slice(0, 16)}…</code>}{event.details && <p>{event.details}</p>}</article>)}</aside></details></>}</div></div>
+      {view === 'remote' && <RemoteWorkbench projectId={selectedProject || undefined} onWorkflowAdvance={(id, request) => runMessage('推进本次发布任务；保留逐项审批', undefined, { id, request })} onWorkflowObserve={id => openConversation(id, false)} onVerifyMysql={goToMysqlVerification} projectControl={projectControl} conversationKey={conversationId ?? selectedVersion} deploymentError={actionError?.context === 'deployment' ? actionError.message : undefined} historyControl={historyControl} sshStatus={sshStatus} deployment={deployment} deploymentForm={deploymentForm} onDeploymentFormChange={setDeploymentForm} onSaveDeployment={saveDeploymentProfile} onTestDeployment={testDeploymentProfile} versionLabels={versionLabels} selectedVersion={selectedVersion} onSelectVersion={switchVersion} baselineAlreadyKnown={baselineAlreadyKnown} messages={messages} steps={runSteps} historySteps={historyEvidence(releaseTasks, conversationId, candidateId, `${sshStatus?.username ?? ''}@${sshStatus?.host ?? ''}:${sshStatus?.port ?? ''}${deployment?.remoteDeployRoot ?? ''}`, selectedProject || undefined)} pendingApproval={pendingApproval} approvalSecondsLeft={approvalSecondsLeft} approvalBusy={approvalBusy} busy={busy || observingRun} currentRunId={currentRunId} cancelBusy={cancelBusy} onDecideApproval={decideApproval} onCancel={cancelCurrentRun} onRunMessage={runMessage} />}
+      {view === 'runs' && <section><PageHeader number="08" title="运行记录" description="选择一条记录查看结果；需要排查时展开运行步骤和安全审计。" />
+        <div className="record-tabs" aria-label="记录类型"><button className="secondary" aria-pressed={recordTab==='runs'} onClick={()=>setRecordTab('runs')}>运行记录</button><button className="secondary" aria-pressed={recordTab==='releases'} onClick={()=>setRecordTab('releases')}>发布记录</button></div>
+        {recordTab==='releases' ? <ReleaseRecords tasks={releaseTasks} target={target} candidateId={candidateId} busy={busy || observingRun}
+          onCandidate={id=>{setCandidateId(id || undefined);setNotice('已选择远程工作台的候选来源；不会自动执行操作或复用审批。')}}
+          onRun={id=>{setRecordTab('runs');void openRun(id)}} onRefresh={refreshHistory} onMore={moreReleaseRecords} /> : <div className="two-column run-history-layout"><div className="panel list-panel"><div className="section-head"><h2>运行记录 <small>{runHistory.length}</small></h2><button className="ghost" disabled={runListBusy} onClick={() => void loadRuns()}>刷新</button></div><div className="list-filters"><input type="search" aria-label="搜索运行记录" placeholder="搜索任务、助手、工具或编号" maxLength={200} value={runQuery} onChange={e => setRunQuery(e.target.value)} /><select aria-label="筛选运行状态" value={runStatus} onChange={e => setRunStatus(e.target.value)}><option value="">全部状态</option>{['COMPLETED','FAILED','CANCELLED','TIMED_OUT','INTERRUPTED','RUNNING','WAITING_APPROVAL'].map(status => <option key={status} value={status}>{statusLabel(status)}</option>)}</select></div>{runListError && <p className="error-text" role="alert">{runListError}</p>}{runListBusy && <p role="status">正在读取记录…</p>}{runHistory.length === 0 ? <Empty text={runListBusy ? '读取中…' : runQuery || runStatus ? '没有匹配的运行记录' : '尚无运行记录'} /> : runHistory.map((run) => <button className={`run-card ${selectedRun?.id === run.id ? 'active' : ''}`} key={run.id} onClick={() => void openRun(run.id)}><div><strong>{readablePreview(run.preview || run.agentName || '运行记录').slice(0,60)}</strong><span className={`badge badge--${run.status === 'COMPLETED' ? 'ended' : run.status.toLowerCase()}`}>{statusLabel(run.status)}</span></div><p>{run.agentName ?? '助手'} · {new Date(run.startedAt).toLocaleString()} · {run.stepCount} 步</p><small>编号 {run.id.slice(0,8)}</small>{run.errorMessage && <small>{run.errorMessage}</small>}</button>)}{moreRuns && <button className="secondary" disabled={runListBusy} onClick={() => void loadRuns(runHistory.length)}>加载更早的运行</button>}{runListError && <button className="secondary" disabled={runListBusy} onClick={() => void loadRuns()}>重新读取</button>}</div>
+          <div className="panel run-detail">{runLoading ? <Empty text="正在读取运行详情…" /> : !selectedRun ? <Empty text="选择一条运行查看结果" /> : <><div className="card-head"><div><strong>运行 {selectedRun.id.slice(0, 8)}</strong><p>会话 {selectedRun.conversationId.slice(0, 8)}</p></div><span className={`badge badge--${selectedRun.status === 'COMPLETED' ? 'ended' : selectedRun.status.toLowerCase()}`}>{statusLabel(selectedRun.status)}</span></div><div className="record-actions"><button className="ghost" onClick={() => downloadText(`run-${selectedRun.id}.json`,JSON.stringify({run:selectedRun,auditEvents:selectedAuditEvents},null,2),'application/json')}>导出原始记录</button></div><p className="run-conclusion">{runConclusion(selectedRun)}</p><details className="conversation-details"><summary>时间与版本信息</summary><dl><div><dt>助手版本 ID</dt><dd>{selectedRun.agentVersionId}</dd></div><div><dt>开始</dt><dd>{new Date(selectedRun.startedAt).toLocaleString()}</dd></div>{selectedRun.completedAt && <div><dt>结束</dt><dd>{new Date(selectedRun.completedAt).toLocaleString()}</dd></div>}</dl></details>{selectedRun.errorMessage && <p className="run-error">{selectedRun.errorMessage}</p>}<details className="conversation-details"><summary>完整运行步骤 · {selectedRun.steps.length} 步</summary><aside className="run-steps">{selectedRun.steps.map((step) => <details key={step.id}><summary>#{step.stepNumber} {step.stepType}{step.toolName ? ` · ${step.toolName}` : ''}<span className={`step-status step-status--${step.status.toLowerCase()}`}>{statusLabel(step.status)}</span></summary>{step.inputJson && <pre>输入：{step.inputJson}</pre>}{step.outputText && <pre>输出：{step.outputText}</pre>}{step.durationMs != null && <small>{step.durationMs} ms</small>}</details>)}</aside></details><details className="conversation-details"><summary>安全审计 · {selectedAuditEvents.length} 项</summary><aside className="audit-events">{selectedAuditEvents.length === 0 ? <p>该运行没有工具审计事件</p> : selectedAuditEvents.map((event) => <article key={event.id}><div><b>{event.eventType}</b><span className={`step-status step-status--${event.status.toLowerCase()}`}>{event.status}</span></div><small>{new Date(event.createdAt).toLocaleTimeString()} · {event.toolName} · {event.capability}/{event.riskLevel}</small>{event.argumentsSha256 && <code>参数摘要 {event.argumentsSha256.slice(0, 16)}…</code>}{event.details && <p>{event.details}</p>}</article>)}</aside></details></>}</div></div>}
       </section>}
-      {view === 'system' && <section><PageHeader number="08" title="系统诊断" description="查看本机环境检查结果；密钥已配置或历史同步成功，不代表实际调用已测试。" />
+      {view === 'system' && <section><PageHeader number="09" title="系统诊断" description="查看本机环境检查结果；密钥已配置或历史同步成功，不代表实际调用已测试。" />
         <div className="panel readiness-panel">
           <div className="section-head"><div><h2>版本 {readiness?.version ?? '读取中'}</h2>{readiness && <p className="hint">上次检查 {new Date(readiness.timestamp).toLocaleString()}</p>}</div><div className="readiness-summary"><span className={`badge badge--${(readiness?.status ?? 'checking').toLowerCase()}`}>{statusLabel(readiness?.status ?? 'CHECKING')}</span><button className="secondary" disabled={readinessBusy} onClick={() => void inspectReadiness()}>{readinessBusy ? '检查中…' : '重新检查'}</button></div></div>
           {!readiness ? <Empty text="正在检查本机运行环境" /> : <div className="readiness-list">{readiness.checks.map((check) => <article key={check.id} className={`readiness-card readiness-card--${check.status.toLowerCase()}`}><div><strong>{check.name}</strong><span className={`badge badge--${check.status.toLowerCase()}`}>{check.status === 'READY' ? check.id === 'mcp' ? '上次同步成功' : check.id.includes('secret') || check.id.includes('key') ? '已配置' : '检查通过' : statusLabel(check.status)}</span></div><p>{check.detail}</p>{check.action && <small>建议：{check.action}</small>}</article>)}</div>}
@@ -752,6 +926,11 @@ function App() {
 }
 
 type RemoteWorkbenchProps = {
+  projectId?: string
+  onVerifyMysql:(project:string)=>void
+  onWorkflowAdvance: (id: string, request: WorkflowAdvance) => Promise<void>
+  onWorkflowObserve: (id: string) => Promise<void>
+  conversationKey: string
   deploymentError?: string
   sshStatus?: SshWorkspaceStatus
   deployment?: DeploymentProfile
@@ -765,6 +944,7 @@ type RemoteWorkbenchProps = {
   messages: ChatMessage[]
   steps: RunStep[]
   historyControl: ReactNode
+  projectControl: ReactNode
   historySteps: RunStep[]
   baselineAlreadyKnown: boolean
   pendingApproval?: ApprovalRequest
@@ -849,6 +1029,7 @@ function RemoteWorkbench(props: RemoteWorkbenchProps) {
   const [publishAcknowledged, setPublishAcknowledged] = useState(false)
   const [directory, setDirectory] = useState<DirectoryResult>()
   const [file, setFile] = useState<FileResult>()
+  const [fileStarts, setFileStarts] = useState([1])
   const [task, setTask] = useState<TaskResult>()
   const selectedReady = remoteVersions.some((version) => version.id === props.selectedVersion)
   const restoreDrillReady = remoteVersions.find((version) => version.id === props.selectedVersion)?.toolNames.includes('verify_remote_deployment_backup_restore') ?? false
@@ -937,12 +1118,14 @@ function RemoteWorkbench(props: RemoteWorkbenchProps) {
     return segments.length ? segments.join('/') : '.'
   }
 
-  async function requestFile(path = filePath) {
+  async function requestFile(path = filePath, startLine = 1) {
     try {
       const safePath = requireRelativePath(path, '文件')
       setFilePath(safePath); setTab('files'); setFileBusy(true); setBrowserError('')
-      const result = await api<FileResult>(`/api/ssh/workspace/browser/file?path=${encodeURIComponent(safePath)}&startLine=1&maxLines=200`)
+      const result = await api<FileResult>(`/api/ssh/workspace/browser/file?path=${encodeURIComponent(safePath)}&startLine=${startLine}&maxLines=200`)
+      if (file && startLine !== 1 && file.path === result.path && file.sha256 !== result.sha256) { await requestFile(path,1); setBrowserError('文件已改变，已回到第一页。'); return }
       setFile(result)
+      setFileStarts(current => startLine === 1 ? [1] : current.includes(startLine) ? current.slice(0,current.indexOf(startLine)+1) : [...current,startLine])
     } catch (error) { setBrowserError(error instanceof Error ? error.message : '文件无效') }
     finally { setFileBusy(false) }
   }
@@ -1016,12 +1199,12 @@ function RemoteWorkbench(props: RemoteWorkbenchProps) {
   return <section className="remote-workbench-section">
     <header className="remote-workbench-header">
       <div><p className="eyebrow">CONTROLLED REMOTE WORKSPACE</p><h2>远程工作台</h2><p>浏览服务器文件、运行固定任务，或准备发布；高风险操作需逐次审批。</p></div>
-      <div className="remote-target-summary"><span className={`connection-dot connection-dot--${props.sshStatus?.status === 'READY' ? 'ready' : 'warning'}`} /><div><strong>{props.sshStatus?.configured ? `${props.sshStatus.username}@${props.sshStatus.host}:${props.sshStatus.port}` : 'SSH 尚未配置'}</strong><small>{props.sshStatus?.remoteRoot || '请先在模型配置页设置远程根目录'}</small></div></div>
+      <div className="remote-target-summary"><span className={`connection-dot connection-dot--${props.sshStatus?.status === 'READY' ? 'ready' : 'warning'}`} /><div><strong>{props.sshStatus?.configured ? `${props.sshStatus.username}@${props.sshStatus.host}:${props.sshStatus.port}` : 'SSH 尚未配置'}</strong><small>{props.sshStatus?.remoteRoot || '请先在模型管理页设置远程根目录'}</small></div></div>
     </header>
     <div className="remote-toolbar">
       <label>执行 Agent<select disabled={props.busy} value={props.selectedVersion} onChange={(event) => props.onSelectVersion(event.target.value)}><option value="">选择包含远程工具的已发布版本</option>{remoteVersions.map((version) => <option key={version.id} value={version.id}>{version.label}</option>)}</select></label>
       <span className={`badge badge--${props.sshStatus?.status === 'READY' ? 'ready' : 'warning'}`}>{statusLabel(props.sshStatus?.status ?? 'NOT_CONFIGURED')}</span>
-      <span className="remote-policy">SSH · 固定指纹 · 受限根目录 · HIGH 审批</span>{props.historyControl}
+      <span className="remote-policy">SSH · 固定指纹 · 受限根目录 · HIGH 审批</span>{props.projectControl}{props.historyControl}
     </div>
     <div className="workbench-layout-controls"><div className="desktop-pane-controls"><button className="ghost" aria-pressed={showExplorer} onClick={() => setShowExplorer(!showExplorer)}>{showExplorer ? '收起文件栏' : '显示文件栏'}</button><button className="ghost" aria-pressed={showAssistant} onClick={() => setShowAssistant(!showAssistant)}>{showAssistant ? '收起助手栏' : '显示助手栏'}</button></div><div className="mobile-pane-controls">{[['workspace','工作区'],['files','文件栏'],['assistant','操作助手']].map(([id,label]) => <button key={id} className={mobilePane === id ? 'active' : ''} onClick={() => setMobilePane(id)}>{label}{id === 'assistant' && props.pendingApproval ? ' · 待审批' : ''}</button>)}</div>{props.busy && <span role="status">任务进行中 · 可在助手栏停止</span>}</div><div className={`remote-workbench ${showExplorer ? '' : 'explorer-closed'} ${showAssistant ? '' : 'assistant-closed'}`} data-pane={mobilePane}>
       <aside className="remote-explorer">
@@ -1038,11 +1221,13 @@ function RemoteWorkbench(props: RemoteWorkbenchProps) {
         <div className="remote-tabs">{([['overview', '概览'], ['files', '文件'], ['tasks', '任务'], ['deployment', '部署'], ['output', '输出']] as [WorkbenchTab, string][]).map(([id, label]) => <button className={tab === id ? 'active' : ''} key={id} onClick={() => setTab(id)}>{label}</button>)}</div>
         <div className="remote-tab-content">
           {tab === 'overview' && <div className="remote-overview"><div className="remote-hero-card"><span>REMOTE ROOT</span><strong>{props.sshStatus?.remoteRoot || '尚未配置'}</strong><p>用户浏览目录和只读文本直接使用受限 SFTP；Agent 的写入与执行仍必须经过固定工具、一次性审批和审计。</p></div><div className="remote-overview-actions"><button className="secondary" onClick={() => { setShowExplorer(true); setMobilePane('files'); setTab('files') }}>浏览文件</button><button className="secondary" onClick={() => setTab('tasks')}>运行固定任务</button><button className="primary" onClick={() => setTab('deployment')}>准备发布</button></div><details className="conversation-details"><summary>操作权限说明</summary><p>浏览文件为只读；写入、执行和发布需逐次审批。受保护文件和任意命令不可访问。</p></details></div>}
-          {tab === 'files' && <div className="remote-file-view"><div className="remote-file-toolbar"><input value={filePath} onChange={(event) => setFilePath(event.target.value)} placeholder="输入授权根内的相对文件路径" /><button className="secondary" disabled={!browserReady || fileBusy || !filePath.trim()} onClick={() => void requestFile()}>{fileBusy ? '读取中…' : '只读打开'}</button></div>{browserError && <p className="error-text">{browserError}</p>}{!file ? <Empty text="从左侧文件树选择文本文件，或输入相对路径" /> : <><div className="remote-file-meta"><strong>{file.path}</strong><span>{file.startLine}–{file.endLine} / {file.totalLines} 行 · {formatCompactBytes(file.sizeBytes)}{file.truncated ? ' · 已截断' : ''}</span><code>SHA-256 {file.sha256}</code></div><pre className="remote-code">{file.content}</pre></>}</div>}
+          {tab === 'files' && <div className="remote-file-view"><div className="remote-file-toolbar"><input value={filePath} onChange={(event) => setFilePath(event.target.value)} placeholder="输入授权根内的相对文件路径" /><button className="secondary" disabled={!browserReady || fileBusy || !filePath.trim()} onClick={() => void requestFile()}>{fileBusy ? '读取中…' : '只读打开'}</button></div>{browserError && <p className="error-text">{browserError}</p>}{!file ? <Empty text="从左侧文件树选择文本文件，或输入相对路径" /> : <><div className="remote-file-meta"><strong>{file.path}</strong><span>{file.startLine}–{file.endLine} / {file.totalLines} 行 · {formatCompactBytes(file.sizeBytes)}{file.truncated ? ' · 已截断' : ''}</span><code>SHA-256 {file.sha256}</code></div><div className="reader-toolbar"><button className="secondary" disabled={fileBusy || file.startLine <= 1} onClick={() => void requestFile(file.path,fileStarts.at(-2) ?? 1)}>上一段</button><label>跳到行<input type="number" min="1" max={file.totalLines} defaultValue={file.startLine} key={`${file.path}-${file.startLine}`} aria-label="文件起始行" onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); const line=Number(e.currentTarget.value); if (Number.isInteger(line) && line>=1 && line<=file.totalLines) void requestFile(file.path,line) } }} /></label><button className="secondary" disabled={fileBusy || nextFileLine(file.startLine,file.endLine,file.totalLines) === undefined} onClick={() => void requestFile(file.path,nextFileLine(file.startLine,file.endLine,file.totalLines)!)}>下一段</button><CopyButton text={file.content} label="复制本段" /></div>{file.endLine < file.startLine && file.truncated && <p className="error-text">当前行超出单次读取限制，可在“跳到行”输入后续行号并按回车；这段没有完整读取。</p>}<pre className="remote-code">{file.content}</pre></>}</div>}
 
           {tab === 'tasks' && <div className="remote-tasks"><div className="remote-task-path"><label>相对项目目录<input value={taskPath} onChange={(event) => setTaskPath(event.target.value)} /></label><small>任务命令由平台固定映射，输入框只接受授权根内的相对目录。</small></div><div className="remote-task-grid">{remoteTasks.map((item) => <article key={item.id}><div><span>{item.tone}</span><b>{item.title}</b></div><p>{item.detail}</p><code>fixed:{item.id}</code><button className="primary" disabled={!selectedReady || props.busy} onClick={() => void requestTask(item.id)}>请求执行</button></article>)}</div></div>}
           {tab === 'deployment' && <div className="remote-deployment">
             <div className="remote-deployment-head"><div><span>GUIDED CONTROLLED RELEASE</span><h3>发布到网站</h3><p>准备候选、镜像和近期备份，再核查并请求上线。每次上线仍需一次性审批。</p></div><span className={`badge badge--${props.deployment?.status === 'READY' ? 'ready' : 'warning'}`}>{statusLabel(props.deployment?.status ?? 'NOT_CONFIGURED')}</span></div>
+            <ReleaseWorkflowPanel projectId={props.projectId} versionId={selectedReady ? props.selectedVersion : ''} busy={props.busy} onAdvance={props.onWorkflowAdvance} onObserve={props.onWorkflowObserve} onVerifyMysql={props.onVerifyMysql} />
+            <details className="release-advanced"><summary>首次接入与独立分步操作（已有基线不重复登记）</summary>
             <section className="release-guide" aria-label="发布准备">
               <div className="release-next" role="status"><strong>下一步：{!selectedReady ? '选择包含远程工具的助手版本' : props.deployment?.status !== 'READY' ? '打开高级配置，完成目标检查' : !workflow.candidate ? '准备候选' : !workflow.image ? '构建镜像' : !workflow.backup ? '创建近期备份' : !workflow.baseline ? '展开首次数据库设置，核查并登记基线' : !publishState.ready ? '完成下方上线前核查' : '确认风险后请求上线'}</strong><p>恢复的历史结果不代表当前线上状态；有效期按原始时间判断。</p></div>
               <ol className="release-guide-steps">
@@ -1065,10 +1250,11 @@ function RemoteWorkbench(props: RemoteWorkbenchProps) {
               {!publishToolReady && <p className="release-guide-warning">先在助手管理 勾选“受审上线并验证恢复”，发布新 Agent 版本，再选择该版本。</p>}
               <label className="release-guide-warning"><input type="checkbox" checked={publishAcknowledged} onChange={event => setPublishAcknowledged(event.target.checked)} />我已确认备份和候选，接受短暂中断；失败时只自动恢复应用，数据库状态不明需停止排查。</label>
               <button className="danger" disabled={!publishToolReady || !publishState.ready || !publishAcknowledged || props.busy || props.deployment?.status !== 'READY'} onClick={() => void requestPublish()}>请求真正上线（下一步仍需审批）</button>
-              {publishResult?.target === expectedTarget && <div className={`fixed-tool-reply ${publishResult.deployed && publishResult.successful ? 'fixed-tool-reply--success' : 'fixed-tool-reply--failed'}`}><strong>{publishResult.deployed && publishResult.successful ? '历史上线回执：已上线且健康验证通过' : publishResult.rolledBack ? '上线未成功，旧应用已恢复并验证健康' : '上线未确认，停止重试并检查线上状态'}</strong><p>最终确认的镜像：{publishResult.currentImageId || '未确认'}。{publishResult.manualInterventionRequired ? '需要人工介入；不要直接重试。' : ''}</p></div>}
+              {publishResult?.target === expectedTarget && <div className={`fixed-tool-reply ${fixedToolSucceeded(publishResult) ? 'fixed-tool-reply--success' : 'fixed-tool-reply--failed'}`}><strong>{fixedToolSucceeded(publishResult) ? '历史上线回执：已上线且健康验证通过' : publishResult.rolledBack ? '上线未成功，旧应用已恢复并验证健康' : '上线未确认，停止重试并检查线上状态'}</strong><p>最终确认的镜像：{publishResult.currentImageId || '未确认'}。{publishResult.manualInterventionRequired ? '需要人工介入；不要直接重试。' : ''}</p></div>}
               <p>上线后点击“读取当前线上版本”和“检查站点健康”，再到网站验收实际改动。同样的页面内容不会因为重新打包而自动变化。</p>
               <button className="secondary" disabled={!selectedReady || props.busy} onClick={() => void requestDeploymentTask('SITE_HEALTH')}>检查上线后站点健康</button>
             </section>
+            </details>
             <details className="release-advanced" open={props.deployment?.status !== 'READY'}><summary>高级配置、单项诊断与技术结果</summary><div className="release-advanced-content">
             <form className="remote-deployment-form" onSubmit={submitDeployment}><OperationFeedback message={props.deploymentError} />
               <label>本地源码根<input required value={props.deploymentForm.localSourceRoot} onChange={(e) => props.onDeploymentFormChange({ ...props.deploymentForm, localSourceRoot: e.target.value })} /></label>
@@ -1100,18 +1286,18 @@ function RemoteWorkbench(props: RemoteWorkbenchProps) {
             {releaseCandidateResult && <div className="remote-backup-result"><div><strong>{releaseCandidateResult.releaseId || releaseCandidateResult.stage}</strong><span className={`badge badge--${releaseCandidateResult.successful ? 'completed' : 'failed'}`}>{releaseCandidateResult.successful ? 'STAGED' : `EXIT ${releaseCandidateResult.exitCode}`}</span></div>{releaseCandidateResult.successful ? <dl><div><dt>固定制品</dt><dd>{releaseCandidateResult.artifactPath} · {formatCompactBytes(releaseCandidateResult.artifactBytes)}</dd></div><div><dt>候选目录</dt><dd>{releaseCandidateResult.candidatePath}</dd></div><div><dt>制品摘要</dt><dd>{releaseCandidateResult.artifactSha256}</dd></div><div><dt>清单摘要</dt><dd>{releaseCandidateResult.manifestSha256}</dd></div></dl> : <pre>{releaseCandidateResult.output || '候选版本未完成'}</pre>}<footer>{releaseCandidateResult.durationMs} ms · 生产目录未修改 · 未构建镜像{releaseCandidateResult.outputTruncated ? ' · 输出已截断' : ''}</footer></div>}
             </div></details>
           </div>}
-          {tab === 'output' && <div className="remote-output"><div className="remote-output-head"><div><span>CONTROLLED TASK OUTPUT</span><strong>{task ? `${task.task} · ${task.path}` : '等待固定任务'}</strong></div>{task && <span className={`badge badge--${task.successful ? 'completed' : 'failed'}`}>{task.successful ? 'SUCCESS' : `EXIT ${task.exitCode}`}</span>}</div>{task ? <><pre>{task.output || '(任务没有输出)'}</pre><footer>{task.durationMs} ms · {task.target}{task.outputTruncated ? ' · 输出已截断' : ''}</footer></> : <Empty text="从“任务”标签请求 Git、Maven 或 npm 固定任务" />}</div>}
+          {tab === 'output' && <div className="remote-output"><div className="remote-output-head"><div><span>CONTROLLED TASK OUTPUT</span><strong>{task ? `${task.task} · ${task.path}` : '等待固定任务'}</strong></div>{task && <span className={`badge badge--${task.successful ? 'completed' : 'failed'}`}>{task.successful ? 'SUCCESS' : `EXIT ${task.exitCode}`}</span>}</div>{task ? <><CopyButton text={task.output} label="复制任务输出" /><pre>{task.output || '(任务没有输出)'}</pre><footer>{task.durationMs} ms · {task.target}{task.outputTruncated ? ' · 输出已截断' : ''}</footer></> : <Empty text="从“任务”标签请求 Git、Maven 或 npm 固定任务" />}</div>}
         </div>
       </main>
 
       <aside className="remote-agent-pane">
         <div className="remote-pane-title"><div><span>AGENT</span><strong>操作助手</strong></div><i className={props.busy ? 'busy' : ''} /></div>
-        <div className="remote-agent-feed">
-          {props.pendingApproval && <aside className="approval-card remote-approval" role="alert"><div className="approval-heading"><strong>等待一次性审批</strong><b>{props.approvalSecondsLeft > 0 ? `${props.approvalSecondsLeft} 秒` : '已过期'}</b></div><p>工具：<code>{props.pendingApproval.toolName}</code></p><p>目标：{props.pendingApproval.targetEnvironment}</p><pre>{props.pendingApproval.argumentsJson}</pre><small>参数摘要 {props.pendingApproval.argumentsSha256.slice(0, 16)}…</small><div><button className="danger" disabled={props.approvalBusy || props.approvalSecondsLeft <= 0} onClick={() => void props.onDecideApproval(false)}>拒绝</button><button className="primary" disabled={props.approvalBusy || props.approvalSecondsLeft <= 0} onClick={() => void props.onDecideApproval(true)}>批准一次</button></div></aside>}
+        <MessageFeed className="remote-agent-feed" conversationKey={props.conversationKey} count={props.messages.length} lastContent={props.messages.at(-1)?.content ?? ''} busy={props.busy}>
+
 
           {props.messages.length > 6 && <button className="ghost" onClick={() => setShowAllMessages(current => !current)}>{showAllMessages ? '收起更早消息' : `查看完整会话（${props.messages.length}条）`}</button>}
-          {props.messages.length === 0 && props.steps.length === 0 ? <Empty text={selectedReady ? '按中间的分步引导操作；执行后在这里查看结果' : '浏览无需 Agent；执行任务前请选择 Agent 版本'} /> : <>{hiddenMessageCount > 0 && <p className="remote-history-note">已收起更早的 {hiddenMessageCount} 条消息，可点击“查看完整会话”展开。</p>}{visibleMessages.map((message, index) => <article className={`remote-message remote-message--${message.role}`} key={`${hiddenMessageCount}-${index}`}><span>{message.role === 'user' ? 'YOU' : 'AGENT'}</span>{message.content ? message.role === 'assistant' ? <FixedToolReply content={message.content} createdAt={message.createdAt} /> : <UserToolRequest content={message.content} /> : <p><i className="typing">正在处理</i></p>}</article>)}</>}{props.steps.length > 0 && <details className="conversation-details"><summary>运行详情 · {props.steps.length} 步</summary><aside className="run-steps remote-steps">{props.steps.map((step) => <details key={step.id}><summary>#{step.stepNumber} {step.stepType}<span className={`step-status step-status--${step.status.toLowerCase()}`}>{statusLabel(step.status)}</span></summary>{step.toolName && <code>{step.toolName}</code>}{step.outputText && <pre>{step.outputText}</pre>}</details>)}</aside></details>}
-        </div>
+          {props.messages.length === 0 && props.steps.length === 0 ? <Empty text={selectedReady ? '按中间的分步引导操作；执行后在这里查看结果' : '浏览无需 Agent；执行任务前请选择 Agent 版本'} /> : <>{hiddenMessageCount > 0 && <p className="remote-history-note">已收起更早的 {hiddenMessageCount} 条消息，可点击“查看完整会话”展开。</p>}{visibleMessages.map((message, index) => <article className={`remote-message remote-message--${message.role}`} key={`${hiddenMessageCount}-${index}`}><span>{message.role === 'user' ? 'YOU' : 'AGENT'}</span>{message.content ? message.role === 'assistant' ? <FixedToolReply content={message.content} createdAt={message.createdAt} /> : <UserToolRequest content={message.content} /> : <p><i className="typing">正在处理</i></p>}{message.content && <div className="message-actions"><CopyButton text={message.content} label="复制消息" /></div>}</article>)}</>}{props.steps.length > 0 && <details className="conversation-details"><summary>运行详情 · {props.steps.length} 步</summary><aside className="run-steps remote-steps">{props.steps.map((step) => <details key={step.id}><summary>#{step.stepNumber} {step.stepType}<span className={`step-status step-status--${step.status.toLowerCase()}`}>{statusLabel(step.status)}</span></summary>{step.toolName && <code>{step.toolName}</code>}{step.outputText && <pre>{step.outputText}</pre>}</details>)}</aside></details>}
+        </MessageFeed>
         <form className="remote-agent-composer" onSubmit={submitAssistant}><textarea onKeyDown={e => { if (shouldSubmitOnEnter({key: e.key, shiftKey: e.shiftKey, isComposing: e.nativeEvent.isComposing, keyCode: e.nativeEvent.keyCode})) { e.preventDefault(); e.currentTarget.form?.requestSubmit() } }} rows={3} value={assistantInput} onChange={(event) => setAssistantInput(event.target.value)} placeholder="让 Agent 检查文件、解释结果或提出受控操作……" /><div><button className="primary" disabled={!selectedReady || props.busy || !assistantInput.trim()}>{props.busy ? '运行中' : '发送'}</button>{props.busy && props.currentRunId && <button className="danger" type="button" disabled={props.cancelBusy} onClick={() => void props.onCancel()}>{props.cancelBusy ? '停止中' : '停止'}</button>}</div></form>
       </aside>
     </div>
@@ -1139,6 +1325,7 @@ function latestDeploymentTask(steps: RunStep[], task: string): TaskResult | unde
 }
 
 const fixedToolLabels: Record<string, string> = {
+  start_project_preview: '启动网站隔离预览',
   prepare_release_candidate: '准备候选', build_release_candidate_image: '构建候选镜像',
   prepare_remote_deployment_backup: '创建发布前备份', inspect_remote_deployment: '只读部署诊断',
   adopt_remote_database_baseline: '登记数据库基线', verify_remote_deployment_backup_restore: '备份恢复材料演练',
@@ -1154,24 +1341,7 @@ function UserToolRequest({ content }: { content: string }) {
 function FixedToolReply({ content, createdAt }: { content: string; createdAt?: string }) {
   const receipt = fixedToolReceipt(content)
   if (!receipt) return <MarkdownMessage content={content} />
-  const success = fixedToolSucceeded(receipt)
-  const title = receipt.task === 'PUBLISH_RELEASE' ? '受审上线并验证恢复' : typeof receipt.task === 'string' ? deploymentTasks.find((task) => task.id === receipt.task)?.title ?? String(receipt.task)
-    : isBaselineRegistrationReceipt(receipt) ? '登记数据库基线'
-      : 'releaseId' in receipt && 'imageId' in receipt ? '构建候选镜像'
-      : 'backupId' in receipt && 'drillId' in receipt ? '备份恢复材料演练'
-        : 'backupId' in receipt && 'databaseBytes' in receipt ? '创建发布前备份'
-          : 'releaseId' in receipt ? '准备候选' : '固定任务'
-  const identifier = [receipt.releaseId, receipt.imageId, receipt.backupId, receipt.schemaSha256].find((item) => typeof item === 'string')
-  return <div className={`fixed-tool-reply ${success ? 'fixed-tool-reply--success' : 'fixed-tool-reply--failed'}`}>
-    <strong>{createdAt ? '历史结果 · ' : ''}{title}：{success ? '执行成功' : '未成功'}</strong>
-    {createdAt && <p className="hint">历史结果 · {new Date(createdAt).toLocaleString()}</p>}
-
-    {receipt.task === 'DATABASE_SCHEMA' && success && <p>数据库结构核查通过；本次只读操作没有登记基线。</p>}
-    {receipt.task === 'PUBLISH_RELEASE' && <p>{receipt.deployed === true && success ? '已切换候选，健康验证通过。' : receipt.rolledBack === true ? '上线失败；旧应用已恢复并验证健康，数据库扩展不会自动撤销。' : '不能确认上线；先查线上版本和数据库历史。'}{receipt.manualInterventionRequired === true ? '需要人工介入，不要直接重试。' : ''}</p>}
-    {receipt.outputTruncated === true && <p>输出已截断，请到运行记录查看完整的有界回执。</p>}
-    {!success && <p>请先查看失败原因及可能残留的产物，不要直接重试下一步。</p>}
-    <details><summary>技术详情与原始回执</summary>{identifier && <p className="fixed-tool-identifier">关键标识：{String(identifier)}</p>}<pre>{JSON.stringify(receipt, null, 2)}</pre></details>
-  </div>
+  return <ToolResultCard receipt={receipt} createdAt={createdAt} />
 }
 
 function formatCompactBytes(bytes: number) {

@@ -22,7 +22,7 @@ final class PublishReleaseCommands {
     String script(RemoteDeploymentProfile p, String candidate, String attempt, String token, Map<String,String> args, Map<String,String> hashes) throws Exception {
         String template;
         try (var input = getClass().getResourceAsStream("/ssh/publish-release.sh")) {
-            template = new String(java.util.Objects.requireNonNull(input).readAllBytes(), StandardCharsets.UTF_8);
+            template = posixTemplate(new String(java.util.Objects.requireNonNull(input).readAllBytes(), StandardCharsets.UTF_8));
         }
         var values = new LinkedHashMap<String,String>();
         values.put("CANDIDATE", q(candidate)); values.put("ATTEMPT", q(attempt));
@@ -42,6 +42,12 @@ final class PublishReleaseCommands {
         for (var value : values.entrySet()) template = template.replace("@" + value.getKey() + "@", value.getValue());
         if (template.matches("(?s).*@[A-Z_]+@.*")) throw new IllegalStateException("发布模板未完整绑定");
         return template;
+    }
+    // Resources can be checked out as CRLF on Windows. Upload executable POSIX text,
+    // not the checkout's line endings; changing the remote shell does not fix CRLF.
+    static String posixTemplate(String template) {
+        if (template.startsWith("\uFEFF")) template = template.substring(1);
+        return template.replace("\r\n", "\n").replace('\r', '\n');
     }
     static String q(String value) { return DatabaseBaselineCommands.q(value); }
 }

@@ -41,5 +41,9 @@ public class ApiExceptionHandler {
         body.put("message", message);
         return ResponseEntity.status(status).body(body);
     }
-}
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    ResponseEntity<Map<String,Object>> handleArgument(IllegalArgumentException exception) {
+        return error(HttpStatus.BAD_REQUEST, exception.getMessage());
+    }
+}

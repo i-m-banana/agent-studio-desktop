@@ -74,12 +74,16 @@ public class ToolRegistry {
         var descriptor = descriptor(name);
         long started = System.nanoTime();
         var executor = Executors.newVirtualThreadPerTaskExecutor();
+        var project = com.agentstudio.project.ProjectExecutionContext.current();
+        var sourceSha = com.agentstudio.project.ProjectExecutionContext.sourceSha256();
         try {
             var future = executor.submit(() -> {
+                try (var context = com.agentstudio.project.ProjectExecutionContext.enter(project,sourceSha)) {
                 var builtIn = tools.get(name);
                 if (builtIn != null) return builtIn.execute(arguments);
                 if (mcp != null && name.startsWith("mcp_")) return mcp.execute(name, arguments);
                 throw new ApiException(HttpStatus.BAD_REQUEST, "未知工具：" + name);
+                }
             });
             try {
                 var output = future.get(descriptor.timeoutSeconds(), TimeUnit.SECONDS);

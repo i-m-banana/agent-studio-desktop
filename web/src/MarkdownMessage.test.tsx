@@ -11,6 +11,7 @@ describe('MarkdownMessage', () => {
     expect(html).toContain('markdown-table-scroll')
     expect(html).toContain('<table>')
     expect(html).toContain('<code class="language-sh">npm test')
+    expect(html).toContain('aria-label="复制代码"')
   })
 
   it('drops raw HTML and deactivates dangerous links', () => {

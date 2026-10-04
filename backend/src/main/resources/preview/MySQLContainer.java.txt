@@ -1,0 +1,24 @@
+package org.testcontainers.containers;
+
+/** Platform-owned adapter for this reviewed test suite. No Docker socket is exposed. */
+public final class MySQLContainer<SELF extends MySQLContainer<SELF>> implements org.testcontainers.lifecycle.Startable {
+    private String requested="fixture", schema;
+    public MySQLContainer(String image) { if(!"mysql:8.0".equals(image)) throw new IllegalArgumentException("Unsupported MySQL fixture image"); }
+    @SuppressWarnings("unchecked") public SELF withDatabaseName(String name) { if(!name.matches("[A-Za-z0-9_]{1,48}"))throw new IllegalArgumentException("Invalid fixture name");requested=name;return (SELF)this; }
+    public String getUsername(){return "root";}
+    public String getPassword(){return System.getenv("STUDIO_SYNTHETIC_MYSQL_PASSWORD");}
+    public String getJdbcUrl(){if(schema==null)throw new IllegalStateException("Fixture not started");return "jdbc:mysql://studio-mysql:3306/"+schema+"?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";}
+    public synchronized void start(){
+        if(schema!=null)return;
+        var generated="studio_"+java.util.UUID.randomUUID().toString().replace("-","");
+        try(var c=java.sql.DriverManager.getConnection("jdbc:mysql://studio-mysql:3306/?useSSL=false&allowPublicKeyRetrieval=true",getUsername(),getPassword());var s=c.createStatement()) {
+            s.execute("CREATE DATABASE `"+generated+"` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci");schema=generated;
+        }catch(java.sql.SQLException e){throw new IllegalStateException("Synthetic MySQL fixture could not start",e);}
+    }
+    public synchronized void stop(){
+        if(schema==null)return;
+        if(!schema.matches("studio_[0-9a-f]{32}"))throw new IllegalStateException("Invalid owned schema");
+        try(var c=java.sql.DriverManager.getConnection("jdbc:mysql://studio-mysql:3306/?useSSL=false&allowPublicKeyRetrieval=true",getUsername(),getPassword());var s=c.createStatement()) {s.execute("DROP DATABASE `"+schema+"`");schema=null;}
+        catch(java.sql.SQLException e){throw new IllegalStateException("Synthetic fixture cleanup failed",e);}
+    }
+}

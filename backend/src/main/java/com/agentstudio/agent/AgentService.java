@@ -29,7 +29,23 @@ public class AgentService {
     }
 
     public List<AgentDefinition> list() {
-        return repository.findAll().stream().map(this::withDraftTools).toList();
+        return list(false);
+    }
+
+    public List<AgentDefinition> list(boolean includeArchived) {
+        return repository.findAll().stream().filter(a -> includeArchived || a.archivedAt() == null).map(this::withDraftTools).toList();
+    }
+
+    @Transactional
+    public AgentDefinition archive(String id, boolean archived) {
+        var definition = repository.findByIdForUpdate(id)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND,"助手不存在"));
+        if ((definition.archivedAt() != null) != archived) repository.setArchived(id,archived);
+        return get(id);
+    }
+
+    private void requireActive(AgentDefinition definition) {
+        if (definition.archivedAt() != null) throw new ApiException(HttpStatus.CONFLICT,"助手已归档，请先恢复再编辑或发布");
     }
 
     public AgentDefinition get(String id) {
@@ -62,6 +78,7 @@ public class AgentService {
     @Transactional
     public AgentDefinition update(String id, AgentDefinitionRequest request) {
         var existing = get(id);
+        requireActive(existing);
         var name = request.name().trim();
         validateUniqueName(name, id);
         modelProfiles.get(request.modelProfileId());
@@ -82,6 +99,7 @@ public class AgentService {
         var definition = repository.findByIdForUpdate(id)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Agent 不存在"));
         var model = modelProfiles.get(definition.draftModelProfileId());
+        requireActive(definition);
         var toolNames = repository.findDraftTools(definition.id());
         var now = Instant.now();
         var version = new AgentVersion(UUID.randomUUID().toString(), definition.id(),
@@ -167,7 +185,7 @@ public class AgentService {
         return new AgentDefinition(definition.id(), definition.name(), definition.description(),
                 definition.draftModelProfileId(), definition.draftKnowledgeBaseId(), definition.draftSystemPrompt(),
                 repository.findDraftTools(definition.id()), definition.latestVersionNumber(),
-                definition.createdAt(), definition.updatedAt());
+                definition.createdAt(), definition.updatedAt(), definition.archivedAt());
     }
 
     private AgentVersion withVersionTools(AgentVersion version) {

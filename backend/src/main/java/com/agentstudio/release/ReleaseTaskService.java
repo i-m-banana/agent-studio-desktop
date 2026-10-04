@@ -38,6 +38,8 @@ public class ReleaseTaskService {
         return tasks.list(conversationId, limit, offset).stream().map(this::project).toList();
     }
 
+    public java.util.Optional<Task> forCall(String runId,String callId){return tasks.forCall(runId,callId).map(this::project);}
+
     private Task project(ReleaseTaskRepository.Identity identity) {
         var run = runs.find(identity.runId()).orElseThrow();
         var source = run.steps().stream().filter(s -> s.id().equals(identity.sourceStepId())).findFirst().orElseThrow();
@@ -85,6 +87,7 @@ public class ReleaseTaskService {
     }
 
     static String receiptStatus(String tool, JsonNode receipt) {
+        if (receipt.path("outputTruncated").asBoolean()) return "UNKNOWN";
         boolean ok = receipt.path("successful").isBoolean() && receipt.path("successful").asBoolean()
                 && receipt.path("exitCode").isIntegralNumber() && receipt.path("exitCode").asInt(-1) == 0;
         if ("publish_remote_release".equals(tool)) {

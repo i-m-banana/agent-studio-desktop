@@ -1,0 +1,7 @@
+*
+!Dockerfile
+!pom.xml
+!spring-boot-3.2.5-pom.xml
+!maven-central-settings.xml
+!package.json
+!package-lock.json

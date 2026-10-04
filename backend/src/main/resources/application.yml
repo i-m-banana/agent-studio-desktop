@@ -38,6 +38,12 @@ agent-studio:
     workspace-root: ${AGENT_STUDIO_CODING_WORKSPACE:../coding-workspace}
     maven-command: ${AGENT_STUDIO_MAVEN_COMMAND:}
     npm-command: ${AGENT_STUDIO_NPM_COMMAND:}
+  projects:
+    allowed-roots: ${AGENT_STUDIO_PROJECT_ROOTS:}
+    protected-roots: ${AGENT_STUDIO_PROTECTED_ROOTS:}
+    sandbox-image: ${AGENT_STUDIO_SANDBOX_IMAGE:}
+    docker-executable: ${AGENT_STUDIO_DOCKER_EXECUTABLE:}
+    mysql-image: ${AGENT_STUDIO_MYSQL_IMAGE:}
   ssh:
     host: ${AGENT_STUDIO_SSH_HOST:}
     port: ${AGENT_STUDIO_SSH_PORT:22}
@@ -67,6 +73,11 @@ agent-studio:
   runtime:
     max-tool-rounds: ${AGENT_MAX_TOOL_ROUNDS:4}
     max-tool-calls-per-round: ${AGENT_MAX_TOOL_CALLS_PER_ROUND:4}
+    coding-max-tool-rounds: ${AGENT_CODING_MAX_TOOL_ROUNDS:96}
+    coding-max-tool-calls-per-round: ${AGENT_CODING_MAX_TOOL_CALLS_PER_ROUND:16}
+    coding-timeout: ${AGENT_CODING_RUN_TIMEOUT:1800s}
+    model-connect-attempts: ${AGENT_MODEL_CONNECT_ATTEMPTS:3}
+    model-connect-retry-delay: ${AGENT_MODEL_CONNECT_RETRY_DELAY:2s}
     approval-timeout: ${AGENT_APPROVAL_TIMEOUT:90s}
     total-timeout: ${AGENT_RUN_TIMEOUT:120s}
     release-candidate-timeout: ${AGENT_RELEASE_CANDIDATE_TIMEOUT:900s}

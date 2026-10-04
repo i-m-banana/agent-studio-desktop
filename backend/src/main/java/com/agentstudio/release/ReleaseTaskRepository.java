@@ -59,4 +59,9 @@ public class ReleaseTaskRepository {
                 (rs, row) -> new Identity(rs.getString("id"), rs.getString("source_step_id"), rs.getString("run_id"),
                         rs.getString("conversation_id"), rs.getString("agent_version_id"), rs.getString("tool_call_id"), rs.getString("tool_name")));
     }
+
+    public java.util.Optional<Identity> forCall(String runId,String callId) {
+        return jdbc.query("SELECT * FROM release_task WHERE run_id=:run AND tool_call_id=:call",
+                Map.of("run",runId,"call",callId),(rs,n)->new Identity(rs.getString("id"),rs.getString("source_step_id"),rs.getString("run_id"),rs.getString("conversation_id"),rs.getString("agent_version_id"),rs.getString("tool_call_id"),rs.getString("tool_name"))).stream().findFirst();
+    }
 }

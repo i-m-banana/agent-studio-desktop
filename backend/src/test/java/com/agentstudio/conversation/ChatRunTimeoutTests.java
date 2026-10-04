@@ -6,6 +6,21 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class ChatRunTimeoutTests {
+    @Test void codingAgentsGetEnoughTimeAndRoundsWithoutExpandingOtherAgents() {
+        var service=service(Duration.ofSeconds(120));
+        assertThat(service.toolRounds(List.of("apply_workspace_text_patch"))).isEqualTo(96);
+        assertThat(service.toolRounds(List.of("current_time"))).isEqualTo(4);
+        assertThat(service.toolCallsPerRound(List.of("apply_workspace_text_patch"))).isEqualTo(16);
+        assertThat(service.toolCallsPerRound(List.of("current_time"))).isEqualTo(4);
+        assertThat(service.runTimeout(List.of("apply_workspace_text_patch"))).isEqualTo(Duration.ofSeconds(1800));
+        assertThat(service(Duration.ofSeconds(3600)).runTimeout(List.of("apply_workspace_text_patch"))).isEqualTo(Duration.ofSeconds(3600));
+    }
+    @Test void unexecutedDsmlCallsAreDetectedWithoutMatchingOrdinaryText() {
+        assertThat(ChatService.containsUnexecutedToolMarkup("<｜｜DSML｜｜tool_calls><｜｜DSML｜｜invoke name=\"read_workspace_text_file\">x</｜｜DSML｜｜invoke></｜｜DSML｜｜tool_calls>")).isTrue();
+        assertThat(ChatService.containsUnexecutedToolMarkup("<|DSML|tool_calls>...")).isTrue();
+        assertThat(ChatService.containsUnexecutedToolMarkup("解释 tool_calls 参数，不执行工具。")).isFalse();
+        assertThat(ChatService.containsUnexecutedToolMarkup(null)).isFalse();
+    }
     @Test void evidenceGuardDoesNotBlockToolExplanationQuestions() {
         assertThat(ChatService.requestsToolExecution("请实际调用 inspect_remote_deployment", List.of("inspect_remote_deployment"))).isTrue();
         assertThat(ChatService.requestsToolExecution("请解释如何使用 inspect_remote_deployment", List.of("inspect_remote_deployment"))).isFalse();

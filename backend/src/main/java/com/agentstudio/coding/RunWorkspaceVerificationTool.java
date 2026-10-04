@@ -23,7 +23,7 @@ import org.springframework.stereotype.Component;
 public class RunWorkspaceVerificationTool implements AgentTool {
     private static final Duration PROCESS_TIMEOUT = Duration.ofSeconds(75);
     private static final int MAX_OUTPUT_CHARS = 16_000;
-    private static final Set<String> TASKS = Set.of("MAVEN_TEST", "NPM_TEST", "NPM_BUILD");
+    private static final Set<String> TASKS = Set.of("MAVEN_TEST", "NPM_TEST", "NPM_BUILD", "MYSQL_INTEGRATION");
     private static final Set<String> ALLOWED_ENVIRONMENT = Set.of(
             "SystemRoot", "WINDIR", "ComSpec", "PATH", "PATHEXT", "TEMP", "TMP",
             "JAVA_HOME", "MAVEN_HOME", "M2_HOME", "USERPROFILE", "APPDATA", "LOCALAPPDATA",
@@ -31,10 +31,10 @@ public class RunWorkspaceVerificationTool implements AgentTool {
     private static final ToolDescriptor DESCRIPTOR = new ToolDescriptor(
             "run_workspace_verification", "运行受审工作区验证",
             "审批后在授权工作区运行固定的 Maven/npm 测试或构建任务。会执行项目代码，但不接受任意命令或额外参数。",
-            "BUILTIN", "EXECUTE", "HIGH", 90,
+            "BUILTIN", "EXECUTE", "HIGH", 600,
             Map.of("type", "object", "properties", Map.of(
                     "path", Map.of("type", "string", "description", "包含 pom.xml 或 package.json 的相对目录"),
-                    "task", Map.of("type", "string", "enum", List.of("MAVEN_TEST", "NPM_TEST", "NPM_BUILD"),
+                    "task", Map.of("type", "string", "enum", List.of("MAVEN_TEST", "NPM_TEST", "NPM_BUILD", "MYSQL_INTEGRATION"),
                             "description", "固定验证任务")),
                     "required", List.of("path", "task"), "additionalProperties", false));
 
@@ -42,6 +42,8 @@ public class RunWorkspaceVerificationTool implements AgentTool {
     private final ObjectMapper objectMapper;
     private final WorkspaceVerificationCommands commands;
     private final Duration processTimeout;
+    @Autowired private IsolatedProjectRunner isolated;
+    @Autowired private MySqlVerificationRunner mysql;
 
     @Autowired
     public RunWorkspaceVerificationTool(CodingWorkspace workspace, ObjectMapper objectMapper,
@@ -65,6 +67,23 @@ public class RunWorkspaceVerificationTool implements AgentTool {
         if (requestedPath.isBlank()) throw new IllegalArgumentException("path 不能为空");
         var task = arguments.path("task").asText("").trim();
         if (!TASKS.contains(task)) throw new IllegalArgumentException("task 只允许 MAVEN_TEST、NPM_TEST 或 NPM_BUILD");
+        if(task.equals("MYSQL_INTEGRATION")){if(mysql==null)throw new IllegalStateException("MySQL 隔离验证尚未配置");return objectMapper.writeValueAsString(mysql.run(requestedPath));}
+        if (isolated != null) {
+            var result=isolated.run(requestedPath,task);
+            var response=new java.util.LinkedHashMap<String,Object>();
+            response.put("successful",result.successful());response.put("exitCode",result.exitCode());response.put("task",task);
+            response.put("durationMs",result.durationMs());response.put("output",result.output());response.put("outputTruncated",result.truncated());
+            response.put("reports",result.reports());response.put("reportSource","ISOLATED_CURRENT_RUN");
+            response.put("reportHint","报告来自本次隔离源码副本；项目目录中的 target/surefire-reports 是旧产物，不能作为本次测试证据。");
+            if(result.reportWarning()!=null)response.put("reportWarning",result.reportWarning());
+            if(!result.successful() && VerificationFailure.missingOfflineDependency(result.output())) {
+                response.put("failureCategory","DEPENDENCY_CACHE_MISSING");
+                response.put("hint","验证环境缺少离线依赖。请先更新验证镜像的依赖缓存，再请求验证；本次不能视为测试通过。");
+            }
+            response.put("sourceSha256",result.sourceSha256());response.put("isolated",true);response.put("network","none");
+            response.put("projectId",com.agentstudio.project.ProjectExecutionContext.current().id());
+            return objectMapper.writeValueAsString(response);
+        }
         var directory = workspace.requireDirectory(requestedPath);
         requireProjectMarker(directory, task);
         var command = commands.resolve(task);

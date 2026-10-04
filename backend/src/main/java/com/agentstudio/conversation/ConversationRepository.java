@@ -23,6 +23,11 @@ public class ConversationRepository {
     }
 
     public List<Summary> list(int limit, int offset, boolean deleted) {
+        return list(limit, offset, deleted, "");
+    }
+
+    public List<Summary> list(int limit, int offset, boolean deleted, String query) {
+        var search = com.agentstudio.system.ListSearch.normalize(query);
         return jdbc.query("""
                 SELECT c.*, COALESCE((SELECT MAX(m.created_at) FROM message m WHERE m.conversation_id=c.id),c.created_at) AS updated_at,
                   (SELECT COUNT(*) FROM message m WHERE m.conversation_id=c.id) AS message_count,
@@ -31,9 +36,11 @@ public class ConversationRepository {
                   (SELECT r.id FROM agent_run r WHERE r.conversation_id=c.id
                     AND r.status NOT IN ('COMPLETED','FAILED','CANCELLED','TIMED_OUT','INTERRUPTED')
                     ORDER BY r.started_at DESC LIMIT 1) AS active_run_id
-                FROM conversation c WHERE (:deleted=true AND c.deleted_at IS NOT NULL) OR (:deleted=false AND c.deleted_at IS NULL)
+                FROM conversation c WHERE ((:deleted=true AND c.deleted_at IS NOT NULL) OR (:deleted=false AND c.deleted_at IS NULL))
+                AND (:query='' OR LOCATE(:query,LOWER(c.id))>0 OR EXISTS
+                  (SELECT 1 FROM message m WHERE m.conversation_id=c.id AND LOCATE(:query,LOWER(m.content))>0))
                 ORDER BY updated_at DESC,c.id DESC LIMIT :limit OFFSET :offset
-                """, Map.of("deleted", deleted, "limit", Math.max(1, Math.min(limit,100)), "offset", Math.max(0,offset)), (rs,row) ->
+                """, Map.of("deleted", deleted, "query", search, "limit", Math.max(1, Math.min(limit,100)), "offset", Math.max(0,offset)), (rs,row) ->
                 new Summary(rs.getString("id"), rs.getString("agent_version_id"), rs.getTimestamp("created_at").toInstant(),
                         rs.getTimestamp("updated_at").toInstant(), rs.getString("preview"), rs.getInt("message_count"), rs.getString("active_run_id")));
     }
@@ -74,6 +81,7 @@ public class ConversationRepository {
                 throw new com.agentstudio.system.ApiException(org.springframework.http.HttpStatus.NOT_FOUND,"会话不存在");
             if (jdbc.queryForObject("SELECT COUNT(*) FROM agent_run WHERE conversation_id=:id AND status NOT IN ('COMPLETED','FAILED','CANCELLED','TIMED_OUT','INTERRUPTED')",params,Integer.class) > 0)
                 throw new com.agentstudio.system.ApiException(org.springframework.http.HttpStatus.CONFLICT,"会话仍在执行，请等待结束后再删除或恢复");
+            if(deleted&&jdbc.queryForObject("SELECT COUNT(*) FROM release_workflow w JOIN release_workflow_lease l ON l.workflow_id=w.id WHERE w.conversation_id=:id",params,Integer.class)>0)throw new com.agentstudio.system.ApiException(org.springframework.http.HttpStatus.CONFLICT,"此会话属于未结束的发布任务；先在远程工作台结束任务，再整理历史");
             jdbc.update("UPDATE conversation SET deleted_at=:deletedAt WHERE id=:id",params);
         }
     }

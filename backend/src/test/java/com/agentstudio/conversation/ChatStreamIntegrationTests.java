@@ -41,9 +41,38 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-@SpringBootTest
+@SpringBootTest(properties={"agent-studio.projects.allowed-roots=${user.dir}/target/test-coding-workspace", "agent-studio.runtime.coding-max-tool-rounds=6", "agent-studio.runtime.model-connect-retry-delay=1ms"})
 @AutoConfigureMockMvc
 class ChatStreamIntegrationTests {
+    @Autowired private com.agentstudio.project.LocalProjectService localProjects;
+    private String codingProject() {
+        var existing=localProjects.list();
+        if(!existing.isEmpty())return existing.getFirst().project().id();
+        return localProjects.save(null,new com.agentstudio.project.LocalProjectService.Request("编码测试项目",
+                java.nio.file.Path.of("target/test-coding-workspace").toAbsolutePath().normalize().toString(),
+                List.of("src"),List.of("uploads","data"),null,true)).id();
+    }
+
+    @Test void fixedLocalVerificationUsesBoundProjectWithoutCallingModel() throws Exception {
+        java.nio.file.Files.createDirectories(java.nio.file.Path.of("target/test-coding-workspace/src"));
+        when(knowledgeRetriever.retrieve(any(),any())).thenReturn(List.of());
+        var suffix=UUID.randomUUID().toString();
+        var model=modelProfiles.create(new ModelProfileRequest("fixed-local-"+suffix,"OPENAI_COMPATIBLE","https://example.com/v1","test","TEST_KEY",new BigDecimal("0.2")));
+        var agent=agents.create(new AgentDefinitionRequest("fixed-local-"+suffix,"fixture",model.id(),null,"测试",List.of("run_workspace_verification")));
+        var version=agents.publish(agent.id());
+        var result=mockMvc.perform(post("/api/chat/stream").contentType(MediaType.APPLICATION_JSON).accept(MediaType.TEXT_EVENT_STREAM)
+                .content("{\"agentVersionId\":\"%s\",\"localProjectId\":\"%s\",\"message\":\"执行验证\",\"requestedTool\":{\"name\":\"run_workspace_verification\",\"arguments\":{\"path\":\".\",\"task\":\"MAVEN_TEST\"}}}".formatted(version.id(),codingProject())))
+                .andExpect(request().asyncStarted()).andReturn();
+        String approval=null;
+        for(int attempt=0;attempt<1000 && approval==null;attempt++) {
+            var ids=jdbc.query("SELECT a.id FROM approval_request a JOIN agent_run r ON r.id=a.run_id WHERE r.agent_version_id=:version AND a.status='PENDING'",java.util.Map.of("version",version.id()),(rs,row)->rs.getString(1));
+            if(!ids.isEmpty())approval=ids.getFirst();else Thread.sleep(20);
+        }
+        assertThat(approval).isNotNull();mockMvc.perform(post("/api/approvals/{id}/reject",approval).contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isOk());
+        mockMvc.perform(asyncDispatch(result)).andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.containsString("REJECTED")));
+        verify(modelGateway,never()).complete(any(),any(),any());
+    }
 
     @Autowired
     private MockMvc mockMvc;
@@ -249,7 +278,7 @@ class ChatStreamIntegrationTests {
 
         var result = mockMvc.perform(post("/api/chat/stream")
                         .contentType(MediaType.APPLICATION_JSON).accept(MediaType.TEXT_EVENT_STREAM)
-                        .content("{\"agentVersionId\":\"%s\",\"message\":\"浏览 src\"}".formatted(version.id())))
+                        .content("{\"agentVersionId\":\"%s\",\"message\":\"浏览 src\",\"localProjectId\":\"%s\"}".formatted(version.id(),codingProject())))
                 .andExpect(request().asyncStarted()).andReturn();
         var response = mockMvc.perform(asyncDispatch(result))
                 .andExpect(status().isOk())
@@ -316,6 +345,179 @@ class ChatStreamIntegrationTests {
                 .andExpect(status().isOk())
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("\"status\":\"COMPLETED\"")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("MODEL_FINALIZATION")));
+    }
+
+    private com.agentstudio.agent.AgentVersion codingBudgetVersion() {
+        var suffix=UUID.randomUUID().toString();
+        var model=modelProfiles.create(new ModelProfileRequest("coding-budget-"+suffix,"OPENAI_COMPATIBLE","https://example.com/v1","test-model","TEST_MODEL_KEY",new BigDecimal("0.2")));
+        return agents.publish(agents.create(new AgentDefinitionRequest("coding-budget-"+suffix,"test",model.id(),null,"使用真实工具完成任务。",List.of("current_time","apply_workspace_text_patch"))).id());
+    }
+
+    private String codingBudgetStream() throws Exception {
+        var version=codingBudgetVersion();
+        var result=mockMvc.perform(post("/api/chat/stream").contentType(MediaType.APPLICATION_JSON).accept(MediaType.TEXT_EVENT_STREAM)
+                .content("{\"agentVersionId\":\"%s\",\"message\":\"完成本地开发\",\"localProjectId\":\"%s\"}".formatted(version.id(),codingProject())))
+                .andExpect(request().asyncStarted()).andReturn();
+        result.getAsyncResult(60000);
+        return mockMvc.perform(asyncDispatch(result)).andExpect(status().isOk()).andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+    }
+
+    @Test void codingRunsContinueBeyondFourToolRounds() throws Exception {
+        when(knowledgeRetriever.retrieve(any(),any())).thenReturn(List.of());
+        var count=new java.util.concurrent.atomic.AtomicInteger();
+        when(modelGateway.complete(any(),any(),any())).thenAnswer(invocation -> count.incrementAndGet()<=5
+                ? new ModelTurn("",List.of(new ModelToolCall("coding-call-"+count.get(),"current_time","{}")))
+                : new ModelTurn("工具检查结束",List.of()));
+        assertThat(codingBudgetStream()).contains("event:done").doesNotContain("MODEL_FINALIZATION");
+        assertThat(count).hasValue(6);
+    }
+
+    @Test void exhaustedCodingBudgetIsIncompleteAndDoesNotForceAFinalAnswer() throws Exception {
+        when(knowledgeRetriever.retrieve(any(),any())).thenReturn(List.of());
+        var count=new java.util.concurrent.atomic.AtomicInteger();
+        when(modelGateway.complete(any(),any(),any())).thenAnswer(invocation -> new ModelTurn("",List.of(new ModelToolCall("budget-call-"+count.incrementAndGet(),"current_time","{}"))));
+        var response=codingBudgetStream();
+        assertThat(response).contains("TOOL_BUDGET_EXHAUSTED","任务未完成","event:error").doesNotContain("event:done","MODEL_FINALIZATION");
+        assertThat(count).hasValue(6);
+    }
+
+    @Test void codingBatchAboveFourExecutesEveryCallInOrder() throws Exception {
+        when(knowledgeRetriever.retrieve(any(),any())).thenReturn(List.of());
+        var calls=java.util.stream.IntStream.rangeClosed(1,5)
+                .mapToObj(i -> new ModelToolCall("batch-five-"+i,"current_time","{}" )).toList();
+        when(modelGateway.complete(any(),any(),any()))
+                .thenReturn(new ModelTurn("",calls)).thenReturn(new ModelTurn("检查完成",List.of()));
+        var response=codingBudgetStream();
+        assertThat(response).contains("event:done").doesNotContain("event:error","TOOL_BATCH_LIMIT");
+        var results=java.util.regex.Pattern.compile("\"stepType\":\"TOOL_RESULT\".*?\"toolCallId\":\"(batch-five-\\d+)\"")
+                .matcher(response).results().map(m -> m.group(1)).toList();
+        assertThat(results).containsExactly("batch-five-1","batch-five-2","batch-five-3","batch-five-4","batch-five-5");
+    }
+
+    @Test void oversizedBatchIsNotExecutedAndModelCanResubmitSmallerBatch() throws Exception {
+        when(knowledgeRetriever.retrieve(any(),any())).thenReturn(List.of());
+        var calls=java.util.stream.IntStream.rangeClosed(1,17)
+                .mapToObj(i -> new ModelToolCall("too-many-"+i,"apply_workspace_text_patch","{}" )).toList();
+        var count=new java.util.concurrent.atomic.AtomicInteger();
+        when(modelGateway.complete(any(),any(),any())).thenAnswer(invocation -> {
+            int turn=count.incrementAndGet();
+            if(turn==1)return new ModelTurn("",calls);
+            if(turn==2) {
+                List<com.agentstudio.model.ReActMessage> messages=invocation.getArgument(1);
+                assertThat(messages.stream().filter(m -> "tool".equals(m.role())).toList())
+                        .hasSize(17).allSatisfy(m -> assertThat(m.content()).contains("全部未执行","拆成小批"));
+                return new ModelTurn("",List.of(new ModelToolCall("smaller-batch","current_time","{}")));
+            }
+            return new ModelTurn("检查完成",List.of());
+        });
+        var response=codingBudgetStream();
+        assertThat(response).contains("TOOL_BATCH_LIMIT","smaller-batch","event:done")
+                .doesNotContain("event:error","event:approval_required","\"toolName\":\"apply_workspace_text_patch\"");
+        assertThat(count).hasValue(3);
+    }
+
+    @Test void repeatedOversizedBatchesStopWithoutExecutingOrClaimingCompletion() throws Exception {
+        when(knowledgeRetriever.retrieve(any(),any())).thenReturn(List.of());
+        var calls=java.util.stream.IntStream.rangeClosed(1,17)
+                .mapToObj(i -> new ModelToolCall("repeated-big-"+i,"current_time","{}" )).toList();
+        var count=new java.util.concurrent.atomic.AtomicInteger();
+        when(modelGateway.complete(any(),any(),any())).thenAnswer(invocation -> {
+            count.incrementAndGet();return new ModelTurn("",calls);
+        });
+        assertThat(codingBudgetStream()).contains("任务未完成","event:error","TOOL_BATCH_LIMIT")
+                .doesNotContain("event:done","\"stepType\":\"TOOL_CALL\"","\"stepType\":\"TOOL_RESULT\"");
+        assertThat(count).hasValue(3);
+    }
+
+    @Test void unexecutedOversizedBatchCannotBecomeSuccessfulModelAnswer() throws Exception {
+        when(knowledgeRetriever.retrieve(any(),any())).thenReturn(List.of());
+        var calls=java.util.stream.IntStream.rangeClosed(1,17)
+                .mapToObj(i -> new ModelToolCall("not-executed-"+i,"current_time","{}" )).toList();
+        when(modelGateway.complete(any(),any(),any())).thenReturn(new ModelTurn("",calls))
+                .thenReturn(new ModelTurn("已完成全部修改",List.of()));
+        assertThat(codingBudgetStream()).contains("任务未完成","event:error","TOOL_BATCH_LIMIT")
+                .doesNotContain("event:done","已完成全部修改","\"stepType\":\"TOOL_RESULT\"");
+    }
+
+    @Test void nextRunRestoresFailedRunReceiptsInSameConversation()throws Exception {
+        when(knowledgeRetriever.retrieve(any(),any())).thenReturn(List.of());
+        var count=new java.util.concurrent.atomic.AtomicInteger();
+        when(modelGateway.complete(any(),any(),any())).thenAnswer(invocation->new ModelTurn("",List.of(
+                new ModelToolCall("resume-old-"+count.incrementAndGet(),"current_time","{}"))));
+        var first=codingBudgetStream();
+        var json=new com.fasterxml.jackson.databind.ObjectMapper();
+        var runData=java.util.regex.Pattern.compile("event:run\\s+data:([^\\r\\n]+)").matcher(first);
+        assertThat(runData.find()).isTrue();var identity=json.readTree(runData.group(1));
+        when(modelGateway.complete(any(),any(),any())).thenAnswer(invocation->{
+            List<com.agentstudio.model.ReActMessage> messages=invocation.getArgument(1);
+            assertThat(messages.stream().filter(m->"system".equals(m.role())).map(com.agentstudio.model.ReActMessage::content).toList().toString())
+                    .contains(identity.path("runId").asText(),"current_time","新操作仍须重新审批");
+            return new ModelTurn("已核对历史记录，等待继续剩余工作",List.of());
+        });
+        var result=mockMvc.perform(post("/api/chat/stream").contentType(MediaType.APPLICATION_JSON).accept(MediaType.TEXT_EVENT_STREAM)
+                .content("{\"agentVersionId\":\"%s\",\"conversationId\":\"%s\",\"message\":\"继续剩余工作\"}".formatted(
+                        identity.path("agentVersionId").asText(),identity.path("conversationId").asText())))
+                .andExpect(request().asyncStarted()).andReturn();
+        result.getAsyncResult(60000);
+        var response=mockMvc.perform(asyncDispatch(result)).andExpect(status().isOk()).andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        assertThat(response).contains("WORK_CONTEXT_RESTORED","event:done").doesNotContain("\"stepType\":\"TOOL_CALL\"","event:approval_required");
+    }
+
+    @Test void reconnectsOnlyModelRequestWithoutReplayingPreviousTool()throws Exception {
+        when(knowledgeRetriever.retrieve(any(),any())).thenReturn(List.of());
+        var attempts=new java.util.concurrent.atomic.AtomicInteger();
+        when(modelGateway.complete(any(),any(),any())).thenAnswer(invocation->{
+            int count=attempts.incrementAndGet();
+            if(count==1)return new ModelTurn("",List.of(new ModelToolCall("before-connection-loss","current_time","{}")));
+            if(count<=3)throw new java.net.http.HttpConnectTimeoutException("HTTP connect timed out");
+            return new ModelTurn("已依据原工具结果完成检查",List.of());
+        });
+        var response=codingBudgetStream();
+        assertThat(response).contains("MODEL_CONNECTION_RETRY","event:done").doesNotContain("event:error");
+        assertThat(java.util.regex.Pattern.compile("\"stepType\":\"TOOL_RESULT\"").matcher(response).results().count()).isEqualTo(1);
+        assertThat(attempts).hasValue(4);
+    }
+    @Test void exhaustedConnectionRetriesSaveHonestProgressAndCloseRun()throws Exception {
+        when(knowledgeRetriever.retrieve(any(),any())).thenReturn(List.of());
+        var attempts=new java.util.concurrent.atomic.AtomicInteger();
+        when(modelGateway.complete(any(),any(),any())).thenAnswer(invocation->{attempts.incrementAndGet();throw new java.net.http.HttpConnectTimeoutException("connect");});
+        var response=codingBudgetStream();
+        assertThat(response).contains("已尝试 3 次","WORK_INTERRUPTED","本次实际进度","event:error").doesNotContain("event:done","\"stepType\":\"TOOL_CALL\"");
+        assertThat(attempts).hasValue(3);
+        var identity=java.util.regex.Pattern.compile("event:run\\s+data:([^\\r\\n]+)").matcher(response);assertThat(identity.find()).isTrue();
+        var data=new com.fasterxml.jackson.databind.ObjectMapper().readTree(identity.group(1));
+        var messages=jdbc.query("SELECT content FROM message WHERE conversation_id=:id AND role='assistant'",java.util.Map.of("id",data.path("conversationId").asText()),(rs,n)->rs.getString(1));
+        assertThat(messages).hasSize(1);assertThat(messages.getFirst()).contains("本次实际进度","逐项审批");
+    }
+    @Test void responseTimeoutDoesNotAutomaticallyRepeatModelRequest()throws Exception {
+        when(knowledgeRetriever.retrieve(any(),any())).thenReturn(List.of());
+        var attempts=new java.util.concurrent.atomic.AtomicInteger();
+        when(modelGateway.complete(any(),any(),any())).thenAnswer(invocation->{attempts.incrementAndGet();throw new java.net.http.HttpTimeoutException("response timed out");});
+        assertThat(codingBudgetStream()).contains("event:error").doesNotContain("MODEL_CONNECTION_RETRY","event:done");
+        assertThat(attempts).hasValue(1);
+    }
+
+    @Test void unsupportedSqlPathIsRejectedBeforeAskingForApproval()throws Exception {
+        when(knowledgeRetriever.retrieve(any(),any())).thenReturn(List.of());
+        var suffix=UUID.randomUUID().toString();
+        var model=modelProfiles.create(new ModelProfileRequest("sql-boundary-"+suffix,"OPENAI_COMPATIBLE","https://example.com/v1","test","TEST_KEY",new BigDecimal("0.2")));
+        var version=agents.publish(agents.create(new AgentDefinitionRequest("sql-boundary-"+suffix,"fixture",model.id(),null,"测试",List.of("create_workspace_text_file"))).id());
+        when(modelGateway.complete(any(),any(),any())).thenReturn(new ModelTurn("",List.of(new ModelToolCall("invalid-sql-"+suffix,"create_workspace_text_file","{\"path\":\"src/run.sql\",\"content\":\"SELECT 1;\"}"))))
+                .thenReturn(new ModelTurn("工具拒绝该路径，没有创建文件",List.of()));
+        var result=mockMvc.perform(post("/api/chat/stream").contentType(MediaType.APPLICATION_JSON).accept(MediaType.TEXT_EVENT_STREAM)
+                .content("{\"agentVersionId\":\"%s\",\"localProjectId\":\"%s\",\"message\":\"验证路径边界\"}".formatted(version.id(),codingProject())))
+                .andExpect(request().asyncStarted()).andReturn();
+        result.getAsyncResult(60000);
+        var response=mockMvc.perform(asyncDispatch(result)).andExpect(status().isOk()).andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        assertThat(response).contains("SQL 新建仅支持","工具拒绝该路径").doesNotContain("event:approval_required");
+        assertThat(java.nio.file.Path.of("target/test-coding-workspace/src/run.sql")).doesNotExist();
+    }
+
+    @Test void textToolInstructionsNeverBecomeExecutedCallsOrSuccessfulFinalAnswers() throws Exception {
+        when(knowledgeRetriever.retrieve(any(),any())).thenReturn(List.of());
+        when(modelGateway.complete(any(),any(),any())).thenReturn(new ModelTurn("<｜｜DSML｜｜tool_calls><｜｜DSML｜｜invoke name=\"apply_workspace_text_patch\">bad</｜｜DSML｜｜invoke></｜｜DSML｜｜tool_calls>",List.of()));
+        var response=codingBudgetStream();
+        assertThat(response).contains("任务未完成","event:error").doesNotContain("event:done","TOOL_CALL","DSML");
     }
 
     @Test
@@ -400,11 +602,11 @@ class ChatStreamIntegrationTests {
 
         var result = mockMvc.perform(post("/api/chat/stream")
                         .contentType(MediaType.APPLICATION_JSON).accept(MediaType.TEXT_EVENT_STREAM)
-                        .content("{\"agentVersionId\":\"%s\",\"message\":\"修改测试文件\"}".formatted(version.id())))
+                        .content("{\"agentVersionId\":\"%s\",\"message\":\"修改测试文件\",\"localProjectId\":\"%s\"}".formatted(version.id(),codingProject())))
                 .andExpect(request().asyncStarted()).andReturn();
 
         String approvalId = null;
-        for (int attempt = 0; attempt < 100 && approvalId == null; attempt++) {
+        for (int attempt = 0; attempt < 1000 && approvalId == null; attempt++) {
             var ids = jdbc.query("SELECT id FROM approval_request WHERE tool_call_id=:callId",
                     java.util.Map.of("callId", callId), (rs, row) -> rs.getString("id"));
             if (!ids.isEmpty()) approvalId = ids.getFirst();
@@ -459,11 +661,11 @@ class ChatStreamIntegrationTests {
 
         var result = mockMvc.perform(post("/api/chat/stream")
                         .contentType(MediaType.APPLICATION_JSON).accept(MediaType.TEXT_EVENT_STREAM)
-                        .content("{\"agentVersionId\":\"%s\",\"message\":\"运行构建\"}".formatted(version.id())))
+                        .content("{\"agentVersionId\":\"%s\",\"message\":\"运行构建\",\"localProjectId\":\"%s\"}".formatted(version.id(),codingProject())))
                 .andExpect(request().asyncStarted()).andReturn();
 
         String approvalId = null;
-        for (int attempt = 0; attempt < 100 && approvalId == null; attempt++) {
+        for (int attempt = 0; attempt < 1000 && approvalId == null; attempt++) {
             var ids = jdbc.query("SELECT id FROM approval_request WHERE tool_call_id=:callId",
                     java.util.Map.of("callId", callId), (rs, row) -> rs.getString("id"));
             if (!ids.isEmpty()) approvalId = ids.getFirst();

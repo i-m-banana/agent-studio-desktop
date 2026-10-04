@@ -1,12 +1,14 @@
 package com.agentstudio.adapter.ssh;
 
 import java.util.concurrent.atomic.AtomicReference;
+import java.time.Duration;
 
 import com.agentstudio.secret.SecretResolver;
 import org.apache.sshd.client.SshClient;
 import org.apache.sshd.client.auth.password.PasswordIdentityProvider;
 import org.apache.sshd.client.config.hosts.HostConfigEntryResolver;
 import org.apache.sshd.client.session.ClientSession;
+import org.apache.sshd.core.CoreModuleProperties;
 import org.apache.sshd.common.config.keys.KeyUtils;
 import org.apache.sshd.common.digest.BuiltinDigests;
 import org.apache.sshd.common.keyprovider.KeyIdentityProvider;
@@ -17,8 +19,14 @@ import org.springframework.stereotype.Component;
 @Component
 public class SftpSessionFactory {
     private final SecretResolver secrets;
+    private final Duration heartbeatInterval;
 
-    public SftpSessionFactory(SecretResolver secrets) { this.secrets = secrets; }
+    @org.springframework.beans.factory.annotation.Autowired
+    public SftpSessionFactory(SecretResolver secrets) { this(secrets, Duration.ofSeconds(30)); }
+
+    SftpSessionFactory(SecretResolver secrets, Duration heartbeatInterval) {
+        this.secrets = secrets; this.heartbeatInterval = heartbeatInterval;
+    }
 
     public <T> T execute(SshWorkspaceProperties properties, Operation<T> operation) throws Exception {
         return executeSession(properties, session -> {
@@ -35,6 +43,11 @@ public class SftpSessionFactory {
                         "SSH 密码凭据不存在，请在安全凭据中保存 " + properties.passwordSecret()));
         var observedFingerprint = new AtomicReference<String>();
         try (var client = SshClient.setUpDefaultClient()) {
+            // Build output may be buffered remotely for longer than SSH's default idle timeout.
+            // Request replies: silent/dead peers must still fail, and tool deadlines remain unchanged.
+            CoreModuleProperties.HEARTBEAT_INTERVAL.set(client, heartbeatInterval);
+            CoreModuleProperties.HEARTBEAT_REPLY_WAIT.set(client, Duration.ofSeconds(10));
+            CoreModuleProperties.HEARTBEAT_NO_REPLY_MAX.set(client, 3);
             client.setHostConfigEntryResolver(HostConfigEntryResolver.EMPTY);
             client.setKeyIdentityProvider(KeyIdentityProvider.EMPTY_KEYS_PROVIDER);
             client.setPasswordIdentityProvider(PasswordIdentityProvider.EMPTY_PASSWORDS_PROVIDER);

@@ -74,6 +74,32 @@ public class KnowledgeService {
         }
     }
 
+    public record TextPreview(String documentId, String fileName, int offset, int nextOffset,
+                              int totalChars, String content, String sha256) {}
+
+    public TextPreview preview(String knowledgeBaseId, String documentId, int offset, int limit) {
+        getBase(knowledgeBaseId);
+        if (offset < 0 || limit < 1 || limit > 16000)
+            throw new ApiException(HttpStatus.BAD_REQUEST, "阅读范围无效，每页最多16000个字符");
+        var document = metadata.findDocument(documentId).filter(item -> item.knowledgeBaseId().equals(knowledgeBaseId))
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "文档不存在"));
+        try {
+            var file = checkedPath(Path.of(document.storedPath())).toRealPath();
+            if (!file.startsWith(dataRoot.toRealPath())) throw new ApiException(HttpStatus.BAD_REQUEST, "文件路径越界");
+            if (Files.size(file) > 20L * 1024 * 1024) throw new ApiException(HttpStatus.BAD_REQUEST, "文档超过20 MB");
+            var bytes = Files.readAllBytes(file);
+            var text = extractor.extract(new ByteArrayInputStream(bytes), document.fileName());
+            var from = Math.min(offset, text.length());
+            if (from > 0 && from < text.length() && Character.isLowSurrogate(text.charAt(from)) && Character.isHighSurrogate(text.charAt(from-1))) from--;
+            var to = (int) Math.min((long) text.length(), (long) from + limit);
+            if (to > from && to < text.length() && Character.isHighSurrogate(text.charAt(to-1)) && Character.isLowSurrogate(text.charAt(to))) {
+                if (to - from == 1) to++; else to--;
+            }
+            return new TextPreview(document.id(), document.fileName(), from, to, text.length(), text.substring(from,to), sha256(bytes));
+        } catch (ApiException exception) { throw exception; }
+        catch (Exception exception) { throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "无法读取文档正文：" + safeError(exception)); }
+    }
+
     public KnowledgeDocument importContent(String knowledgeBaseId, String fileName, String mediaType, byte[] bytes) {
         getBase(knowledgeBaseId);
         if (bytes == null || bytes.length == 0) throw new ApiException(HttpStatus.BAD_REQUEST, "导入内容为空");

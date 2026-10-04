@@ -26,9 +26,15 @@ public class AgentController {
     }
 
     @GetMapping
-    List<AgentDefinition> list() {
-        return service.list();
+    List<AgentDefinition> list(@RequestParam(defaultValue = "false") boolean includeArchived) {
+        return service.list(includeArchived);
     }
+
+    @PostMapping("/{id}/archive")
+    AgentDefinition archiveAgent(@PathVariable String id) { return service.archive(id,true); }
+
+    @PostMapping("/{id}/restore")
+    AgentDefinition restoreAgent(@PathVariable String id) { return service.archive(id,false); }
 
     @PostMapping
     ResponseEntity<AgentDefinition> create(@Valid @RequestBody AgentDefinitionRequest request) {

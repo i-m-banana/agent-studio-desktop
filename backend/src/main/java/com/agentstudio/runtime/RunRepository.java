@@ -97,14 +97,41 @@ public class RunRepository {
     }
 
     public List<RunSummary> list(int limit) {
+        return list(limit, 0, "", "");
+    }
+
+    public List<AgentRun> unfinished() {
         return jdbc.query("""
-                SELECT r.*, (SELECT COUNT(*) FROM run_step s WHERE s.run_id=r.id) AS step_count
-                FROM agent_run r ORDER BY r.started_at DESC LIMIT :limit
-                """, Map.of("limit", Math.max(1, Math.min(limit, 100))), (rs, row) ->
+                SELECT id FROM agent_run
+                WHERE status NOT IN ('CANCELLED','TIMED_OUT','INTERRUPTED','COMPLETED','FAILED')
+                ORDER BY started_at,id
+                """, Map.of(), (rs, row) -> rs.getString("id")).stream()
+                .map(id -> find(id).orElseThrow()).toList();
+    }
+
+    public List<RunSummary> list(int limit, int offset, String query, String status) {
+        var search = com.agentstudio.system.ListSearch.normalize(query);
+        var filter = status == null ? "" : status.strip();
+        if (!java.util.Set.of("", "CREATED", "RUNNING", "THINKING", "TOOL_RUNNING", "OBSERVING", "WAITING_APPROVAL", "CANCEL_REQUESTED", "COMPLETED", "FAILED", "CANCELLED", "TIMED_OUT", "INTERRUPTED").contains(filter))
+            throw new com.agentstudio.system.ApiException(org.springframework.http.HttpStatus.BAD_REQUEST, "运行状态筛选无效");
+        return jdbc.query("""
+                SELECT r.*, a.name AS agent_name, (SELECT COUNT(*) FROM run_step s WHERE s.run_id=r.id) AS step_count,
+                  (SELECT SUBSTRING(m.content,1,100) FROM message m WHERE m.conversation_id=r.conversation_id AND m.role='user' AND m.created_at<=r.started_at
+                    ORDER BY m.created_at DESC,m.id DESC LIMIT 1) AS preview
+                FROM agent_run r JOIN agent_version v ON v.id=r.agent_version_id
+                  JOIN agent_definition a ON a.id=v.agent_definition_id
+                WHERE (:status='' OR r.status=:status OR (:status='RUNNING' AND r.status IN ('CREATED','THINKING','TOOL_RUNNING','OBSERVING','CANCEL_REQUESTED')))
+                AND (:query='' OR LOCATE(:query,LOWER(r.id))>0
+                  OR LOCATE(:query,LOWER(a.name))>0 OR LOCATE(:query,LOWER(COALESCE(r.error_message,'')))>0
+                  OR LOCATE(:query,LOWER(COALESCE((SELECT m.content FROM message m WHERE m.conversation_id=r.conversation_id AND m.role='user' AND m.created_at<=r.started_at
+                    ORDER BY m.created_at DESC,m.id DESC LIMIT 1),'')))>0
+                  OR EXISTS (SELECT 1 FROM run_step s WHERE s.run_id=r.id AND LOCATE(:query,LOWER(COALESCE(s.tool_name,'')))>0))
+                ORDER BY r.started_at DESC,r.id DESC LIMIT :limit OFFSET :offset
+                """, Map.of("limit", Math.max(1, Math.min(limit, 100)), "offset", Math.max(0, offset), "query", search, "status", filter), (rs, row) ->
                 new RunSummary(rs.getString("id"), rs.getString("conversation_id"),
                         rs.getString("agent_version_id"), rs.getString("status"),
                         rs.getTimestamp("started_at").toInstant(), instant(rs, "completed_at"),
-                        rs.getString("error_message"), rs.getInt("step_count")));
+                        rs.getString("error_message"), rs.getInt("step_count"), rs.getString("preview"), rs.getString("agent_name")));
     }
 
     public Optional<AgentRun> find(String runId) {

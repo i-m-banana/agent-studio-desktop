@@ -4,6 +4,15 @@ param([switch]$SkipPreflight)
 $ErrorActionPreference = 'Stop'
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $runDirectory = Join-Path $projectRoot '.run'
+$taskProjectSettings = Join-Path $runDirectory 'local-project-settings.json'
+if (Test-Path -LiteralPath $taskProjectSettings) {
+    $taskProjectConfiguration = Get-Content -LiteralPath $taskProjectSettings -Raw | ConvertFrom-Json
+    foreach ($taskSettingName in @('AGENT_STUDIO_PROJECT_ROOTS','AGENT_STUDIO_PROTECTED_ROOTS','AGENT_STUDIO_SANDBOX_IMAGE','AGENT_STUDIO_DOCKER_EXECUTABLE','AGENT_STUDIO_MYSQL_IMAGE')) {
+        if ($taskProjectConfiguration.PSObject.Properties.Name -contains $taskSettingName) {
+            [Environment]::SetEnvironmentVariable($taskSettingName,[string]$taskProjectConfiguration.$taskSettingName,'Process')
+        }
+    }
+}
 $composeFile = Join-Path $projectRoot 'docker/compose.yml'
 if (-not $SkipPreflight) { & (Join-Path $PSScriptRoot 'preflight.ps1') -RequireOllama; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } }
 if (-not (Test-Path -LiteralPath $runDirectory)) { New-Item -ItemType Directory -Path $runDirectory | Out-Null }

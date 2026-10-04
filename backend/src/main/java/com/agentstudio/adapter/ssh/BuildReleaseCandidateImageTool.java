@@ -77,11 +77,11 @@ public class BuildReleaseCandidateImageTool implements AgentTool {
                 result = run(session, commands.build(candidate, attempt, builder, image, releaseId, manifestSha, hashes),
                         properties.connectTimeout(), timeout);
             } catch (Exception failure) {
-                // Interrupted callers still attempt bounded cleanup on the same authenticated session.
+                // Cleanup is bounded and may reconnect if the original authenticated session died.
                 var interrupted = Thread.interrupted();
                 String cleanupStatus;
                 try {
-                    var cleanup = run(session, commands.cleanup(attempt, builder), properties.connectTimeout(), Duration.ofSeconds(30));
+                    var cleanup = cleanup(session, properties, attempt, builder);
                     cleanupStatus = "清理退出码=" + cleanup.exitCode() + "\n清理输出：\n" + cleanup.output();
                 }
                 catch (Exception cleanupFailure) { cleanupStatus = "清理未确认：" + cleanupFailure.getMessage(); }
@@ -96,7 +96,7 @@ public class BuildReleaseCandidateImageTool implements AgentTool {
             if (result.exitCode() != 0) {
                 CommandResult cleanup;
                 try {
-                    cleanup = run(session, commands.cleanup(attempt, builder), properties.connectTimeout(), Duration.ofSeconds(30));
+                    cleanup = cleanup(session, properties, attempt, builder);
                 } catch (Exception cleanupFailure) {
                     throw new IllegalStateException(failureDetails(result, builder, attempt)
                             + "\n清理连接或执行失败：" + cleanupFailure.getMessage(), cleanupFailure);
@@ -155,6 +155,9 @@ public class BuildReleaseCandidateImageTool implements AgentTool {
         for (var field : List.of("artifactSha256", "dockerfileSha256", "composeSha256", "nginxSha256"))
             if (!fields.getOrDefault(field, "").matches("[0-9a-f]{64}"))
                 throw new IllegalArgumentException("候选清单缺少固定文件摘要：" + field);
+        var project=com.agentstudio.project.ProjectExecutionContext.current();
+        if(project!=null && (!project.id().equals(fields.get("projectId")) || !fields.getOrDefault("sourceSha256","").matches("[0-9a-f]{64}")))
+            throw new SecurityException("候选不属于当前会话绑定的项目，或缺少源码证据，请重新准备候选");
         return fields;
     }
 
@@ -173,12 +176,40 @@ public class BuildReleaseCandidateImageTool implements AgentTool {
                 + "\n原始构建输出：\n" + result.output();
     }
 
+    private CommandResult cleanup(ClientSession session, SshWorkspaceProperties properties, String attempt, String builder) throws Exception {
+        var deadline = System.nanoTime() + Duration.ofSeconds(30).toNanos();
+        Exception originalFailure = null;
+        if (session.isOpen() && !session.isClosing()) {
+            try { return run(session, commands.cleanup(attempt, builder), properties.connectTimeout(), cleanupRemaining(deadline)); }
+            catch (Exception failure) { originalFailure = failure; }
+        }
+        try {
+            // One fresh connection for this exact attempt's cleanup only; never replay a build/publish.
+            // Original channel, reconnect/auth and fresh command share one cleanup deadline.
+            var connectBudget = cleanupRemaining(deadline).dividedBy(3);
+            if (properties.connectTimeout().compareTo(connectBudget) < 0) connectBudget = properties.connectTimeout();
+            var cleanupProperties = new SshWorkspaceProperties(properties.host(), properties.port(), properties.username(),
+                    properties.remoteRoot(), properties.hostKeySha256(), properties.passwordSecret(), connectBudget);
+            return workspace.reconnect(cleanupProperties, fresh -> run(fresh, commands.cleanup(attempt, builder),
+                    cleanupProperties.connectTimeout(), cleanupRemaining(deadline)));
+        } catch (Exception failure) {
+            if (originalFailure != null) failure.addSuppressed(originalFailure);
+            throw failure;
+        }
+    }
+
+    private static Duration cleanupRemaining(long deadline) {
+        var remaining = deadline - System.nanoTime();
+        if (remaining <= 0) throw new IllegalStateException("构建器清理共享期限已到，清理结果未确认");
+        return Duration.ofNanos(remaining);
+    }
+
     private CommandResult run(ClientSession session, String command, Duration connectTimeout, Duration budget) throws Exception {
         var output = new BoundedSshOutputStream(16_000);
+        var deadline = System.nanoTime() + budget.toNanos();
         try (var channel = session.createExecChannel(command)) {
             channel.setOut(output); channel.setRedirectErrorStream(true);
-            channel.open().verify(connectTimeout);
-            var deadline = System.nanoTime() + budget.toNanos();
+            channel.open().verify(connectTimeout.compareTo(budget) < 0 ? connectTimeout : budget);
             while (true) {
                 if (Thread.currentThread().isInterrupted()) {
                     channel.close(true); throw new InterruptedException("镜像构建已中断，已关闭远程命令通道并请求清理构建器；原始输出：\n" + output.value());
@@ -191,7 +222,9 @@ public class BuildReleaseCandidateImageTool implements AgentTool {
                         Math.max(1, Duration.ofNanos(remaining).toMillis()))).contains(ClientChannelEvent.CLOSED)) break;
             }
             var exit = channel.getExitStatus();
-            if (exit == null) throw new IllegalStateException("镜像命令未返回退出码");
+            if (exit == null) throw new IllegalStateException("镜像命令未返回退出码（SSH 通道或连接中断，不能认定构建成功）；sessionOpen="
+                    + session.isOpen() + ", sessionClosing=" + session.isClosing()
+                    + ", outputTruncated=" + output.truncated() + "\n原始构建输出：\n" + output.value());
             return new CommandResult(exit, output.value(), output.truncated());
         }
     }

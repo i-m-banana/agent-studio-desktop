@@ -1,0 +1,31 @@
+.run-dock { position:fixed; right:20px; bottom:20px; z-index:150; width:min(420px,calc(100% - 24px)); max-height:72dvh; display:flex; flex-direction:column; padding:16px; color:#dce9e0; background:#14291e; border:1px solid #5b9071; border-radius:12px; box-shadow:0 8px 36px #0009; }
+.run-dock header,.run-dock footer,.run-dock-summary { display:flex; align-items:center; gap:12px; justify-content:space-between; flex-shrink:0; }
+.run-dock header strong { font-size:15px; line-height:1.5; }
+.run-dock header button { padding:4px 8px; white-space:nowrap; }
+.run-dock-summary { justify-content:flex-start; margin-top:10px; font-size:13px; flex-wrap:wrap; }
+.run-dock-summary button { margin-left:auto; }
+.run-dock-body { min-height:0; overflow:auto; font-size:13px; line-height:1.65; overflow-wrap:anywhere; }
+.run-dock-body p { margin:10px 0; }
+.run-dock-body small { display:block; color:#b6cabc; font-size:12px; }
+.run-dock pre { max-height:24dvh; padding:10px; white-space:pre-wrap; overflow-wrap:anywhere; background:#08170e; border-radius:6px; }
+.run-dock--approval { border:2px solid #d4b562; background:#24251a; }
+.run-dock--approval header strong { color:#f3d892; }
+.run-dock footer { margin-top:12px; padding-top:12px; border-top:1px solid #625d3e; justify-content:flex-end; }
+.waiting-pulse { width:10px;height:10px;flex-shrink:0;background:#7cc498;border-radius:50%;animation:wait-pulse 1.5s ease-in-out infinite; }
+.connection-unknown { width:10px;height:10px;flex-shrink:0;background:#d4b562;border-radius:50%; }
+@keyframes wait-pulse { 50% {opacity:.35} }
+@media(prefers-reduced-motion:reduce) { .waiting-pulse {animation:none} }
+.record-tabs { display:flex;gap:8px;margin:0 0 16px; }
+.record-tabs button[aria-pressed=true] { border-color:#74b88e;background:#214332;color:#e4f4e8; }
+.release-records .history-stage { padding:18px 0; }
+.release-records .history-stage p { font-size:13px;line-height:1.7; }
+.release-records .history-stage pre { white-space:pre-wrap;overflow-wrap:anywhere;max-height:280px; }
+@media(max-width:600px) { .run-dock {right:12px;bottom:12px;padding:12px;max-height:78dvh} .run-dock pre {max-height:25dvh} }
+
+.release-records {padding:20px;}
+.release-record-list { max-height:60vh; overflow:auto; margin-bottom:16px; }
+.release-record-list > details > summary { display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px; font-size:13px; }
+.release-record-list > details > summary small {color:#a5b9ab;}
+.release-record-list > details > summary::before {content:'▸';color:#8fc3a0;}
+.release-record-list > details[open] > summary::before {content:'▾';}
+.release-record-list > details > summary strong {flex:1;min-width:160px;}

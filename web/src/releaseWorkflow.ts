@@ -1,3 +1,5 @@
+import { receiptOutcome } from './toolResults'
+
 export type WorkflowEvidence = {
   candidate?: { successful: boolean; exitCode: number; releaseId?: string; manifestSha256?: string; target?: string }
   image?: { successful: boolean; exitCode: number; releaseId?: string; manifestSha256?: string; imageId?: string; target?: string; stage?: string; output?: string }
@@ -68,9 +70,5 @@ export function isBaselineRegistrationReceipt(receipt: Record<string, unknown>):
 }
 
 export function fixedToolSucceeded(receipt: Record<string, unknown>): boolean {
-  if (receipt.successful !== true || receipt.exitCode !== 0) return false
-  if (receipt.task === 'DATABASE_SCHEMA') return receipt.schemaComplete === true && receipt.outputTruncated !== true
-  if (receipt.task === 'PUBLISH_RELEASE') return receipt.deployed === true && receipt.rolledBack === false && receipt.manualInterventionRequired === false
-  if (isBaselineRegistrationReceipt(receipt)) return receipt.baselineRegistered === true
-  return true
+  return receiptOutcome(receipt) === 'success'
 }

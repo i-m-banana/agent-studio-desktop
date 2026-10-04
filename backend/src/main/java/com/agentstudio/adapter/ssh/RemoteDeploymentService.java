@@ -50,7 +50,7 @@ public class RemoteDeploymentService {
         }
     }
 
-    String approvalTarget() {
+    public String approvalTarget() {
         var profile = current();
         return ssh.current().approvalTarget() + "|DEPLOY:" + profile.remoteDeployRoot()
                 + "|LOCAL_SOURCE:" + profile.localSourceRoot()
@@ -59,7 +59,7 @@ public class RemoteDeploymentService {
                 + "|HEALTH:" + profile.healthUrl();
     }
 
-    String target(RemoteDeploymentProfile profile) {
+    public String target(RemoteDeploymentProfile profile) {
         var connection = ssh.current();
         return connection.username() + "@" + connection.host() + ":" + connection.port()
                 + profile.remoteDeployRoot();

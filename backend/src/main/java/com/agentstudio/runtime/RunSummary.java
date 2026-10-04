@@ -10,5 +10,7 @@ public record RunSummary(
         Instant startedAt,
         Instant completedAt,
         String errorMessage,
-        int stepCount) {
+        int stepCount,
+        String preview,
+        String agentName) {
 }

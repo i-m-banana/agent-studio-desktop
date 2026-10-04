@@ -58,6 +58,7 @@ class RemoteDeploymentToolTests {
     private final AtomicReference<String> imageManifestSha = new AtomicReference<>();
     private final AtomicBoolean imageLargeOutput = new AtomicBoolean();
     private final AtomicBoolean imageBadReceipt = new AtomicBoolean();
+    private final AtomicBoolean imageDisconnect = new AtomicBoolean();
     private final AtomicReference<Integer> schemaExitCode = new AtomicReference<>(0);
     private final AtomicReference<Integer> baselineExitCode = new AtomicReference<>(0);
     private final AtomicReference<Integer> publishExitCode = new AtomicReference<>(0);
@@ -109,6 +110,7 @@ class RemoteDeploymentToolTests {
                         exit == null ? hangingDestroyed : null);
             }
             if (command.contains("AGENTSTUDIO_IMAGE_RECEIPT")) {
+                if (imageDisconnect.get()) return new FixtureCommand("AGENTSTUDIO_STAGE=IMAGE_BUILD\nlast diagnostic before disconnect\n", "", null, null, true);
                 var matcher = java.util.regex.Pattern.compile("image='([^']+)'").matcher(command);
                 if (!matcher.find()) throw new IllegalArgumentException("missing image");
                 var receipt = "\nAGENTSTUDIO_IMAGE_RECEIPT\nRELEASE_ID=20260921T150000Z-cafebabe\nMANIFEST_SHA256="
@@ -526,6 +528,20 @@ class RemoteDeploymentToolTests {
     }
 
     @Test
+    void imageDisconnectPreservesOutputAndReconnectsOnlyForScopedCleanup() throws Exception {
+        prepareImageFixture(); imageDisconnect.set(true);
+        assertThatThrownBy(() -> imageTool(Duration.ofSeconds(5)).execute(imageArguments()))
+                .hasMessageContaining("镜像命令未返回退出码")
+                .hasMessageContaining("AGENTSTUDIO_STAGE=IMAGE_BUILD")
+                .hasMessageContaining("last diagnostic before disconnect")
+                .hasMessageContaining("清理退出码=0");
+        assertThat(sessionsCreated).hasValue(2);
+        assertThat(receivedCommands).hasSize(2);
+        assertThat(receivedCommands.getLast()).contains("builder.created", "docker buildx rm --force")
+                .doesNotContain("AGENTSTUDIO_IMAGE_RECEIPT", "compose up", "prune");
+    }
+
+    @Test
     void imageTruncationPreservesTailReceiptAndRejectsForgedReceipt() throws Exception {
         prepareImageFixture(); imageLargeOutput.set(true);
         var result = objectMapper.readTree(imageTool(Duration.ofSeconds(5)).execute(imageArguments()));
@@ -712,7 +728,7 @@ class RemoteDeploymentToolTests {
         assertThat(result.path("currentImageId").asText()).isEqualTo(args.path("imageId").asText());
         assertThat(sessionsCreated).hasValue(1); assertThat(receivedCommands).hasSize(1);
         var path=root.resolve(result.path("attemptPath").asText().substring(1)).resolve("publish.sh");
-        assertThat(Files.readString(path)).contains("--no-deps --no-build --pull never", "DatabaseReleaseMain", "flock -n", "receipt.properties").doesNotContain("never-return-this");
+        assertThat(Files.readString(path)).startsWith("set -eu\n").contains("--no-deps --no-build --pull never", "DatabaseReleaseMain", "flock -n", "receipt.properties").doesNotContain("never-return-this", "\r", "\uFEFF");
     }
     @Test void publishRollbackIsNotSuccessAndTimeoutNeverClaimsRecovery() throws Exception {
         var args=publishArguments(); publishExitCode.set(47);
@@ -820,18 +836,29 @@ class RemoteDeploymentToolTests {
         private final String stdoutText; private final String stderrText; private final Integer exitCode;
         private final AtomicBoolean destroyed; private InputStream input; private OutputStream output;
         private OutputStream error; private ExitCallback callback;
+        private final boolean disconnect;
         FixtureCommand(String stdoutText, String stderrText, Integer exitCode, AtomicBoolean destroyed) {
+            this(stdoutText, stderrText, exitCode, destroyed, false);
+        }
+        FixtureCommand(String stdoutText, String stderrText, Integer exitCode, AtomicBoolean destroyed, boolean disconnect) {
             this.stdoutText = stdoutText; this.stderrText = stderrText; this.exitCode = exitCode; this.destroyed = destroyed;
+            this.disconnect = disconnect;
         }
         @Override public void setInputStream(InputStream input) { this.input = input; }
         @Override public void setOutputStream(OutputStream output) { this.output = output; }
         @Override public void setErrorStream(OutputStream error) { this.error = error; }
         @Override public void setExitCallback(ExitCallback callback) { this.callback = callback; }
         @Override public void start(ChannelSession channel, Environment environment) throws IOException {
-            if (exitCode == null) return;
+            if (exitCode == null && !disconnect) return;
             if (stdoutText != null) output.write(stdoutText.getBytes(StandardCharsets.UTF_8));
             if (stderrText != null) error.write(stderrText.getBytes(StandardCharsets.UTF_8));
-            output.flush(); error.flush(); callback.onExit(exitCode);
+            output.flush(); error.flush();
+            if (disconnect) {
+                Thread.ofVirtual().start(() -> {
+                    try { Thread.sleep(100); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
+                    channel.getSession().close(true);
+                });
+            } else callback.onExit(exitCode);
         }
         @Override public void destroy(ChannelSession channel) throws Exception {
             if (destroyed != null) destroyed.set(true); if (input != null) input.close();

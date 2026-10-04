@@ -25,6 +25,7 @@ class LocalReleaseCandidateBuilder {
             "JAVA_HOME", "MAVEN_HOME", "M2_HOME", "USERPROFILE", "APPDATA", "LOCALAPPDATA",
             "HOME", "LANG", "LC_ALL");
     private final Duration timeout;
+    @Autowired private com.agentstudio.coding.IsolatedProjectRunner isolated;
 
     @Autowired
     LocalReleaseCandidateBuilder() { this(Duration.ofMinutes(4)); }
@@ -36,6 +37,13 @@ class LocalReleaseCandidateBuilder {
         requireFile(root, "Dockerfile");
         requireFile(root, profile.localComposeFile());
         requireFile(root, profile.nginxConfig());
+        if (isolated != null) {
+            var project=com.agentstudio.project.ProjectExecutionContext.current();
+            if(project==null || !root.equals(Path.of(project.sourceRoot()))) throw new IllegalArgumentException("发布构建必须绑定同源本地项目");
+            var result=isolated.run(".","RELEASE_PACKAGE");
+            return new BuildResult(result.successful(),"ISOLATED_BUILD",result.exitCode(),result.durationMs(),
+                    result.output(),result.truncated(),result.snapshotRoot(),result.artifact(),result.sourceSha256());
+        }
         var artifact = root.resolve("target/app.jar").normalize();
         if (!artifact.startsWith(root)) throw new IllegalStateException("固定构建制品路径越界");
         var target = root.resolve("target");
@@ -142,7 +150,11 @@ class LocalReleaseCandidateBuilder {
     }
 
     record BuildResult(boolean successful, String stage, int exitCode, long durationMs, String output,
-                       boolean outputTruncated, Path sourceRoot, Path artifact) {}
+                       boolean outputTruncated, Path sourceRoot, Path artifact, String sourceSha256) {
+        BuildResult(boolean successful,String stage,int exitCode,long durationMs,String output,boolean outputTruncated,Path sourceRoot,Path artifact) {
+            this(successful,stage,exitCode,durationMs,output,outputTruncated,sourceRoot,artifact,null);
+        }
+    }
     private record CommandResult(int exitCode, long durationMs, String output, boolean truncated) {}
 
     private static final class BoundedText {

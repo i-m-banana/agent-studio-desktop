@@ -33,6 +33,12 @@ public class AgentRepository {
         return queryDefinition("SELECT * FROM agent_definition WHERE id = :id", id);
     }
 
+    public void setArchived(String id, boolean archived) {
+        jdbc.update("UPDATE agent_definition SET archived_at=:archivedAt,updated_at=:now WHERE id=:id",
+                new MapSqlParameterSource().addValue("id",id).addValue("now",Timestamp.from(Instant.now()))
+                        .addValue("archivedAt",archived ? Timestamp.from(Instant.now()) : null));
+    }
+
     public Optional<AgentDefinition> findByIdForUpdate(String id) {
         return queryDefinition("SELECT * FROM agent_definition WHERE id = :id FOR UPDATE", id);
     }
@@ -194,7 +200,7 @@ public class AgentRepository {
                 rs.getString("draft_model_profile_id"), rs.getString("draft_knowledge_base_id"),
                 rs.getString("draft_system_prompt"),
                 List.of(),
-                rs.getInt("latest_version_number"), instant(rs, "created_at"), instant(rs, "updated_at"));
+                rs.getInt("latest_version_number"), instant(rs, "created_at"), instant(rs, "updated_at"),nullableInstant(rs,"archived_at"));
     }
 
     private static AgentVersion mapVersion(ResultSet rs, int rowNumber) throws SQLException {

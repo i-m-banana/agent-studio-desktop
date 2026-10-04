@@ -61,6 +61,7 @@ public class ApplyWorkspaceTextPatchTool implements AgentTool {
         }
 
         var file = workspace.requireRegularFile(requestedPath);
+        workspace.requireWritable(file);
         if (!Files.isWritable(file)) throw new IllegalArgumentException("目标文件不可写");
         var originalBytes = readBounded(file);
         var beforeSha256 = WorkspaceTextFiles.sha256(originalBytes);
@@ -95,6 +96,11 @@ public class ApplyWorkspaceTextPatchTool implements AgentTool {
         var updatedBytes = content.getBytes(StandardCharsets.UTF_8);
         if (updatedBytes.length > WorkspaceTextFiles.MAX_FILE_BYTES) {
             throw new IllegalArgumentException("补丁结果不能超过 1 MiB");
+        }
+        if(com.agentstudio.project.ProjectExecutionContext.current()!=null) {
+            GuardedTextFiles.patch(file.getParent(),file.getFileName().toString(),updatedBytes,beforeSha256,objectMapper);
+            return objectMapper.writeValueAsString(Map.of("updated",true,"path",workspace.relative(file),"beforeSha256",beforeSha256,
+                    "afterSha256",WorkspaceTextFiles.sha256(updatedBytes),"replacementsApplied",replacements.size(),"sizeBytes",updatedBytes.length));
         }
         var temporary = Files.createTempFile(file.getParent(), ".agent-studio-patch-", ".tmp");
         try {

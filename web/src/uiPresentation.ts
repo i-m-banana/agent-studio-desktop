@@ -1,4 +1,5 @@
 export function statusLabel(status: string) {
+  if (status === 'ARCHIVED') return '已归档'
   return ({ COMPLETED: '已结束', FAILED: '失败', CANCELLED: '已取消', TIMED_OUT: '已超时', INTERRUPTED: '已中断', RUNNING: '运行中', WAITING_APPROVAL: '等待审批', WAITING: '等待中', READY: '检查通过', WARNING: '需注意', DEGRADED: '部分项目需处理', NOT_READY: '有项目需处理', NOT_CONFIGURED: '未配置', CHECKING: '检查中', DRAFT: '草稿', PUBLISHED: '已发布', DISABLED: '已停用', PROCESSING: '处理中', INDEXED: '已索引', CONNECTED: '已连接', SUCCESS: '成功' } as Record<string, string>)[status] ?? status
 }
 

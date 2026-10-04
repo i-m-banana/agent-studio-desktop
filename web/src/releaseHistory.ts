@@ -14,11 +14,12 @@ export function knownBaseline(tasks: ReleaseTask[], target: string): boolean {
             && row[1]==='BASELINE' && (row[2]===1 || row[2]===true) } catch { return false }
         })))
 }
-export function historyEvidence(tasks: ReleaseTask[], conversationId?: string, candidateId?: string, target?: string) {
+export function historyEvidence(tasks: ReleaseTask[], conversationId?: string, candidateId?: string, target?: string, projectId?: string) {
   const candidate = tasks.find(t => t.id === candidateId && t.status === 'SUCCEEDED'
-    && t.toolName === 'prepare_release_candidate' && t.target === target)
+    && t.toolName === 'prepare_release_candidate' && t.target === target && (!projectId || t.receipt?.projectId === projectId))
   return tasks.filter(t => {
     if (t.target && target && t.target !== target) return false
+    if (projectId && t.toolName === 'prepare_release_candidate' && t.receipt?.projectId !== projectId) return false
     if (candidate && t.toolName === 'prepare_release_candidate') return t.id === candidate.id
     if (candidate && t.toolName === 'build_release_candidate_image') return t.releaseId === candidate.releaseId
       && (t.receipt?.manifestSha256 ?? parseInput(t.sourceStep.inputJson)?.manifestSha256) === candidate.receipt?.manifestSha256

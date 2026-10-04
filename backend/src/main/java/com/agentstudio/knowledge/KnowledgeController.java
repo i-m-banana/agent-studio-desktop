@@ -50,6 +50,13 @@ public class KnowledgeController {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.upload(id, file));
     }
 
+    @GetMapping("/{id}/documents/{documentId}/text")
+    KnowledgeService.TextPreview text(@PathVariable String id, @PathVariable String documentId,
+                                      @RequestParam(defaultValue = "0") int offset,
+                                      @RequestParam(defaultValue = "8000") int limit) {
+        return service.preview(id, documentId, offset, limit);
+    }
+
     @DeleteMapping("/{id}/documents/{documentId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     void deleteDocument(@PathVariable String id, @PathVariable String documentId) {

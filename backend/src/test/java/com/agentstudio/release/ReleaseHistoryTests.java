@@ -129,7 +129,10 @@ class ReleaseHistoryTests {
         assertThat(runs.find(run.id()).orElseThrow().status()).isEqualTo("INTERRUPTED");
         recovery.closeInterruptedRuns();
         assertThat(task(run).id()).isEqualTo(recovered.id());
-        assertThat(runs.find(run.id()).orElseThrow().steps()).hasSize(1);
+        assertThat(runs.find(run.id()).orElseThrow().steps()).hasSize(2)
+                .filteredOn(step -> step.stepType().equals("RUN_TERMINATION")).hasSize(1);
+        assertThat(conversations.historyMessages(run.conversationId())).filteredOn(message -> message.role().equals("assistant"))
+                .hasSize(1).allSatisfy(message -> assertThat(message.content()).contains("后台进程中断","不会自动续跑"));
     }
     @Test void recoveredActiveConversationRejectsDuplicateSendBeforeRecordingAnotherMessageOrRun() throws Exception {
         var run=start();

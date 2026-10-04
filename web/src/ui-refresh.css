@@ -1,4 +1,4 @@
-/* Common presentation for the existing eight workflows. */
+/* Common presentation for the studio workflows. */
 :root { font-size: 14px; color: #e4eee8; }
 .app-shell { grid-template-columns: 208px minmax(0, 1fr); }
 .sidebar { padding: 28px 16px; gap: 30px; }
@@ -130,6 +130,21 @@ button:disabled { opacity: .6; }
 .remote-message p, .fixed-tool-reply p, .fixed-tool-request p, .remote-message .markdown-message { font-size: 13px; line-height: 1.7; }
 .fixed-tool-reply strong, .fixed-tool-request strong { font-size: 14px; }
 .fixed-tool-reply summary, .fixed-tool-request summary { font-size: 12px; }
+.fixed-tool-reply--unknown, .fixed-tool-reply--restored { border-color: #a68b51; background: #242116; }
+.fixed-tool-reply--unknown strong, .fixed-tool-reply--restored strong { color: #e4ce9a; }
+.tool-result-facts { margin: 10px 0 0; font-size: 13px; line-height: 1.65; }
+.tool-result-facts > div { display: grid; grid-template-columns: 5em minmax(0,1fr); gap: 12px; margin-top: 8px; }
+.tool-result-facts dt { color: #9db4a7; }
+.tool-result-facts dd { margin: 0; }
+.workflow-panel { padding: 18px; border: 1px solid var(--border, #2d4939); border-radius: 12px; background: #102019; }
+.workflow-panel select { min-width: 0; max-width: 100%; }
+.workflow-next { padding: 12px; margin: 12px 0; background: #193025; border-radius: 8px; }
+.workflow-next p { margin: 8px 0 0; }
+.workflow-check { display: flex; align-items: flex-start; gap: 10px; margin: 12px 0; font-size: 13px; line-height: 1.65; }
+.workflow-check input { width: 16px; height: 16px; flex: 0 0 16px; margin-top: 4px; }
+.workflow-evidence { margin: 16px 0; }
+.workflow-evidence pre { max-height: 320px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+.workflow-create { margin-top: 14px; }
 .remote-agent-composer { padding: 12px; }
 .remote-agent-composer textarea { font-size: 14px; }
 .remote-agent-composer button { font-size: 13px; }
@@ -172,6 +187,38 @@ button:disabled { opacity: .6; }
 .remote-output-head strong, .remote-output > footer { font-size: 12px; overflow-wrap: anywhere; }
 .remote-overview .remote-hero-card > span, .remote-deployment-head > div > span { display: none; }
 pre { max-width: 100%; overflow: auto; }
+.list-filters { display: grid; grid-template-columns: minmax(0, 1fr) 160px; gap: 10px; margin-bottom: 16px; }
+.list-filters input, .list-filters select { min-width: 0; }
+.document-actions, .record-actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.document-reader { width: min(940px, calc(100vw - 32px)); max-height: 90vh; padding: 20px; color: #d6e4da; border: 1px solid #385546; border-radius: 12px; background: #102019; overflow: auto; }
+.document-reader::backdrop { background: rgba(0,0,0,.65); }
+.document-reader header { display: flex; align-items: start; gap: 12px; justify-content: space-between; }
+.document-reader h2 { margin: 0; font-size: 18px; overflow-wrap: anywhere; }
+.document-reader header button { flex: none; }
+.document-reader > .hint { margin-top: 12px; }
+.reader-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 14px 0; }
+.reader-toolbar > span { flex: 1; font-size: 13px; color: #a2b6a8; }
+.reader-toolbar label { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.reader-toolbar input { width: 90px; }
+.document-text { margin: 12px 0 0; max-height: 60vh; padding: 16px; background: #09140e; border: 1px solid #2d4437; border-radius: 8px; color: #c7d9cd; white-space: pre-wrap; overflow-wrap: anywhere; font: 14px/1.75 "Segoe UI", "Microsoft YaHei", sans-serif; }
+.message-feed-shell { min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr) auto; overflow: hidden; }
+.feed-actions { display: flex; align-items: center; justify-content: flex-end; padding: 4px 12px; gap: 10px; border-top: 1px solid #283f31; background: #0d1812; }
+.feed-actions > span { margin-right: auto; font-size: 12px; color: #c7ba88; }
+.feed-actions > button { font-size: 13px; padding: 6px 8px; }
+.message-actions { grid-column: 2; display: flex; justify-content: flex-end; }
+.message-actions .copy-button { font-size: 12px; padding: 3px 6px; }
+.copy-button { white-space: nowrap; }
+.code-block { border: 1px solid #304939; border-radius: 8px; overflow: hidden; margin: 12px 0; background: #09140e; }
+.code-block-toolbar { display: flex; justify-content: flex-end; border-bottom: 1px solid #304939; padding: 3px 6px; }
+.code-block-toolbar .copy-button { font-size: 12px; padding: 5px; }
+.markdown-message .code-block pre { margin: 0; border: 0; border-radius: 0; }
+.history-item { display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #273b32; padding: 12px 0; }
+.history-item > label { display: flex; min-width: 0; flex: 1; align-items: start; gap: 10px; font-size: 13px; overflow-wrap: anywhere; }
+.history-actions button[aria-pressed="true"] { color: #91e2b4; border-color: #5a9874; background: #203d2a; }
+.history-dialog > input[type="search"] { margin-top: 14px; }
+.run-card > div { align-items: start; gap: 10px; }
+.run-card strong { overflow-wrap: anywhere; font-size: 14px; font-weight: 600; }
+.run-card .badge { flex: none; }
 @media (max-width: 1200px) {
   .remote-workbench, .remote-workbench.explorer-closed { grid-template-columns: minmax(0, 1fr) 270px; }
   .remote-workbench:not(.explorer-closed) { grid-template-columns: 180px minmax(0, 1fr) 250px; }
@@ -216,6 +263,11 @@ pre { max-width: 100%; overflow: auto; }
   .remote-statusbar span:nth-child(2) { display: none; }
 }
 @media (max-width: 620px) {
+  .list-filters { grid-template-columns: minmax(0, 1fr); }
+  .message-actions { grid-column: 1; }
+  .remote-message .message-actions { grid-column: 2; }
+  .document-reader { padding: 14px; }
+  .document-text { padding: 12px; }
   .page-header h2 { font-size: 26px; }
   .page-header p { font-size: 13px; }
   .form, .list-panel { padding: 16px; }
@@ -231,3 +283,100 @@ pre { max-width: 100%; overflow: auto; }
   .release-guide-steps > li header > div { min-width: 0; flex: 1; }
   .remote-deployment-head { flex-wrap: wrap; }
 }
+/* Project settings open above the page without taking space from the workbench. */
+.session-project-button { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: none; }
+.session-project-dialog { width: min(520px, calc(100vw - 32px)); max-height: calc(100dvh - 48px); overflow: auto; padding: 24px; color: #d6e4da; border: 1px solid #385546; border-radius: 12px; background: #102019; box-shadow: 0 24px 80px #0008; }
+.session-project-dialog::backdrop { background: #0008; }
+.session-project-dialog > header { display: flex; justify-content: space-between; align-items: start; gap: 12px; margin-bottom: 20px; }
+.session-project-dialog h2 { margin: 0; font-size: 20px; }
+.session-project-dialog header p { color: #a1b2a8; font-size: 13px; margin: 8px 0 0; line-height: 1.7; }
+.session-project-field { display: grid; gap: 8px; font-size: 14px; margin-bottom: 16px; }
+.session-project-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.session-validation { margin-top: 20px; padding-top: 20px; border-top: 1px solid #2b4136; }
+.session-validation h3 { margin: 0 0 8px; font-size: 16px; }
+.session-validation .hint { margin: 0 0 16px; line-height: 1.7; }
+.session-validation > button { display: block; margin-left: auto; }
+.workspace:has(.chat-section) { height: 100dvh; min-height: 0; overflow: hidden; display: flex; padding: 24px 32px; }
+.workspace > .chat-section { flex: 1; width: 100%; min-height: 0; margin: 0 !important; display: grid; grid-template-rows: auto auto minmax(0, 1fr); }
+.chat-section .page-header { margin-bottom: 16px; }
+.chat-section .chat-toolbar { gap: 8px; }
+.chat-section .chat-toolbar > label:first-child { flex: 1 1 230px; }
+.chat-section .chat-toolbar > span { padding: 0; }
+.chat-section .chat-toolbar > .ghost { font-size: 13px; padding: 8px; }
+.chat-section .chat-panel { min-height: 0; grid-template-rows: minmax(0, 1fr) auto; }
+.chat-section .messages { min-height: 0; max-height: none; }
+.chat-section .composer textarea { max-height: 120px; }
+@media (max-width: 900px) {
+  .workspace:has(.chat-section), .workspace:has(.remote-workbench-section) { height: calc(100dvh - 165px); min-height: 350px; padding: 12px 16px; overflow: hidden; }
+  .workspace > .remote-workbench-section { height: auto; }
+  .chat-section .page-header p { display: none; }
+  .chat-section .page-header { margin-bottom: 10px; }
+  .chat-section .chat-toolbar { gap: 6px; margin-bottom: 10px; }
+  .chat-section .chat-toolbar > span { display: none; }
+  .chat-section .history-compact { width: auto; flex: 1; }
+  .chat-section .composer { padding: 10px; }
+  .chat-section .composer textarea { height: 64px; }
+}
+
+/* Standalone project management: list and editor share a quiet, compact layout. */
+.projects-page .local-projects { max-width: 1100px; }
+.project-list-toolbar, .project-list-actions, .project-editor-head, .project-card-heading,
+.project-card-footer, .project-editor-footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.project-list-toolbar { margin-bottom: 18px; flex-wrap: wrap; }
+.project-list-toolbar h2 { margin: 0; font-size: 18px; }
+.project-list-toolbar h2 > span { margin-left: 8px; color: #8baba0; font-size: 14px; font-weight: 400; }
+.project-list-toolbar p, .project-editor-head p { margin: 6px 0 0; color: #a1b2a8; font-size: 13px; line-height: 1.6; }
+.local-projects .project-checkbox { display: flex; align-items: center; gap: 10px; color: #c7d8ce; font-size: 13px; cursor: pointer; }
+.local-projects .project-checkbox input { width: 16px; height: 16px; min-width: 16px; padding: 0; margin: 0; flex: none; accent-color: #68d6a4; }
+.project-list { display: grid; gap: 16px; }
+.project-card { padding: 24px; }
+.project-card-heading h3 { margin: 0; font-size: 18px; overflow-wrap: anywhere; }
+.project-status { border: 1px solid #385044; border-radius: 6px; padding: 4px 9px; color: #a8bcb0; font-size: 12px; flex: none; }
+.project-status--needs_protection { color: #e0c88e; border-color: #675b36; background: #302b1b; }
+.project-status--ready { color: #8edbb1; border-color: #366749; background: #192c20; }
+.project-source-path { margin: 12px 0 20px; color: #afc6ba; font: 13px/1.7 ui-monospace, monospace; overflow-wrap: anywhere; }
+.project-scope { margin: 0 0 20px; display: flex; flex-wrap: wrap; gap: 16px 40px; font-size: 13px; }
+.project-scope > div { display: flex; gap: 12px; min-width: 0; }
+.project-scope dt { color: #8fa79b; flex: none; }
+.project-scope dd { margin: 0; color: #d6e5dc; overflow-wrap: anywhere; }
+.project-card-footer { border-top: 1px solid #2b4136; padding-top: 16px; flex-wrap: wrap; }
+.project-card-footer p { margin: 0; flex: 1; min-width: 220px; color: #a1b2a8; font-size: 13px; line-height: 1.7; }
+.project-card-footer > div, .project-editor-footer > div { display: flex; gap: 8px; flex-wrap: wrap; }
+.project-editor { padding: 24px; display: grid; gap: 24px; }
+.project-editor-head { align-items: start; border-bottom: 1px solid #2b4136; padding-bottom: 20px; }
+.project-editor .project-editor-head h2 { margin: 0; font-size: 20px; }
+.project-basic-fields, .project-path-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; }
+.project-basic-fields { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
+.project-editor label:not(.project-checkbox) { display: flex; flex-direction: column; gap: 8px; min-width: 0; color: #d6e5dc; font-size: 14px; }
+.project-editor textarea { font: 13px/1.65 ui-monospace, monospace; min-height: 154px; }
+.project-field-help, .project-path-fields small { color: #a1b2a8; font-size: 12px; line-height: 1.65; }
+.project-editor .project-confirm { align-items: start; background: #15271e; border: 1px solid #335040; padding: 16px; border-radius: 8px; }
+.project-confirm input { margin-top: 3px !important; }
+.project-confirm strong { display: block; font-size: 14px; font-weight: 500; }
+.project-confirm small { display: block; margin-top: 5px; color: #a7bdb0; font-size: 12px; line-height: 1.65; }
+.project-editor-footer { border-top: 1px solid #2b4136; padding-top: 20px; flex-wrap: wrap; }
+.project-editor-footer p { flex: 1; min-width: 220px; margin: 0; color: #a1b2a8; font-size: 12px; line-height: 1.7; }
+.project-sandbox-note { display: flex; align-items: baseline; gap: 8px; margin: 18px 0 0; color: #a1b2a8; font-size: 12px; line-height: 1.7; }
+.project-sandbox-note > span { color: #68d6a4; }
+.project-empty { padding: 40px 24px; text-align: center; }
+.project-empty h3 { margin: 0 0 10px; font-size: 17px; }
+.project-empty p { margin: 0; color: #a1b2a8; font-size: 13px; }
+@media (max-width: 760px) {
+  .project-basic-fields, .project-path-fields { grid-template-columns: minmax(0, 1fr); }
+  .project-card, .project-editor { padding: 18px; }
+  .project-card-heading { flex-wrap: wrap; gap: 10px; }
+  .project-list-actions { flex-wrap: wrap; }
+  .project-card-footer > div, .project-editor-footer > div { margin-left: auto; }
+}
+.project-runtime { border-top: 1px solid var(--border, #294037); padding-top: .8rem; }
+.project-runtime-content { padding: .7rem 0; }
+.runtime-fields { display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; margin-bottom: .8rem; }
+.runtime-fields input[type="number"] { width: 6rem; }
+.artifact-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 0; border-bottom: 1px solid var(--border,#294037); }
+.artifact-row strong,.workflow-panel .hint { overflow-wrap: anywhere; }
+.workflow-panel .section-head select { max-width: 22rem; }
+@media(max-width:700px){.artifact-row,.workflow-panel .section-head {align-items:stretch;flex-direction:column}.workflow-panel .section-head select{max-width:100%;width:100%}}
+.workflow-panel h3 { margin: 0; }
+.workflow-panel h4 { margin: .8rem 0; }
+.workflow-create .field { margin-bottom: .6rem; }
+.workflow-check input[type="checkbox"] { accent-color: #65d7a4; flex: 0 0 16px; }

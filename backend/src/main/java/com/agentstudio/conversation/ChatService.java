@@ -31,7 +31,7 @@ public class ChatService {
     private static final java.util.Set<String> FIXED_TASK_TOOLS = java.util.Set.of(
             "inspect_remote_deployment", "run_remote_workspace_task", "prepare_remote_deployment_backup",
             "verify_remote_deployment_backup_restore", "prepare_release_candidate",
-            "build_release_candidate_image", "adopt_remote_database_baseline", "publish_remote_release");
+            "build_release_candidate_image", "adopt_remote_database_baseline", "publish_remote_release", "run_workspace_verification", "start_project_preview");
 
     private final AgentService agents;
     private final ConversationRepository conversations;
@@ -47,6 +47,18 @@ public class ChatService {
     private final Duration releaseCandidateTimeout;
     private final int maxRounds;
     private final int maxCallsPerRound;
+    @Value("${agent-studio.runtime.coding-max-tool-rounds:96}")
+    private int codingMaxRounds = 96;
+    @Value("${agent-studio.runtime.coding-max-tool-calls-per-round:16}")
+    private int codingMaxCallsPerRound = 16;
+    @Value("${agent-studio.runtime.coding-timeout:1800s}")
+    private Duration codingTimeout = Duration.ofSeconds(1800);
+    @Value("${agent-studio.runtime.model-connect-attempts:3}")
+    private int modelConnectAttempts = 3;
+    @Value("${agent-studio.runtime.model-connect-retry-delay:2s}")
+    private Duration modelConnectRetryDelay = Duration.ofSeconds(2);
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.agentstudio.project.LocalProjectService localProjects;
 
     public ChatService(AgentService agents, ConversationRepository conversations,
                        StreamingModelGateway modelGateway, KnowledgeRetriever knowledgeRetriever,
@@ -89,10 +101,22 @@ public class ChatService {
             if (!requested.arguments().isObject() || requested.arguments().toString().length() > 20000)
                 throw new ApiException(HttpStatus.BAD_REQUEST, "固定任务参数必须为有界 JSON 对象");
         }
-        if (version.archived() && (request.conversationId() == null || request.conversationId().isBlank())) {
-            throw new ApiException(HttpStatus.CONFLICT, "该 Agent 版本已归档，不能创建新会话");
+        if ((version.archived() || agents.get(version.agentDefinitionId()).archivedAt() != null)
+                && (request.conversationId() == null || request.conversationId().isBlank())) {
+            throw new ApiException(HttpStatus.CONFLICT, "助手或版本已归档，不能创建新会话；可查看原会话或先恢复助手");
         }
         var conversationId = resolveConversation(request.conversationId(), version.id());
+        if (localProjects != null) {
+            try {
+                if (request.conversationId() == null || request.conversationId().isBlank())
+                    localProjects.bind(conversationId, request.localProjectId());
+                var project = localProjects.resolve(conversationId, request.localProjectId());
+                if (project != null) localProjects.requireNoActiveRun(project.id());
+                if (project == null && version.toolNames().stream().anyMatch(n -> java.util.Set.of("list_workspace_directory","search_workspace_files","read_workspace_text_file","apply_workspace_text_patch","create_workspace_text_file","run_workspace_verification","start_project_preview").contains(n)))
+                    throw new ApiException(HttpStatus.CONFLICT, "编码助手需要选择可用的本地项目，请在 05 项目管理登记，然后新建会话");
+            } catch (ApiException e) { throw e; }
+            catch (Exception e) { throw new ApiException(HttpStatus.CONFLICT, e.getMessage()); }
+        }
         if (runs.forConversation(conversationId).stream().anyMatch(r -> !java.util.Set.of(
                 "COMPLETED", "FAILED", "CANCELLED", "TIMED_OUT", "INTERRUPTED").contains(r.status())))
             throw new ApiException(HttpStatus.CONFLICT, "该会话仍有运行中的任务，请观察原运行，不要重复执行");
@@ -106,14 +130,41 @@ public class ChatService {
     }
 
     Duration runTimeout(java.util.List<String> toolNames) {
+        var effectiveTimeout = isCodingAgent(toolNames) && codingTimeout.compareTo(totalTimeout) > 0 ? codingTimeout : totalTimeout;
+        if(toolNames.contains("start_project_preview") && effectiveTimeout.compareTo(Duration.ofSeconds(720)) < 0) effectiveTimeout=Duration.ofSeconds(720);
         if (toolNames.contains("build_release_candidate_image") || toolNames.contains("publish_remote_release")) {
             var imageBudget = Duration.ofSeconds(1200);
             if (releaseCandidateTimeout.compareTo(imageBudget) > 0) imageBudget = releaseCandidateTimeout;
-            return totalTimeout.compareTo(imageBudget) > 0 ? totalTimeout : imageBudget;
+            return effectiveTimeout.compareTo(imageBudget) > 0 ? effectiveTimeout : imageBudget;
         }
         return (toolNames.contains("prepare_release_candidate") || toolNames.contains("build_release_candidate_image"))
-                && releaseCandidateTimeout.compareTo(totalTimeout) > 0
-                ? releaseCandidateTimeout : totalTimeout;
+                && releaseCandidateTimeout.compareTo(effectiveTimeout) > 0
+                ? releaseCandidateTimeout : effectiveTimeout;
+    }
+
+    private static boolean isCodingAgent(java.util.List<String> toolNames) {
+        return toolNames.stream().anyMatch(java.util.Set.of("apply_workspace_text_patch","create_workspace_text_file","run_workspace_verification")::contains);
+    }
+
+    int toolRounds(java.util.List<String> toolNames) {
+        return isCodingAgent(toolNames) ? Math.max(maxRounds, codingMaxRounds) : maxRounds;
+    }
+
+    int toolCallsPerRound(java.util.List<String> toolNames) {
+        return isCodingAgent(toolNames) ? Math.max(maxCallsPerRound, codingMaxCallsPerRound) : maxCallsPerRound;
+    }
+
+    static boolean containsUnexecutedToolMarkup(String content) {
+        return content != null && java.util.regex.Pattern.compile("<\\|+DSML\\|+tool_calls>")
+                .matcher(content.replace('｜','|').replaceAll("\\s+", "")).find();
+    }
+
+    private void rejectUnexecutedToolMarkup(String runId, com.agentstudio.model.ModelTurn turn) {
+        if (turn.toolCalls().isEmpty() && containsUnexecutedToolMarkup(turn.content())) {
+            runs.addStep(runId,"MODEL_PROTOCOL_CHECK","FAILED",null,null,null,
+                    "模型把工具指令返回成普通文字，没有执行这些指令。",null);
+            throw new IllegalStateException("模型返回了未执行的工具指令，本次任务未完成。已执行的操作不会自动撤销；请查看运行记录后继续。");
+        }
     }
 
     private String resolveConversation(String requestedId, String versionId) {
@@ -142,6 +193,15 @@ public class ChatService {
             controls.check(run.id());
             var modelMessages = new ArrayList<ModelMessage>();
             modelMessages.add(new ModelMessage("system", version.systemPrompt()));
+            if(localProjects!=null) {
+                var project=localProjects.resolve(conversationId,null);
+                if(project!=null)modelMessages.add(new ModelMessage("system","当前会话绑定本地项目："+project.name()
+                        +"。文件工具仅接受本项目相对路径；允许修改子目录："+project.writableDirectories()
+                        +"；受保护目录："+project.protectedDirectories()
+                        +"。先读取实际文件和摘要，再提交精确补丁或新建文件，写入须逐次审批。验证在隔离源码副本中运行。"
+                        +"发布必须使用本项目新生成的不可变候选及其真实回执，依次完成镜像验证、新备份和独立上线审批。"
+                        +"工具失败或未执行时不得声称完成。不要请求改变根目录、解除数据保护或使用外部工具绕过边界。"));
+            }
             var sources = knowledgeRetriever.retrieve(version.knowledgeBaseId(),
                     conversations.messages(conversationId).getLast().content());
             controls.check(run.id());
@@ -184,6 +244,13 @@ public class ChatService {
             send(emitter, "done", Map.of("conversationId", conversationId));
             emitter.complete();
         } catch (Exception exception) {
+            var failureMessage=safeMessage(exception);
+            if(exception instanceof ModelConnectionFailure && isCodingAgent(version.toolNames())) {
+                failureMessage=InterruptedCodingProgress.summarize(runs.find(run.id()).orElseThrow(),failureMessage);
+                var progress=runs.addStep(run.id(),"WORK_INTERRUPTED","NOT_COMPLETED",null,null,null,failureMessage,null);
+                try { send(emitter,"step",progress); } catch(Exception ignored) { /* History survives disconnected observers. */ }
+                conversations.addMessage(conversationId,"assistant",failureMessage);
+            }
             var termination = exception instanceof RunTerminatedException terminated
                     ? terminated.termination() : controls.termination(run.id());
             if (termination != null) {
@@ -192,11 +259,12 @@ public class ChatService {
                         null, truncate(termination.reason()), null);
                 runs.finish(run.id(), termination.status(), truncate(termination.reason()));
             } else {
-                runs.finish(run.id(), "FAILED", truncate(safeMessage(exception)));
+                approvals.cancelPending(run.id(),failureMessage);
+                runs.finish(run.id(), "FAILED", truncate(failureMessage));
             }
             try {
                 if (termination == null) {
-                    send(emitter, "error", Map.of("message", safeMessage(exception)));
+                    send(emitter, "error", Map.of("message", failureMessage));
                 } else {
                     send(emitter, "terminated", Map.of(
                             "runId", run.id(), "status", termination.status(), "message", termination.reason()));
@@ -216,21 +284,39 @@ public class ChatService {
                               StringBuilder answer, ChatStreamRequest.RequestedTool requestedTool) throws Exception {
         var messages = new ArrayList<ReActMessage>();
         sourceMessages.forEach(message -> messages.add(ReActMessage.text(message.role(), message.content())));
+        if(isCodingAgent(version.toolNames())) {
+            var context=CodingRunContext.build(runs.forConversation(conversationId),runId,version.id());
+            if(!context.isEmpty()) {
+                messages.add(ReActMessage.text("system",context));
+                emitStep(emitter,runs.addStep(runId,"WORK_CONTEXT_RESTORED","COMPLETED",null,null,null,
+                        "已读取原会话的历史操作与失败结果；继续前仍需核对当前文件，所有新操作独立审批。",null));
+            }
+        }
+        int roundLimit = toolRounds(version.toolNames());
+        int callLimit = toolCallsPerRound(version.toolNames());
         messages.add(ReActMessage.text("system", """
                 工具调用应保持必要且最少：已有结果足以回答时立即生成最终答案，不要用语义相近的查询重复验证同一事实。
-                你最多拥有 %d 轮工具调用预算；预算耗尽后必须依据已经获得的结果作答。
-                """.formatted(maxRounds).trim()));
+                最多 %d 轮，每轮最多 %d 个工具调用。较多读取应拆成小批。依赖前一步结果的操作应放在下一轮。
+                所有调用按顺序执行；写入、测试和预览仍须分别审批。只依据实际工具回执报告进度，预算耗尽仍未完成时如实说明。
+                """.formatted(roundLimit, callLimit).trim()));
         var descriptors = tools.descriptors(version.toolNames());
         boolean hasExecutionEvidence = false;
+        int oversizedBatches = 0;
         var explicitToolRequest = requestsToolExecution(sourceMessages.getLast().content(), version.toolNames());
-        for (int round = 1; round <= maxRounds; round++) {
+        for (int round = 1; round <= roundLimit; round++) {
             controls.check(runId);
             runs.updateStatus(runId, "THINKING");
-            var turn = requestedTool == null ? modelGateway.complete(version, messages, descriptors)
+            var turn = requestedTool == null ? completeModelWithReconnect(emitter,runId,version,messages,descriptors)
                     : new com.agentstudio.model.ModelTurn("用户明确选择固定任务", java.util.List.of(
                             new com.agentstudio.model.ModelToolCall("fixed-" + java.util.UUID.randomUUID(),
                                     requestedTool.name(), requestedTool.arguments().toString())));
             controls.check(runId);
+            rejectUnexecutedToolMarkup(runId, turn);
+            if (turn.toolCalls().isEmpty() && oversizedBatches > 0) {
+                var reason = "过大的工具批次未执行，模型没有重新提交可执行的小批次，任务未完成。请查看运行记录后继续剩余工作。";
+                emitStep(emitter, runs.addStep(runId, "TOOL_BATCH_LIMIT", "NOT_COMPLETED", null, null, null, reason, null));
+                throw new IllegalStateException(reason);
+            }
             emitStep(emitter, runs.addStep(runId, requestedTool == null ? "MODEL_CALL" : "USER_TOOL_REQUEST",
                     turn.toolCalls().isEmpty() ? "COMPLETED" : "TOOL_REQUESTED",
                     null, null, null, truncate(turn.content()), null));
@@ -250,9 +336,19 @@ public class ChatService {
                 send(emitter, "delta", Map.of("content", turn.content()));
                 return;
             }
-            if (turn.toolCalls().size() > maxCallsPerRound) {
-                throw new IllegalStateException("单轮工具调用超过上限 " + maxCallsPerRound + "，运行已安全停止");
+            if (turn.toolCalls().size() > callLimit) {
+                var reason = "本批请求 " + turn.toolCalls().size() + " 个工具调用，超过每批 " + callLimit
+                        + " 个的上限。本批全部未执行，请拆成小批重新请求；之前已执行的操作保留，不要重复写入或验证。";
+                emitStep(emitter, runs.addStep(runId, "TOOL_BATCH_LIMIT", "NOT_EXECUTED", null, null,
+                        "{\"requested\":" + turn.toolCalls().size() + ",\"limit\":" + callLimit + "}", reason, null));
+                if (++oversizedBatches >= 3) {
+                    throw new IllegalStateException("模型连续请求过大的工具批次，任务未完成。本批未执行；已执行的操作保留，请查看运行记录后继续剩余工作。");
+                }
+                messages.add(ReActMessage.assistant(turn));
+                for (var call : turn.toolCalls()) messages.add(ReActMessage.observation(call.id(), reason));
+                continue;
             }
+            oversizedBatches = 0;
             messages.add(ReActMessage.assistant(turn));
             for (var call : turn.toolCalls()) {
                 controls.check(runId);
@@ -323,12 +419,18 @@ public class ChatService {
             send(emitter, "delta", Map.of("content", noExecution));
             return;
         }
+        if (isCodingAgent(version.toolNames())) {
+            var reason="达到本次开发工具调用上限（"+roundLimit+" 轮），任务未完成。已执行的操作不会自动撤销；请核对运行记录，再继续剩余工作。";
+            emitStep(emitter,runs.addStep(runId,"TOOL_BUDGET_EXHAUSTED","NOT_COMPLETED",null,null,null,reason,null));
+            throw new IllegalStateException(reason);
+        }
         messages.add(ReActMessage.text("system", """
                 工具调用预算已经用完。现在不得再调用任何工具；请仅依据前面已经返回的工具结果生成最终答案。
                 若现有证据仍不足，应明确说明不足之处。不要声称执行了尚未执行的操作。
                 """.trim()));
-        var finalTurn = modelGateway.complete(version, messages, java.util.List.of());
+        var finalTurn = completeModelWithReconnect(emitter,runId,version,messages,java.util.List.of());
         controls.check(runId);
+        rejectUnexecutedToolMarkup(runId, finalTurn);
         if (!finalTurn.toolCalls().isEmpty()) {
             throw new IllegalStateException("工具预算耗尽后模型仍请求工具，运行已安全停止");
         }
@@ -380,11 +482,43 @@ public class ChatService {
                 + value.substring(value.length() - 64000);
     }
 
-    private String toolContext(String value) {
+    static String toolContext(String value) {
         if (value == null) return "";
         int limit = 16000;
-        return value.length() <= limit ? value : value.substring(0, limit)
-                + "\n[工具结果过长，模型上下文已在 16000 字符处截断]";
+        if(value.length()<=limit)return value;
+        try {
+            var json=new com.fasterxml.jackson.databind.ObjectMapper();var node=json.readTree(value);
+            if(node.isObject() && node.has("task") && node.path("output").isTextual()) {
+                var response=(com.fasterxml.jackson.databind.node.ObjectNode)node;
+                var output=response.path("output").asText();
+                if(output.length()>8000)response.put("output",output.substring(0,2000)+"\n[模型上下文省略中间日志]\n"+output.substring(output.length()-6000));
+                response.put("modelContextTruncated",true);
+                var encoded=json.writeValueAsString(response);
+                if(encoded.length()<=limit)return encoded;
+            }
+        }catch(Exception ignored){}
+        return value.substring(0,4000)+"\n[工具结果过长，模型上下文省略中间内容；以下为末尾]\n"+value.substring(value.length()-12000);
+    }
+
+    private com.agentstudio.model.ModelTurn completeModelWithReconnect(SseEmitter emitter,String runId,
+            com.agentstudio.agent.AgentVersion version,java.util.List<ReActMessage> messages,
+            java.util.List<com.agentstudio.tool.ToolDescriptor> descriptors)throws Exception {
+        int attempts=Math.max(1,Math.min(modelConnectAttempts,3));
+        for(int attempt=1;attempt<=attempts;attempt++) {
+            controls.check(runId);
+            try { return modelGateway.complete(version,messages,descriptors); }
+            catch(Exception e) {
+                controls.check(runId);
+                if(!ModelConnectionFailure.retryable(e))throw e;
+                if(attempt==attempts)throw new ModelConnectionFailure(attempts,e);
+                var reason="暂时无法连接模型服务，正在重新连接（第 "+(attempt+1)+"/"+attempts+" 次）；不会重复执行之前的工具操作。";
+                runs.updateStatus(runId,"THINKING");
+                emitStep(emitter,runs.addStep(runId,"MODEL_CONNECTION_RETRY","RETRYING",null,null,null,reason,null));
+                long delay=Math.max(1,Math.min(5000,modelConnectRetryDelay.toMillis()*attempt));
+                Thread.sleep(delay);controls.check(runId);
+            }
+        }
+        throw new IllegalStateException("模型连接尝试未返回结果");
     }
 
     private String knowledgeContext(java.util.List<RagSource> sources) {

@@ -13,10 +13,18 @@ public record AgentDefinition(
         List<String> draftToolNames,
         int latestVersionNumber,
         Instant createdAt,
-        Instant updatedAt) {
+        Instant updatedAt,
+        Instant archivedAt) {
+
+    public AgentDefinition(String id, String name, String description, String draftModelProfileId,
+                           String draftKnowledgeBaseId, String draftSystemPrompt, List<String> draftToolNames,
+                           int latestVersionNumber, Instant createdAt, Instant updatedAt) {
+        this(id,name,description,draftModelProfileId,draftKnowledgeBaseId,draftSystemPrompt,draftToolNames,
+                latestVersionNumber,createdAt,updatedAt,null);
+    }
 
     @com.fasterxml.jackson.annotation.JsonProperty("status")
     public String status() {
-        return latestVersionNumber == 0 ? "DRAFT" : "PUBLISHED";
+        return archivedAt != null ? "ARCHIVED" : latestVersionNumber == 0 ? "DRAFT" : "PUBLISHED";
     }
 }

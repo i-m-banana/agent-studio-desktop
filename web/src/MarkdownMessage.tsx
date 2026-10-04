@@ -1,5 +1,12 @@
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { Children, isValidElement, type ReactNode } from 'react'
+import { CopyButton } from './CopyButton'
+
+function codeText(children: ReactNode): string {
+  return Children.toArray(children).map(child => typeof child === 'string' || typeof child === 'number' ? String(child)
+    : isValidElement<{ children?: ReactNode }>(child) ? codeText(child.props.children) : '').join('')
+}
 
 type MarkdownMessageProps = {
   content: string
@@ -23,6 +30,7 @@ export function MarkdownMessage({ content }: MarkdownMessageProps) {
       skipHtml
       urlTransform={safeMarkdownUrl}
       components={{
+        pre: ({ node: _node, children, ...props }) => <div className="code-block"><div className="code-block-toolbar"><CopyButton text={codeText(children)} label="复制代码" /></div><pre {...props}>{children}</pre></div>,
         a: ({ node: _node, href, children, ...props }) => href
           ? <a {...props} href={href} target={href.startsWith('#') ? undefined : '_blank'} rel={href.startsWith('#') ? undefined : 'noreferrer noopener'}>{children}</a>
           : <span>{children}</span>,
